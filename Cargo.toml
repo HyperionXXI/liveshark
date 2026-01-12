@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "crates/liveshark-core",
+  "crates/liveshark-cli",
+]
+resolver = "2"
