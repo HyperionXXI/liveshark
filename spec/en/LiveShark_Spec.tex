@@ -7,7 +7,7 @@
 \usepackage{biblatex}
 \addbibresource{../common/references.bib}
 
-\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Specification (Printable PDF)}
+\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Specification (Printable PDF) v0.1}
 \author{\sffamily Florian Keller}
 \date{\sffamily Draft — \today}
 
@@ -22,6 +22,7 @@ and \textbf{reproducible reports}.\\
 \textbf{Audience.} Designed to be readable by \textbf{non-software specialists} (lighting technicians, integrators, QA).
 \end{tcolorbox}
 
+\newpage
 \tableofcontents
 \newpage
 
@@ -34,8 +35,13 @@ version: in case of discrepancy or incomplete translation, \textbf{the English v
 \textbf{may lag behind}. When differences exist, the authoritative version prevails.
 
 \subsection{Normative keywords}
-The key words \MUST, \MUSTNOT, \SHOULD, \SHOULDNOT, and \MAY are to be interpreted as described in BCP 14
+The key words \MUST, \MUSTNOT, \SHOULD, \SHOULDNOT, and \MAY{} are to be interpreted as described in BCP 14
 (RFC 2119 and RFC 8174). Only \textbf{UPPERCASE} usage is normative.
+
+\subsection{Implementation language note}
+LiveShark is implemented in \textbf{Rust} to balance \textbf{memory safety}, \textbf{performance}, and \textbf{cross-platform}
+delivery (Windows, macOS, Linux) with a modern toolchain. This is an engineering choice for v0.1 and does not preclude
+future components from using other languages where justified.
 
 
 \subsection{Term note: \enquote{Live}}
@@ -106,12 +112,14 @@ domain model (frames, conflicts, reports).
 \end{itemize}
 
 \section{Architecture (conceptual)}
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \begin{adjustbox}{max width=\linewidth}
 \input{../common/figures/dataflow.tex}
 \end{adjustbox}
 \caption{Conceptual offline analysis pipeline (high level).}
+\textit{Note:} The pipeline currently accepts (v0.1) only PCAP/PCAPNG files. Live capture input is a future objective (v0.3+),
+aligned with requirement LS-ARCH-001.
 \end{figure}
 
 \section{Metrics (defaults)}
@@ -125,7 +133,7 @@ Unless otherwise stated:
 \section{Contractual requirements (extract)}
 This document is a bootstrap spec: requirements are intentionally minimal at project start.
 
-
+\subsection{Priority P0 (MVP foundations)}
 \begin{reqbox}{LS-ARCH-001}{P0}{}
 The core \MUST{} expose a packet/event input abstraction so that analysis can be driven by:
 (a) a PCAP/PCAPNG file reader (v0.1), and (b) a live capture source (future), without changing the domain model or report schema.
@@ -135,32 +143,58 @@ The core \MUST{} expose a packet/event input abstraction so that analysis can be
 LiveShark \MUSTNOT{} require the Wireshark GUI application. It \MUST{} accept PCAP/PCAPNG files produced by standard capture tools.
 \end{reqbox}
 
-
-
 \begin{reqbox}{LS-FR-001}{P0}{}
-LiveShark \MUST ingest PCAP/PCAPNG files and enumerate UDP flows.
+LiveShark \MUST{} ingest PCAP/PCAPNG files and enumerate UDP flows.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-010}{P0}{}
-LiveShark \MUST decode Art-Net ArtDMX and reconstruct DMX frames (512 slots) per universe.
+LiveShark \MUST{} decode Art-Net ArtDMX and reconstruct DMX frames (512 slots) per universe.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-011}{P0}{}
-LiveShark \MUST decode sACN (E1.31) DMX data packets and reconstruct DMX frames per universe.
+LiveShark \MUST{} decode sACN (E1.31) DMX data packets and reconstruct DMX frames per universe.
 \end{reqbox}
 
+\subsection{Priority P1 (critical differentiators)}
 \begin{reqbox}{LS-CONF-001}{P1}{}
-LiveShark \MUST detect concurrent sources: two or more sources emitting on the same universe with overlap $> 1.0$ s.
+LiveShark \MUST{} detect concurrent sources: two or more sources emitting on the same universe with overlap $> 1.0$ s.
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-001}{P1}{}
-LiveShark \MUST generate a versioned JSON report containing at least: capture summary, universes, sources, flows, and conflicts.
+LiveShark \MUST{} generate a versioned JSON report containing at least: capture summary, universes, sources, flows, and conflicts.
 \end{reqbox}
+
+\section{Validation criteria (extract)}
+
+\subsection{Definition of Done v0.1}
+The MVP is considered delivered if:
+\begin{enumerate}
+  \item \texttt{liveshark pcap analyse file.pcapng} runs successfully on 3 captures.
+  \item Art-Net and sACN are decoded (universes, sources, fps).
+  \item The JSON report contains \texttt{conflicts[]} (automatic detection).
+  \item No crash occurs on truncated/corrupted PCAPs.
+\end{enumerate}
+
+\subsection{Golden tests}
+Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
 
 \section{Licensing}
 Code is licensed under \textbf{MIT OR Apache-2.0}. Documentation and specifications are licensed under \textbf{CC-BY-4.0}.
+PDF files are build artifacts generated from the \texttt{.tex} sources and \textbf{should not be committed} to the repository.
 
 \section{Normative references}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Reference} & \textbf{Title} \\
+\midrule
+RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
+RFC 8174 & Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words \\
+RFC 3550 & RTP: A Transport Protocol for Real-Time Applications \\
+ANSI E1.31-2018 & Streaming ACN (sACN) \\
+Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
+\bottomrule
+\end{tabularx}
+
 \nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
 \printbibliography
 

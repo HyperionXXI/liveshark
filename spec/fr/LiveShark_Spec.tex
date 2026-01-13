@@ -23,14 +23,14 @@
 \usepackage{biblatex}
 \addbibresource{../common/references.bib}
 
-\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Spécification (PDF imprimable)}
+\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Spécification (PDF imprimable) v0.1}
 \author{\sffamily Florian Keller}
 \date{\sffamily Brouillon — \today}
 
 \begin{document}
 \maketitle
 
-\paragraph{Note de langue.} Cette version française est une traduction destinée à faciliter la relecture. En cas de divergence, la version anglaise (EN) est la référence pour les IDs d’exigences et les contrats, sauf décision explicite contraire.
+\paragraph{Note de langue.} Cette version française est une traduction destinée à faciliter la relecture. En cas de divergence, la version anglaise (EN) est la référence pour les IDs d’exigences et les contrats, sauf décision explicite contraire.\\
 
 \vspace{-1.0em}
 
@@ -41,6 +41,7 @@ la \textbf{détection automatique de conflits} et des \textbf{rapports reproduct
 \textbf{Public.} Le texte vise aussi des \textbf{non-spécialistes du développement logiciel} (techniciens lumière, intégrateurs, QA).
 \end{tcolorbox}
 
+\newpage
 \tableofcontents
 \newpage
 
@@ -53,8 +54,13 @@ en cas de divergence ou de traduction incomplète, \textbf{la version anglaise f
 \textbf{en retard}. En cas de différence, la version de référence prévaut.
 
 \subsection{Mots-clés normatifs}
-Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS et \PEUT sont à interpréter au sens de la BCP 14
+Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont à interpréter au sens de la BCP 14
 (RFC 2119 et RFC 8174). Seule l'écriture en \textbf{MAJUSCULES} est normative.
+
+\subsection{Note sur le langage d'implémentation}
+LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire}, \textbf{performances} et
+\textbf{portabilité} (Windows, macOS, Linux) avec un outillage moderne. Il s'agit d'un choix d'ingénierie pour v0.1
+et cela n'exclut pas l'usage d'autres langages pour des composants futurs si cela se justifie.
 
 \subsection{Note sur le terme \enquote{Live}}
 Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / show control} (réseaux lumière), et non à une
@@ -121,12 +127,14 @@ Aucune hypothèse « offline uniquement » \NEDOITPAS{} être intégrée au mod�
 \end{itemize}
 
 \section{Architecture (concept)}
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \begin{adjustbox}{max width=\linewidth}
 \input{../common/figures/dataflow.tex}
 \end{adjustbox}
 \caption{Pipeline conceptuel d'analyse hors-ligne (niveau élevé).}
+\textit{Note :} Le pipeline accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrée depuis une capture live
+est un objectif futur (v0.3+) conforme à l'exigence LS-ARCH-001.
 \end{figure}
 
 \section{Métriques (valeurs par défaut)}
@@ -140,6 +148,7 @@ Par défaut :
 \section{Exigences contractuelles (extrait)}
 Ce document est une base de démarrage : les exigences sont volontairement minimales.
 
+\subsection{Priorité P0 (fondations MVP)}
 \begin{reqbox}{LS-ARCH-001}{P0}{}
 Le cœur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
 (a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture live (future), sans modifier le modèle métier ni le schéma de rapport.
@@ -150,29 +159,57 @@ LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique). I
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-001}{P0}{}
-LiveShark \DOIT ingérer des fichiers PCAP/PCAPNG et lister les flux UDP.
+LiveShark \DOIT{} ingérer des fichiers PCAP/PCAPNG et lister les flux UDP.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-010}{P0}{}
-LiveShark \DOIT décoder Art-Net ArtDMX et reconstruire des trames DMX (512 slots) par univers.
+LiveShark \DOIT{} décoder Art-Net ArtDMX et reconstruire des trames DMX (512 slots) par univers.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-011}{P0}{}
-LiveShark \DOIT décoder sACN (E1.31) et reconstruire des trames DMX par univers.
+LiveShark \DOIT{} décoder sACN (E1.31) et reconstruire des trames DMX par univers.
 \end{reqbox}
 
+\subsection{Priorité P1 (différenciateurs critiques)}
 \begin{reqbox}{LS-CONF-001}{P1}{}
-LiveShark \DOIT détecter les sources concurrentes : deux sources ou plus sur le même univers avec chevauchement $> 1.0$ s.
+LiveShark \DOIT{} détecter les sources concurrentes : deux sources ou plus sur le même univers avec chevauchement $> 1.0$ s.
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-001}{P1}{}
-LiveShark \DOIT générer un rapport JSON versionné contenant au minimum : résumé capture, univers, sources, flux et conflits.
+LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : résumé capture, univers, sources, flux et conflits.
 \end{reqbox}
+
+\section{Critères de validation (extrait)}
+
+\subsection{Definition of Done v0.1}
+Le MVP est considéré livré si :
+\begin{enumerate}
+  \item \texttt{liveshark pcap analyse file.pcapng} fonctionne sur 3 captures.
+  \item Art-Net et sACN sont décodés (univers, sources, fps).
+  \item Le rapport JSON contient \texttt{conflicts[]} (détection auto).
+  \item Aucun crash sur PCAP tronqué/corrompu.
+\end{enumerate}
+
+\subsection{Tests golden}
+Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 
 \section{Licence}
 Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les specifications sont sous licence \textbf{CC-BY-4.0}.
+Les fichiers PDF sont des artefacts de build générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être committés} dans le dépôt.
 
 \section{Références normatives}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Référence} & \textbf{Titre} \\
+\midrule
+RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
+RFC 8174 & Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words \\
+RFC 3550 & RTP: A Transport Protocol for Real-Time Applications \\
+ANSI E1.31-2018 & Streaming ACN (sACN) \\
+Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
+\bottomrule
+\end{tabularx}
+
 \nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
 \printbibliography
 
