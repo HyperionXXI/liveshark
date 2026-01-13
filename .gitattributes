@@ -12,3 +12,7 @@
 # Windows scripts
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Keep shell scripts and Makefile LF (CI/Linux friendly)
+*.sh text eol=lf
+Makefile text eol=lf
