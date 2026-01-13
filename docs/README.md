@@ -10,12 +10,16 @@ What is authoritative?
 - **PDF files:** build artifacts generated from `.tex` sources. They are provided for convenience and **must not** be treated as the source of truth.
 
 Build the PDFs
-Option A -- Make (if available)
+Option A -- MiKTeX GUI (Windows, no terminal required)
+- Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
+- Use XeLaTeX and compile to PDF.
+
+Option B -- Make (if available)
 ```bash
 make pdf
 ```
 
-Option B -- direct (works on Windows with MiKTeX)
+Option C -- direct (works on Windows with MiKTeX + Perl)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
@@ -42,12 +46,16 @@ Quelle est la reference ?
 - **Fichiers PDF :** artefacts generes depuis les `.tex`. Ils sont fournis par confort et **ne sont pas la source de verite**.
 
 Generer les PDF
-Option A -- Make (si disponible)
+Option A -- MiKTeX GUI (Windows, sans terminal)
+- Ouvrir `spec/en/LiveShark_Spec.tex` ou `spec/fr/LiveShark_Spec.tex` dans l'interface MiKTeX/TeXworks.
+- Utiliser XeLaTeX et compiler en PDF.
+
+Option B -- Make (si disponible)
 ```bash
 make pdf
 ```
 
-Option B -- direct (fonctionne sous Windows avec MiKTeX)
+Option C -- direct (fonctionne sous Windows avec MiKTeX + Perl)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
