@@ -30,3 +30,4 @@ spec/**/build/
 **/*.lof
 **/*.lot
 *.xdv
+spec/common/git-commit.tex

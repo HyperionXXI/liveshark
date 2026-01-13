@@ -1,0 +1,37 @@
+name: Build spec PDFs
+
+on:
+  push:
+    paths:
+      - "spec/**"
+      - "docs/**"
+      - ".github/workflows/build-spec-pdfs.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject git commit for PDF footer
+        shell: bash
+        run: |
+          printf '\\renewcommand{\\lsGitCommit}{%s}\n' "${GITHUB_SHA::7}" > spec/common/git-commit.tex
+
+      - name: Build PDFs (XeLaTeX)
+        uses: xu-cheng/latex-action@v3
+        with:
+          latexmk_use_xelatex: true
+          root_file: |
+            spec/en/LiveShark_Spec.tex
+            spec/fr/LiveShark_Spec.tex
+
+      - name: Upload PDF artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: liveshark-spec-pdf
+          path: |
+            spec/en/LiveShark_Spec.pdf
+            spec/fr/LiveShark_Spec.pdf

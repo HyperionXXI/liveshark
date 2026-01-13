@@ -51,17 +51,24 @@
 \renewcommand{\footrulewidth}{0pt}
 \fancyhead[L]{\sffamily\small\color{LSMid}\lsProjectTitle}
 \fancyhead[R]{\sffamily\small\color{LSMid}\lsSpecStatus}
+\fancyfoot[L]{\sffamily\small\color{LSMid}\lsSpecVersion\ (\lsSpecStatus) - Commit \texttt{\lsGitCommit}}
 \fancyfoot[C]{\sffamily\small\color{LSMid}\thepage}
+\fancyfoot[R]{\sffamily\small\color{LSMid}\today}
 
 % Figures
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{caption}
 \captionsetup{labelfont={sf,bf},textfont=sf,font=small}
 
-% TikZ (for clean diagrams) — kept simple
+% TikZ (for clean diagrams) – kept simple
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes,fit}
 \usepackage{adjustbox}
+
+% Start each top-level section on a new page
+\usepackage{etoolbox}
+\preto\section{\clearpage}
 
 % Framed boxes for requirements/notes (subtle)
 \usepackage[most]{tcolorbox}

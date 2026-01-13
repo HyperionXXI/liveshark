@@ -41,6 +41,7 @@ latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.
 Outputs:
 - `spec/en/LiveShark_Spec.pdf`
 - `spec/fr/LiveShark_Spec.pdf`
+Note: PDFs are generated artifacts and should not be committed to the repository.
 
 ## Roadmap (high level)
 

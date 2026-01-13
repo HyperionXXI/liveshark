@@ -14,6 +14,9 @@ Option A -- MiKTeX GUI (Windows, no terminal required)
 - Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
 - Use XeLaTeX and compile to PDF.
 
+CI builds
+- GitHub Actions builds the PDFs and injects the git commit hash into the footer.
+
 Option B -- Make (if available)
 ```bash
 make pdf
@@ -30,6 +33,7 @@ The specs are compiled directly from the `.tex` sources (no external diagram too
 Outputs:
 - `spec/en/LiveShark_Spec.pdf`
 - `spec/fr/LiveShark_Spec.pdf`
+Note: PDFs are generated artifacts and should not be committed to the repository.
 
 Notes
 - The visual style is intentionally simple and professional (no gimmicks).
@@ -50,6 +54,9 @@ Option A -- MiKTeX GUI (Windows, sans terminal)
 - Ouvrir `spec/en/LiveShark_Spec.tex` ou `spec/fr/LiveShark_Spec.tex` dans l'interface MiKTeX/TeXworks.
 - Utiliser XeLaTeX et compiler en PDF.
 
+Builds CI
+- GitHub Actions compile les PDF et injecte le hash du commit dans le pied de page.
+
 Option B -- Make (si disponible)
 ```bash
 make pdf
@@ -66,6 +73,7 @@ Les specs sont compilees directement depuis les sources `.tex` (aucun outil de d
 Sorties :
 - `spec/en/LiveShark_Spec.pdf`
 - `spec/fr/LiveShark_Spec.pdf`
+Note : les PDF sont des artefacts générés et ne doivent pas être committés dans le dépôt.
 
 Notes
 - Le style visuel est volontairement simple et professionnel (sans effets).
