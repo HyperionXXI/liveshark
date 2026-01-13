@@ -1,0 +1,164 @@
+\documentclass[11pt]{article}
+
+\input{../common/liveshark-style.tex}
+\input{../common/liveshark-macros.tex}
+
+\usepackage{csquotes}
+\usepackage{biblatex}
+\addbibresource{../common/references.bib}
+
+\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Specification (Printable PDF)}
+\author{\sffamily Florian Keller}
+\date{\sffamily Draft — \today}
+
+\begin{document}
+\maketitle
+\vspace{-1.0em}
+
+\begin{tcolorbox}
+\textbf{Scope.} LiveShark is a \textbf{passive} analyzer for show-control networking (Art-Net, sACN). It focuses on
+\textbf{offline PCAP analysis} with \textbf{DMX frame reconstruction}, \textbf{automatic conflict detection},
+and \textbf{reproducible reports}.\\
+\textbf{Audience.} Designed to be readable by \textbf{non-software specialists} (lighting technicians, integrators, QA).
+\end{tcolorbox}
+
+\tableofcontents
+\newpage
+
+\section{Terminology and conventions}
+
+\subsection{Authoritative version and translation policy}
+\textbf{Authoritative version (prevails).} The English specification in \texttt{spec/en} is the \emph{authoritative}
+version: in case of discrepancy or incomplete translation, \textbf{the English version prevails}.\\
+\textbf{Best-effort translation.} A French translation may exist in \texttt{spec/fr}. It is provided as a convenience and
+\textbf{may lag behind}. When differences exist, the authoritative version prevails.
+
+\subsection{Normative keywords}
+The key words \MUST, \MUSTNOT, \SHOULD, \SHOULDNOT, and \MAY are to be interpreted as described in BCP 14
+(RFC 2119 and RFC 8174). Only \textbf{UPPERCASE} usage is normative.
+
+
+\subsection{Term note: \enquote{Live}}
+In the project name, \enquote{Live} refers to \textbf{live entertainment / show control} (lighting networks), not to a guarantee
+of real-time capture capability. Real-time capture is optional and may be introduced in later releases.
+
+\subsection{Core terms}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+Packet & Network packet as captured in PCAP/PCAPNG. \\
+Protocol message & Decoded application-layer unit (e.g., ArtDMX, sACN Data Packet). \\
+DMX frame & Reconstructed DMX512 state (512 slots) for a universe at a given time. \\
+Universe & Logical group of up to 512 DMX slots. \\
+Source & Emitter identified by IP and, if applicable, protocol identity (e.g., sACN CID). \\
+Flow & Unidirectional tuple (proto, src ip:port, dst ip:port). \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Acronyms}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Acronym} & \textbf{Expanded form} \\
+\midrule
+DMX & Digital Multiplex (DMX512 / DMX512-A) \\
+sACN & Streaming ACN (ANSI E1.31) \\
+CID & Component Identifier (sACN source identifier) \\
+PCAP & Packet Capture file format \\
+FPS / PPS / BPS & Frames / Packets / Bytes per second \\
+DoD & Definition of Done \\
+\bottomrule
+\end{tabularx}
+
+\section{What LiveShark is (and is not)}
+
+\subsection{Goals}
+\begin{itemize}
+  \item Offline analysis of PCAP/PCAPNG for Art-Net and sACN.
+  \item DMX frame reconstruction (512 slots) and metrics (fps, pps/bps, jitter).
+  \item Automatic detection of \textbf{conflicts} (multiple sources on same universe with overlap).
+  \item Versioned, reproducible JSON reports for tickets, post-mortem, QA and CI.
+\end{itemize}
+
+\paragraph{Capture input (no Wireshark required).}
+LiveShark \MUSTNOT{} require the Wireshark GUI application to operate.
+For v0.1, captures are provided as PCAP/PCAPNG files produced by standard tools (e.g., \texttt{tcpdump} on Linux, \texttt{pktmon} on Windows, or any capture tool that exports PCAP/PCAPNG).
+Live capture is a future objective and \MAY{} be added later via libpcap/Npcap (without changing the report schema).
+
+
+
+\subsection{Offline-first strategy (product intent)}
+LiveShark is designed as an \emph{offline-first} analyzer: early releases focus on post-mortem analysis of PCAP/PCAPNG captures
+to maximize robustness, reproducibility, and ease of support. This is a deliberate engineering strategy, not a product limitation.
+Live capture / online analysis is an explicit future objective and \MAY{} be implemented once the offline core is validated.
+
+\textbf{Forward compatibility.} The core analysis pipeline \MUST{} be architected so that packet input can come from either:
+(a) a file reader (PCAP/PCAPNG), or (b) a live capture source (future). No offline-only assumption \MUST{} be embedded in the
+domain model (frames, conflicts, reports).
+
+
+
+\subsection{Non-goals}
+\begin{itemize}
+  \item LiveShark is \textbf{not} a general-purpose packet analyzer (it does not replace Wireshark).
+  \item LiveShark is \textbf{passive} by design: it does not transmit or inject traffic.
+  \item ``Laser over IP'' starts as \textbf{generic UDP flow metrics only}; laser frame reconstruction is out of scope for v0.1.
+\end{itemize}
+
+\section{Architecture (conceptual)}
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}
+\input{../common/figures/dataflow.tex}
+\end{adjustbox}
+\caption{Conceptual offline analysis pipeline (high level).}
+\end{figure}
+
+\section{Metrics (defaults)}
+Unless otherwise stated:
+\begin{itemize}
+  \item \textbf{pps/bps window:} 1.0 s sliding window
+  \item \textbf{fps window:} 5.0 s sliding window
+  \item \textbf{jitter window:} 10.0 s sliding window (see metrics definition; concept reference: RFC 3550)
+\end{itemize}
+
+\section{Contractual requirements (extract)}
+This document is a bootstrap spec: requirements are intentionally minimal at project start.
+
+
+\begin{reqbox}{LS-ARCH-001}{P0}{}
+The core \MUST{} expose a packet/event input abstraction so that analysis can be driven by:
+(a) a PCAP/PCAPNG file reader (v0.1), and (b) a live capture source (future), without changing the domain model or report schema.
+\end{reqbox}
+
+\begin{reqbox}{LS-PROD-001}{P0}{}
+LiveShark \MUSTNOT{} require the Wireshark GUI application. It \MUST{} accept PCAP/PCAPNG files produced by standard capture tools.
+\end{reqbox}
+
+
+
+\begin{reqbox}{LS-FR-001}{P0}{}
+LiveShark \MUST ingest PCAP/PCAPNG files and enumerate UDP flows.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-010}{P0}{}
+LiveShark \MUST decode Art-Net ArtDMX and reconstruct DMX frames (512 slots) per universe.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-011}{P0}{}
+LiveShark \MUST decode sACN (E1.31) DMX data packets and reconstruct DMX frames per universe.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-001}{P1}{}
+LiveShark \MUST detect concurrent sources: two or more sources emitting on the same universe with overlap $> 1.0$ s.
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-001}{P1}{}
+LiveShark \MUST generate a versioned JSON report containing at least: capture summary, universes, sources, flows, and conflicts.
+\end{reqbox}
+
+\section{Normative references}
+\nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
+\printbibliography
+
+\end{document}

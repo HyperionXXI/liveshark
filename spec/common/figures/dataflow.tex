@@ -1,0 +1,17 @@
+\begin{tikzpicture}[
+  node distance=10mm,
+  box/.style={rounded corners, draw=LSBlue!60, fill=white, thick, minimum width=0.75\linewidth, minimum height=9mm, align=center, font=\sffamily},
+  arrow/.style={-{Stealth[length=2.2mm]}, thick, draw=LSBlue!70},
+]
+\node[box] (pcap) {PCAP / PCAPNG Capture File};
+\node[box, below=of pcap] (parse) {Packet Parser (L2/L3/L4)};
+\node[box, below=of parse] (decode) {Protocol Decoders \\ Art-Net (ArtDMX), sACN (E1.31)};
+\node[box, below=of decode] (frame) {DMX Frame Reconstruction \\ (Universe, Timestamp, 512 slots)};
+\node[box, below=of frame] (conf) {Conflict Detector \\ (overlap, affected channels, score)};
+\node[box, below=of conf] (report) {Versioned JSON Report \\ (reports for tickets / QA / CI)};
+\draw[arrow] (pcap) -- (parse);
+\draw[arrow] (parse) -- (decode);
+\draw[arrow] (decode) -- (frame);
+\draw[arrow] (frame) -- (conf);
+\draw[arrow] (conf) -- (report);
+\end{tikzpicture}

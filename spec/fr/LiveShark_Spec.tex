@@ -1,0 +1,176 @@
+\documentclass[11pt]{article}
+
+\input{../common/liveshark-style.tex}
+\input{../common/liveshark-macros.tex}
+
+% --- Langue (XeLaTeX) ---
+\usepackage{polyglossia}
+\setdefaultlanguage{french}
+
+% --- Mots-clés normatifs en français (intention BCP 14 / RFC 2119 & RFC 8174) ---
+\newcommand{\DOIT}{\textbf{DOIT}}
+\newcommand{\NEDOITPAS}{\textbf{NE DOIT PAS}}
+\newcommand{\DEVRAIT}{\textbf{DEVRAIT}}
+\newcommand{\NEDEVRAITPAS}{\textbf{NE DEVRAIT PAS}}
+\newcommand{\PEUT}{\textbf{PEUT}}
+
+% Titres standards en français
+\addto\captionsfrench{
+  \renewcommand{\contentsname}{Sommaire}
+}
+
+\usepackage{csquotes}
+\usepackage{biblatex}
+\addbibresource{../common/references.bib}
+
+\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Spécification (PDF imprimable)}
+\author{\sffamily Florian Keller}
+\date{\sffamily Brouillon — \today}
+
+\begin{document}
+\maketitle
+
+\paragraph{Note de langue.} Cette version française est une traduction destinée à faciliter la relecture. En cas de divergence, la version anglaise (EN) est la référence pour les IDs d’exigences et les contrats, sauf décision explicite contraire.
+
+\vspace{-1.0em}
+
+\begin{tcolorbox}
+\textbf{Périmètre.} LiveShark est un analyseur \textbf{passif} pour les réseaux de show-control (Art-Net, sACN).
+Il se concentre sur l'\textbf{analyse hors-ligne de captures PCAP}, la \textbf{reconstruction de trames DMX},
+la \textbf{détection automatique de conflits} et des \textbf{rapports reproductibles}.\\
+\textbf{Public.} Le texte vise aussi des \textbf{non-spécialistes du développement logiciel} (techniciens lumière, intégrateurs, QA).
+\end{tcolorbox}
+
+\tableofcontents
+\newpage
+
+\section{Terminologie et conventions}
+
+\subsection{Version de référence et politique de traduction}
+\textbf{Version de référence (fait foi).} La spécification anglaise dans \texttt{spec/en} est la \emph{version de référence} :
+en cas de divergence ou de traduction incomplète, \textbf{la version anglaise fait foi}.\\
+\textbf{Traduction indicative (best-effort).} La version française dans \texttt{spec/fr} est une aide à la relecture et peut être
+\textbf{en retard}. En cas de différence, la version de référence prévaut.
+
+\subsection{Mots-clés normatifs}
+Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS et \PEUT sont à interpréter au sens de la BCP 14
+(RFC 2119 et RFC 8174). Seule l'écriture en \textbf{MAJUSCULES} est normative.
+
+\subsection{Note sur le terme \enquote{Live}}
+Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / show control} (réseaux lumière), et non à une
+garantie de capture en temps réel. La capture en temps réel est optionnelle et pourra être introduite dans des versions ultérieures.
+
+\subsection{Termes de base}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Terme} & \textbf{Signification} \\
+\midrule
+Paquet & Paquet réseau capturé dans un fichier PCAP/PCAPNG. \\
+Message protocolaire & Unité décodée au niveau applicatif (ex. ArtDMX, sACN Data Packet). \\
+Trame DMX & État DMX512 (512 slots) reconstruit pour un univers à un instant donné. \\
+Univers & Groupe logique de jusqu'à 512 slots DMX. \\
+Source & Émetteur identifié par IP et, si applicable, par identifiant protocolaire (ex. CID sACN). \\
+Flux & Tuple unidirectionnel (proto, src ip:port, dst ip:port). \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Acronymes}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Acronyme} & \textbf{Développement} \\
+\midrule
+DMX & Digital Multiplex (DMX512 / DMX512-A) \\
+sACN & Streaming ACN (ANSI E1.31) \\
+CID & Component Identifier (identifiant de source sACN) \\
+PCAP & Packet Capture \\
+FPS / PPS / BPS & Trames / Paquets / Octets par seconde \\
+DoD & Definition of Done \\
+\bottomrule
+\end{tabularx}
+
+\section{Ce que LiveShark est (et n'est pas)}
+
+\subsection{Objectifs}
+\begin{itemize}
+  \item Analyse hors-ligne de captures PCAP/PCAPNG pour Art-Net et sACN.
+  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps, jitter).
+  \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
+  \item Rapports JSON versionnés et reproductibles pour tickets, post-mortem, QA et CI.
+\end{itemize}
+
+\paragraph{Entrée capture (Wireshark non requis).}
+LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique) pour fonctionner.
+En v0.1, l’entrée est un fichier PCAP/PCAPNG produit par des outils standards (p.\,ex. \texttt{tcpdump} sous Linux, \texttt{pktmon} sous Windows, ou tout outil de capture exportant PCAP/PCAPNG).
+La capture live est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
+
+\subsection{Stratégie \emph{offline-first} (intention produit)}
+LiveShark est conçu comme un analyseur \emph{offline-first} : les premières versions se concentrent sur l’analyse post-mortem
+de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
+Il s’agit d’un choix d’ingénierie volontaire, et non d’une limitation produit.
+La capture live / l’analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur offline validé.
+
+\textbf{Compatibilité future.} Le pipeline d’analyse \DOIT{} être architecturé afin que l’entrée des paquets puisse provenir :
+(a) d’un lecteur de fichiers (PCAP/PCAPNG), ou (b) d’une source de capture live (future).
+Aucune hypothèse « offline uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
+
+\subsection{Non-objectifs}
+\begin{itemize}
+  \item LiveShark ne vise \textbf{pas} à remplacer Wireshark.
+  \item LiveShark est \textbf{passif} : il n'injecte pas de trafic.
+  \item ``Laser over IP'' démarre en mode \textbf{métriques de flux UDP} uniquement ; la reconstruction de trames laser est hors scope v0.1.
+\end{itemize}
+
+\section{Architecture (concept)}
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}
+\input{../common/figures/dataflow.tex}
+\end{adjustbox}
+\caption{Pipeline conceptuel d'analyse hors-ligne (niveau élevé).}
+\end{figure}
+
+\section{Métriques (valeurs par défaut)}
+Par défaut :
+\begin{itemize}
+  \item \textbf{Fenêtre pps/bps :} 1.0 s (glissante)
+  \item \textbf{Fenêtre fps :} 5.0 s (glissante)
+  \item \textbf{Fenêtre jitter :} 10.0 s (glissante) (référence conceptuelle : RFC 3550)
+\end{itemize}
+
+\section{Exigences contractuelles (extrait)}
+Ce document est une base de démarrage : les exigences sont volontairement minimales.
+
+\begin{reqbox}{LS-ARCH-001}{P0}{}
+Le cœur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
+(a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture live (future), sans modifier le modèle métier ni le schéma de rapport.
+\end{reqbox}
+
+\begin{reqbox}{LS-PROD-001}{P0}{}
+LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique). Il \DOIT{} accepter des fichiers PCAP/PCAPNG produits par des outils de capture standards.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-001}{P0}{}
+LiveShark \DOIT ingérer des fichiers PCAP/PCAPNG et lister les flux UDP.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-010}{P0}{}
+LiveShark \DOIT décoder Art-Net ArtDMX et reconstruire des trames DMX (512 slots) par univers.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-011}{P0}{}
+LiveShark \DOIT décoder sACN (E1.31) et reconstruire des trames DMX par univers.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-001}{P1}{}
+LiveShark \DOIT détecter les sources concurrentes : deux sources ou plus sur le même univers avec chevauchement $> 1.0$ s.
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-001}{P1}{}
+LiveShark \DOIT générer un rapport JSON versionné contenant au minimum : résumé capture, univers, sources, flux et conflits.
+\end{reqbox}
+
+\section{Références normatives}
+\nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
+\printbibliography
+
+\end{document}

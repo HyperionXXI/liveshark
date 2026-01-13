@@ -1,0 +1,74 @@
+% LiveShark — minimal "premium product" style (printable, sober)
+
+\usepackage[a4paper,margin=2.3cm]{geometry}
+
+% Fonts: modern, readable, widely available in TeX Live
+\usepackage{fontspec}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+
+\usepackage{microtype}
+
+% Color palette (subtle)
+\usepackage{xcolor}
+\definecolor{LSBlue}{HTML}{1A355E}
+\definecolor{LSGray}{HTML}{F4F6F8}
+\definecolor{LSMid}{HTML}{5B6675}
+
+% Headings
+\usepackage{titlesec}
+\titleformat{\section}{\sffamily\bfseries\Large\color{LSBlue}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\sffamily\bfseries\large\color{LSBlue}}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}{\sffamily\bfseries\normalsize\color{LSBlue}}{\thesubsubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{2.0ex}{1.1ex}
+\titlespacing*{\subsection}{0pt}{1.6ex}{0.9ex}
+
+% Lists
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,topsep=0.4em,itemsep=0.25em}
+\setlist[enumerate]{leftmargin=*,topsep=0.4em,itemsep=0.25em}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{tabularx}
+\renewcommand{\arraystretch}{1.15}
+
+% Links: NO red boxes
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=LSBlue,
+  urlcolor=LSBlue,
+  citecolor=LSBlue,
+  pdfborder={0 0 0}
+}
+
+% Header/footer
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.2pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhead[L]{\sffamily\small\color{LSMid}\lsProjectTitle}
+\fancyhead[R]{\sffamily\small\color{LSMid}\lsSpecStatus}
+\fancyfoot[C]{\sffamily\small\color{LSMid}\thepage}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{labelfont={sf,bf},textfont=sf,font=small}
+
+% TikZ (for clean diagrams) — kept simple
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes,fit}
+\usepackage{adjustbox}
+
+% Framed boxes for requirements/notes (subtle)
+\usepackage[most]{tcolorbox}
+\tcbset{
+  colback=LSGray,
+  colframe=LSBlue!35,
+  arc=2mm,
+  boxrule=0.4pt,
+  left=1.4mm,right=1.4mm,top=1.0mm,bottom=1.0mm
+}
