@@ -20,8 +20,17 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 
 ## Build the PDFs (for non-developers)
 
+The specs are compiled directly from the `.tex` sources (no external diagram tools required).
+
+Option A -- Make (if available)
 ```bash
 make pdf
+```
+
+Option B -- direct (works on Windows with MiKTeX)
+```bash
+latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
 ```
 
 Outputs:

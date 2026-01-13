@@ -10,16 +10,18 @@ What is authoritative?
 - **PDF files:** build artifacts generated from `.tex` sources. They are provided for convenience and **must not** be treated as the source of truth.
 
 Build the PDFs
-Option A -- Make (recommended)
+Option A -- Make (if available)
 ```bash
 make pdf
 ```
 
-Option B -- direct (requires latexmk)
+Option B -- direct (works on Windows with MiKTeX)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
 ```
+
+The specs are compiled directly from the `.tex` sources (no external diagram tools required).
 
 Outputs:
 - `spec/en/LiveShark_Spec.pdf`
@@ -40,16 +42,18 @@ Quelle est la reference ?
 - **Fichiers PDF :** artefacts generes depuis les `.tex`. Ils sont fournis par confort et **ne sont pas la source de verite**.
 
 Generer les PDF
-Option A -- Make (recommandee)
+Option A -- Make (si disponible)
 ```bash
 make pdf
 ```
 
-Option B -- direct (requiert latexmk)
+Option B -- direct (fonctionne sous Windows avec MiKTeX)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
 ```
+
+Les specs sont compilees directement depuis les sources `.tex` (aucun outil de diagramme externe requis).
 
 Sorties :
 - `spec/en/LiveShark_Spec.pdf`
