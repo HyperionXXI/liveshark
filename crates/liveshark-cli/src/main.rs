@@ -27,7 +27,7 @@ enum Commands {
 
 #[derive(Subcommand, Debug)]
 enum PcapCommands {
-    /// Analyse a capture file and generate a versioned JSON report (M0: stub report).
+    /// Analyse a capture file and generate a versioned JSON report (P0: UDP flows).
     Analyse {
         /// Path to a .pcap or .pcapng file
         input: PathBuf,
@@ -56,8 +56,8 @@ fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<()> {
         anyhow::bail!("Entrée invalide (pas un fichier): {}", input.display());
     }
 
-    // M0: report stub, stable & versioned.
-    let rep = liveshark_core::make_stub_report(&input.display().to_string(), meta.len());
+    let rep = liveshark_core::analyze_pcap_file(&input)
+        .context("Échec analyse PCAP/PCAPNG")?;
     let json = serde_json::to_string_pretty(&rep).context("Échec sérialisation JSON")?;
 
     if let Some(parent) = report.parent() {

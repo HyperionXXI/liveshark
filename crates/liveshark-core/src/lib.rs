@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
+mod analysis;
+mod source;
+
+pub use analysis::{analyze_pcap_file, AnalysisError};
+pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
+
 pub const REPORT_VERSION: u32 = 1;
 
 /// Rapport minimal (M0).
