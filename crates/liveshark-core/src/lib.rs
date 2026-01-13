@@ -5,7 +5,7 @@ mod analysis;
 mod protocols;
 mod source;
 
-pub use analysis::{analyze_pcap_file, AnalysisError};
+pub use analysis::{analyze_pcap_file, analyze_source, AnalysisError};
 pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 pub const REPORT_VERSION: u32 = 1;

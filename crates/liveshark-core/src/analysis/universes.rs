@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::net::IpAddr;
 
 use crate::{SourceSummary, UniverseSummary};
@@ -6,7 +6,7 @@ use crate::{SourceSummary, UniverseSummary};
 #[derive(Debug, Default)]
 pub(crate) struct UniverseStats {
     pub frames: u64,
-    pub sources: HashSet<String>,
+    pub sources: HashMap<String, SourceSummary>,
     pub first_ts: Option<f64>,
     pub last_ts: Option<f64>,
 }
@@ -19,11 +19,50 @@ pub(crate) fn add_artnet_frame(
 ) {
     let entry = stats.entry(universe).or_default();
     entry.frames += 1;
-    entry.sources.insert(source_ip.to_string());
+    let key = source_ip.to_string();
+    entry.sources.entry(key.clone()).or_insert(SourceSummary {
+        source_ip: key,
+        cid: None,
+        source_name: None,
+    });
     update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
 }
 
-pub(crate) fn build_universe_summaries(stats: HashMap<u16, UniverseStats>) -> Vec<UniverseSummary> {
+pub(crate) fn add_sacn_frame(
+    stats: &mut HashMap<u16, UniverseStats>,
+    universe: u16,
+    source_ip: &IpAddr,
+    cid: String,
+    source_name: Option<String>,
+    ts: Option<f64>,
+) {
+    let entry = stats.entry(universe).or_default();
+    entry.frames += 1;
+    let key = cid.clone();
+    entry.sources.entry(key.clone()).or_insert(SourceSummary {
+        source_ip: source_ip.to_string(),
+        cid: Some(cid),
+        source_name,
+    });
+    update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
+}
+
+pub(crate) fn build_artnet_universe_summaries(
+    stats: HashMap<u16, UniverseStats>,
+) -> Vec<UniverseSummary> {
+    build_universe_summaries(stats, "artnet")
+}
+
+pub(crate) fn build_sacn_universe_summaries(
+    stats: HashMap<u16, UniverseStats>,
+) -> Vec<UniverseSummary> {
+    build_universe_summaries(stats, "sacn")
+}
+
+fn build_universe_summaries(
+    stats: HashMap<u16, UniverseStats>,
+    proto: &str,
+) -> Vec<UniverseSummary> {
     let mut universes: Vec<UniverseSummary> = stats
         .into_iter()
         .map(|(universe, stats)| {
@@ -31,20 +70,12 @@ pub(crate) fn build_universe_summaries(stats: HashMap<u16, UniverseStats>) -> Ve
                 (Some(start), Some(end)) if end > start => Some(stats.frames as f64 / (end - start)),
                 _ => None,
             };
-            let mut sources: Vec<SourceSummary> = stats
-                .sources
-                .into_iter()
-                .map(|ip| SourceSummary {
-                    source_ip: ip,
-                    cid: None,
-                    source_name: None,
-                })
-                .collect();
+            let mut sources: Vec<SourceSummary> = stats.sources.into_values().collect();
             sources.sort_by(|a, b| a.source_ip.cmp(&b.source_ip));
 
             UniverseSummary {
                 universe,
-                proto: "artnet".to_string(),
+                proto: proto.to_string(),
                 sources,
                 fps,
                 frames_count: stats.frames,

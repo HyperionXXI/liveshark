@@ -13,9 +13,13 @@ mod universes;
 
 use flows::{add_flow_stats, build_flow_summaries, FlowKey, FlowStats};
 use udp::parse_udp_packet;
-use universes::{add_artnet_frame, build_universe_summaries, UniverseStats};
+use universes::{
+    add_artnet_frame, add_sacn_frame, build_artnet_universe_summaries,
+    build_sacn_universe_summaries, UniverseStats,
+};
 
 use crate::protocols::artnet::parse_artdmx;
+use crate::protocols::sacn::parse_sacn_dmx;
 
 #[derive(Debug, Error)]
 pub enum AnalysisError {
@@ -36,6 +40,7 @@ pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Rep
     let mut last_ts = None;
     let mut flow_stats: HashMap<FlowKey, FlowStats> = HashMap::new();
     let mut artnet_stats: HashMap<u16, UniverseStats> = HashMap::new();
+    let mut sacn_stats: HashMap<u16, UniverseStats> = HashMap::new();
 
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
@@ -43,6 +48,16 @@ pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Rep
         if let Some(udp) = parse_udp_packet(linktype, &data) {
             if let Some(art) = parse_artdmx(udp.payload) {
                 add_artnet_frame(&mut artnet_stats, art.universe, &udp.src_ip, ts);
+            }
+            if let Some(sacn) = parse_sacn_dmx(udp.payload) {
+                add_sacn_frame(
+                    &mut sacn_stats,
+                    sacn.universe,
+                    &udp.src_ip,
+                    sacn.cid,
+                    sacn.source_name,
+                    ts,
+                );
             }
             add_flow_stats(&mut flow_stats, &udp);
         }
@@ -61,7 +76,12 @@ pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Rep
     };
 
     report.flows = build_flow_summaries(flow_stats, duration_s);
-    report.universes = build_universe_summaries(artnet_stats);
+    report.universes = {
+        let mut universes = build_artnet_universe_summaries(artnet_stats);
+        universes.extend(build_sacn_universe_summaries(sacn_stats));
+        universes.sort_by(|a, b| a.universe.cmp(&b.universe).then_with(|| a.proto.cmp(&b.proto)));
+        universes
+    };
     Ok(report)
 }
 
