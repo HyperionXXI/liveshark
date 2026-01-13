@@ -13,6 +13,7 @@ Thumbs.db
 
 # Temporary workspace
 /tmp/
+out/
 
 # LaTeX (on versionne les sources, pas les builds)
 spec/**/build/
@@ -30,4 +31,5 @@ spec/**/build/
 **/*.lof
 **/*.lot
 *.xdv
+spec/**/*.pdf
 spec/common/git-commit.tex
