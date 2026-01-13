@@ -1,0 +1,97 @@
+use std::collections::HashMap;
+use std::path::Path;
+
+use thiserror::Error;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+
+use crate::source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
+use crate::{make_stub_report, CaptureSummary, Report};
+
+mod flows;
+mod udp;
+mod universes;
+
+use flows::{add_flow_stats, build_flow_summaries, FlowKey, FlowStats};
+use udp::parse_udp_packet;
+use universes::{add_artnet_frame, build_universe_summaries, UniverseStats};
+
+use crate::protocols::artnet::parse_artdmx;
+
+#[derive(Debug, Error)]
+pub enum AnalysisError {
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Source error: {0}")]
+    Source(#[from] SourceError),
+}
+
+pub fn analyze_pcap_file(path: &Path) -> Result<Report, AnalysisError> {
+    let source = PcapFileSource::open(path)?;
+    analyze_source(path, source)
+}
+
+pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Report, AnalysisError> {
+    let mut packets_total = 0u64;
+    let mut first_ts = None;
+    let mut last_ts = None;
+    let mut flow_stats: HashMap<FlowKey, FlowStats> = HashMap::new();
+    let mut artnet_stats: HashMap<u16, UniverseStats> = HashMap::new();
+
+    while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
+        packets_total += 1;
+        update_ts_bounds(&mut first_ts, &mut last_ts, ts);
+        if let Some(udp) = parse_udp_packet(linktype, &data) {
+            if let Some(art) = parse_artdmx(udp.payload) {
+                add_artnet_frame(&mut artnet_stats, art.universe, &udp.src_ip, ts);
+            }
+            add_flow_stats(&mut flow_stats, &udp);
+        }
+    }
+
+    let mut report = make_stub_report(&path.display().to_string(), path.metadata()?.len());
+    report.capture_summary = Some(CaptureSummary {
+        packets_total,
+        time_start: ts_to_rfc3339(first_ts),
+        time_end: ts_to_rfc3339(last_ts),
+    });
+
+    let duration_s = match (first_ts, last_ts) {
+        (Some(start), Some(end)) if end > start => Some(end - start),
+        _ => None,
+    };
+
+    report.flows = build_flow_summaries(flow_stats, duration_s);
+    report.universes = build_universe_summaries(artnet_stats);
+    Ok(report)
+}
+
+fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
+    let ts = match ts {
+        Some(ts) => ts,
+        None => return,
+    };
+    match first {
+        None => *first = Some(ts),
+        Some(existing) => {
+            if ts < *existing {
+                *first = Some(ts);
+            }
+        }
+    }
+    match last {
+        None => *last = Some(ts),
+        Some(existing) => {
+            if ts > *existing {
+                *last = Some(ts);
+            }
+        }
+    }
+}
+
+fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
+    let ts = ts?;
+    let nanos = (ts * 1_000_000_000.0) as i128;
+    OffsetDateTime::from_unix_timestamp_nanos(nanos)
+        .ok()
+        .and_then(|dt| dt.format(&Rfc3339).ok())
+}

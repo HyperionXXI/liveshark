@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 mod analysis;
+mod protocols;
 mod source;
 
 pub use analysis::{analyze_pcap_file, AnalysisError};
