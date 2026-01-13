@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 mod analysis;
 mod protocols;
 mod source;
 
-pub use analysis::{analyze_pcap_file, analyze_source, AnalysisError};
+pub use analysis::{AnalysisError, analyze_pcap_file, analyze_source};
 pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 pub const REPORT_VERSION: u32 = 1;

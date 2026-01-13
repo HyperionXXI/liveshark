@@ -67,7 +67,9 @@ fn build_universe_summaries(
         .into_iter()
         .map(|(universe, stats)| {
             let fps = match (stats.first_ts, stats.last_ts) {
-                (Some(start), Some(end)) if end > start => Some(stats.frames as f64 / (end - start)),
+                (Some(start), Some(end)) if end > start => {
+                    Some(stats.frames as f64 / (end - start))
+                }
                 _ => None,
             };
             let mut sources: Vec<SourceSummary> = stats.sources.into_values().collect();

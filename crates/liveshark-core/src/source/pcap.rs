@@ -2,7 +2,9 @@ use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
-use pcap_parser::{traits::PcapReaderIterator, Block, LegacyPcapReader, Linktype, PcapBlockOwned, PcapNGReader};
+use pcap_parser::{
+    Block, LegacyPcapReader, Linktype, PcapBlockOwned, PcapNGReader, traits::PcapReaderIterator,
+};
 
 use super::{PacketEvent, PacketSource, SourceError};
 
@@ -29,13 +31,15 @@ impl PcapFileSource {
         file.seek(SeekFrom::Start(0))?;
 
         let inner = if magic == [0x0a, 0x0d, 0x0d, 0x0a] {
-            let reader = PcapNGReader::new(64 * 1024, file).map_err(|e| SourceError::Pcap(e.to_string()))?;
+            let reader =
+                PcapNGReader::new(64 * 1024, file).map_err(|e| SourceError::Pcap(e.to_string()))?;
             PcapReader::Ng {
                 reader,
                 linktypes: Vec::new(),
             }
         } else {
-            let reader = LegacyPcapReader::new(64 * 1024, file).map_err(|e| SourceError::Pcap(e.to_string()))?;
+            let reader = LegacyPcapReader::new(64 * 1024, file)
+                .map_err(|e| SourceError::Pcap(e.to_string()))?;
             PcapReader::Legacy {
                 reader,
                 linktype: None,
@@ -75,7 +79,9 @@ impl PacketSource for PcapFileSource {
                     }
                     Err(pcap_parser::PcapError::Eof) => return Ok(None),
                     Err(pcap_parser::PcapError::Incomplete(_)) => {
-                        reader.refill().map_err(|e| SourceError::Pcap(e.to_string()))?;
+                        reader
+                            .refill()
+                            .map_err(|e| SourceError::Pcap(e.to_string()))?;
                     }
                     Err(e) => return Err(SourceError::Pcap(e.to_string())),
                 },
@@ -107,7 +113,9 @@ impl PacketSource for PcapFileSource {
                     }
                     Err(pcap_parser::PcapError::Eof) => return Ok(None),
                     Err(pcap_parser::PcapError::Incomplete(_)) => {
-                        reader.refill().map_err(|e| SourceError::Pcap(e.to_string()))?;
+                        reader
+                            .refill()
+                            .map_err(|e| SourceError::Pcap(e.to_string()))?;
                     }
                     Err(e) => return Err(SourceError::Pcap(e.to_string())),
                 },

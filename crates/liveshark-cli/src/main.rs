@@ -49,21 +49,27 @@ fn main() -> Result<()> {
 }
 
 fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<()> {
-    let meta = fs::metadata(&input)
-        .with_context(|| format!("Impossible de lire le fichier d'entrée: {}", input.display()))?;
+    let meta = fs::metadata(&input).with_context(|| {
+        format!(
+            "Impossible de lire le fichier d'entrée: {}",
+            input.display()
+        )
+    })?;
 
     if !meta.is_file() {
         anyhow::bail!("Entrée invalide (pas un fichier): {}", input.display());
     }
 
-    let rep = liveshark_core::analyze_pcap_file(&input)
-        .context("Échec analyse PCAP/PCAPNG")?;
+    let rep = liveshark_core::analyze_pcap_file(&input).context("Échec analyse PCAP/PCAPNG")?;
     let json = serde_json::to_string_pretty(&rep).context("Échec sérialisation JSON")?;
 
     if let Some(parent) = report.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent).with_context(|| {
-                format!("Impossible de créer le dossier de sortie: {}", parent.display())
+                format!(
+                    "Impossible de créer le dossier de sortie: {}",
+                    parent.display()
+                )
             })?;
         }
     }

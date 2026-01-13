@@ -2,20 +2,20 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use thiserror::Error;
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
-use crate::{make_stub_report, CaptureSummary, Report};
+use crate::{CaptureSummary, Report, make_stub_report};
 
 mod flows;
 mod udp;
 mod universes;
 
-use flows::{add_flow_stats, build_flow_summaries, FlowKey, FlowStats};
+use flows::{FlowKey, FlowStats, add_flow_stats, build_flow_summaries};
 use udp::parse_udp_packet;
 use universes::{
-    add_artnet_frame, add_sacn_frame, build_artnet_universe_summaries,
-    build_sacn_universe_summaries, UniverseStats,
+    UniverseStats, add_artnet_frame, add_sacn_frame, build_artnet_universe_summaries,
+    build_sacn_universe_summaries,
 };
 
 use crate::protocols::artnet::parse_artdmx;
@@ -34,7 +34,10 @@ pub fn analyze_pcap_file(path: &Path) -> Result<Report, AnalysisError> {
     analyze_source(path, source)
 }
 
-pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Report, AnalysisError> {
+pub fn analyze_source<S: PacketSource>(
+    path: &Path,
+    mut source: S,
+) -> Result<Report, AnalysisError> {
     let mut packets_total = 0u64;
     let mut first_ts = None;
     let mut last_ts = None;
@@ -79,7 +82,11 @@ pub fn analyze_source<S: PacketSource>(path: &Path, mut source: S) -> Result<Rep
     report.universes = {
         let mut universes = build_artnet_universe_summaries(artnet_stats);
         universes.extend(build_sacn_universe_summaries(sacn_stats));
-        universes.sort_by(|a, b| a.universe.cmp(&b.universe).then_with(|| a.proto.cmp(&b.proto)));
+        universes.sort_by(|a, b| {
+            a.universe
+                .cmp(&b.universe)
+                .then_with(|| a.proto.cmp(&b.proto))
+        });
         universes
     };
     Ok(report)
