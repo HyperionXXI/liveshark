@@ -27,3 +27,4 @@ spec/**/build/
 **/*.toc
 **/*.lof
 **/*.lot
+*.xdv
