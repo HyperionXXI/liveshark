@@ -1,1 +1,14 @@
-# Normalize text files to LF in repo, keep Windows-friendly checkoutsecho * text=autoechoecho # Rustecho *.rs text eol=lfecho *.toml text eol=lfecho *.md text eol=lfechoecho # LaTeX sourcesecho *.tex text eol=lfecho *.bib text eol=lfecho *.sty text eol=lfechoecho # Windows scriptsecho *.bat text eol=crlfecho *.cmd text eol=crlf
+# Normalize text files
+* text=auto
+
+# Source files (keep LF in repo)
+*.rs   text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+*.tex  text eol=lf
+*.bib  text eol=lf
+*.sty  text eol=lf
+
+# Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
