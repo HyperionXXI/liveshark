@@ -1,24 +1,24 @@
-# 🦈 LiveShark
+# LiveShark
 
-**LiveShark** is a *post‑mortem* network analyzer for show control.
+**LiveShark** is a *post-mortem* network analyzer for show control.
 
-It analyzes **PCAP/PCAPNG** captures and turns Art‑Net / sACN traffic into **DMX frame reconstruction**, **automatic conflict detection** (double emitters), and **reproducible reports**.
+It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX frame reconstruction**, **automatic conflict detection** (double emitters), and **reproducible reports**.
 
-> Status: **BOOTSTRAP / not yet implemented** — repository currently contains specification and project scaffolding.
+> Status: **BOOTSTRAP / not yet implemented** -- repository currently contains specification and project scaffolding.
 
 ## Why LiveShark?
 
 - **Wireshark**: excellent packet view, but no DMX *frame* reconstruction or domain metrics.
-- **sACNView / ArtNetominator**: great live monitoring, but no offline PCAP post‑mortem.
+- **sACNView / ArtNetominator**: great live monitoring, but no offline PCAP post-mortem.
 - LiveShark bridges the gap: **offline + DMX frames + conflicts + reports**.
 
 ## Documentation / Specification
 
 - Printable specification sources (authoritative): `spec/en/LiveShark_Spec.tex`
-- French best‑effort translation: `spec/fr/LiveShark_Spec.tex`
+- French best-effort translation: `spec/fr/LiveShark_Spec.tex`
 - Documentation build instructions: `docs/README.md`
 
-## Build the PDFs (for non‑developers)
+## Build the PDFs (for non-developers)
 
 ```bash
 make pdf
@@ -30,13 +30,14 @@ Outputs:
 
 ## Roadmap (high level)
 
-- v0.1: offline PCAP analysis + Art‑Net/sACN decoding + DMX frames + conflict detector + JSON reports
+- v0.1: offline PCAP analysis + Art-Net/sACN decoding + DMX frames + conflict detector + JSON reports
 - v0.2: GUI offline (timeline + diff viewer)
 - v0.3+: live capture (optional)
 
-## License
+## Licenses
 
-TBD (code) — documentation license file included as placeholder.
+Code: MIT OR Apache-2.0 (see `LICENSE-MIT` and `LICENSE-APACHE`).
+Docs/specs: CC-BY-4.0 (see `LICENSE-CC-BY-4.0`).
 
 ## Toolchain
 
