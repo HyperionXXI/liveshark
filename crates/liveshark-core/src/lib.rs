@@ -4,7 +4,7 @@ use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 pub const REPORT_VERSION: u32 = 1;
 
 /// Rapport minimal (M0).
-/// Objectif: format stable + versionné, même avant le parsing réel.
+/// Objectif : format stable + versionné, même avant le parsing réel.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Report {
     pub report_version: u32,
@@ -114,4 +114,3 @@ pub fn make_stub_report(input_path: &str, input_bytes: u64) -> Report {
         compliance: vec![],
     }
 }
-

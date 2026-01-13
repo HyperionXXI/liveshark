@@ -7,7 +7,10 @@ use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
 #[command(name = "liveshark")]
 #[command(version)]
-#[command(about = "Offline-first analyzer for show-control network captures (Art-Net / sACN).", long_about = None)]
+#[command(
+    about = "Offline-first analyzer for show-control network captures (Art-Net / sACN).",
+    long_about = None
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -71,4 +74,3 @@ fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<()> {
     eprintln!("OK: report écrit -> {}", report.display());
     Ok(())
 }
-
