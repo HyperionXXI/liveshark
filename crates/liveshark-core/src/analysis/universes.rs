@@ -304,3 +304,48 @@ fn source_label(stats: &UniverseStats, key: &str) -> String {
         .and_then(|s| s.cid.clone().or_else(|| Some(s.source_ip.clone())))
         .unwrap_or_else(|| key.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{add_artnet_frame, build_artnet_universe_summaries, build_conflicts};
+    use std::collections::HashMap;
+    use std::net::IpAddr;
+
+    #[test]
+    fn universe_summary_without_timestamps_has_no_metrics() {
+        let mut stats = HashMap::new();
+        let ip: IpAddr = "10.0.0.1".parse().unwrap();
+        add_artnet_frame(&mut stats, 1, &ip, None, None);
+
+        let summaries = build_artnet_universe_summaries(stats);
+        assert_eq!(summaries.len(), 1);
+        let summary = &summaries[0];
+        assert_eq!(summary.universe, 1);
+        assert!(summary.fps.is_none());
+        assert!(summary.loss_packets.is_none());
+        assert!(summary.loss_rate.is_none());
+        assert!(summary.burst_count.is_none());
+        assert!(summary.max_burst_len.is_none());
+        assert!(summary.jitter_ms.is_none());
+    }
+
+    #[test]
+    fn conflict_requires_overlap_over_one_second() {
+        let mut stats = HashMap::new();
+        let ip_a: IpAddr = "10.0.0.1".parse().unwrap();
+        let ip_b: IpAddr = "10.0.0.2".parse().unwrap();
+
+        add_artnet_frame(&mut stats, 1, &ip_a, None, Some(0.0));
+        add_artnet_frame(&mut stats, 1, &ip_a, None, Some(2.5));
+        add_artnet_frame(&mut stats, 1, &ip_b, None, Some(1.0));
+        add_artnet_frame(&mut stats, 1, &ip_b, None, Some(3.0));
+
+        let conflicts = build_conflicts(&stats);
+        assert_eq!(conflicts.len(), 1);
+        let conflict = &conflicts[0];
+        assert_eq!(conflict.universe, 1);
+        assert_eq!(conflict.sources.len(), 2);
+        assert!(conflict.sources.contains(&ip_a.to_string()));
+        assert!(conflict.sources.contains(&ip_b.to_string()));
+    }
+}
