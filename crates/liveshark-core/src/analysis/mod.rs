@@ -7,6 +7,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use crate::source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 use crate::{CaptureSummary, DEFAULT_GENERATED_AT, Report, make_stub_report};
 
+mod dmx;
 mod flows;
 mod udp;
 mod universes;
