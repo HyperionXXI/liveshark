@@ -35,13 +35,14 @@ The specs are compiled directly from the `.tex` sources (no external diagram too
 Option A -- MiKTeX GUI (Windows, no terminal required)
 - Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
 - Use XeLaTeX and compile to PDF.
+Note: this does not require Perl; `latexmk` does.
 
 Option B -- Make (if available)
 ```bash
 make pdf
 ```
 
-Option C -- direct (works on Windows with MiKTeX + Perl)
+Option C -- direct (requires Perl for `latexmk` on Windows)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex

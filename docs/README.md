@@ -13,6 +13,7 @@ Build the PDFs
 Option A -- MiKTeX GUI (Windows, no terminal required)
 - Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
 - Use XeLaTeX and compile to PDF.
+Note: this does not require Perl; `latexmk` does.
 
 CI builds
 - GitHub Actions builds the PDFs and injects the git commit hash into the footer.
@@ -22,7 +23,7 @@ Option B -- Make (if available)
 make pdf
 ```
 
-Option C -- direct (works on Windows with MiKTeX + Perl)
+Option C -- direct (requires Perl for `latexmk` on Windows)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
@@ -62,6 +63,7 @@ Generer les PDF
 Option A -- MiKTeX GUI (Windows, sans terminal)
 - Ouvrir `spec/en/LiveShark_Spec.tex` ou `spec/fr/LiveShark_Spec.tex` dans l'interface MiKTeX/TeXworks.
 - Utiliser XeLaTeX et compiler en PDF.
+Note : cela ne nécessite pas Perl ; `latexmk` oui.
 
 Builds CI
 - GitHub Actions compile les PDF et injecte le hash du commit dans le pied de page.
@@ -71,7 +73,7 @@ Option B -- Make (si disponible)
 make pdf
 ```
 
-Option C -- direct (fonctionne sous Windows avec MiKTeX + Perl)
+Option C -- direct (nécessite Perl pour `latexmk` sous Windows)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
