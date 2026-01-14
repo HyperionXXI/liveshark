@@ -35,12 +35,12 @@
 \vspace{-1.0em}
 
 \begin{tcolorbox}
-\textbf{Périmètre.} LiveShark est un analyseur \textbf{passif} pour les réseaux de show-control (Art-Net, sACN).
+\textbf{Périmètre.} LiveShark est un analyseur \textbf{passif} pour les réseaux de contrôle de spectacle (Art-Net, sACN).
 Il se concentre sur l'\textbf{analyse hors-ligne de captures PCAP}, la \textbf{reconstruction de trames DMX},
 la \textbf{détection automatique de conflits} et des \textbf{rapports reproductibles}.\\
 \textbf{Public.} Le texte vise aussi des \textbf{non-spécialistes du développement logiciel} (techniciens lumière, intégrateurs, QA).
 Un \textbf{mode suivi} est prévu pour une analyse en quasi temps réel d'un fichier de capture en cours d'écriture (outil externe).\\
-L'interface idéale pour l'utilisateur final est une \textbf{GUI} bien conçue ; la \textbf{CLI} reste scriptable et produit les mêmes données.
+L'interface idéale pour l'utilisateur final est une \textbf{interface graphique (GUI)} bien conçue ; l'\textbf{interface en ligne de commande (CLI)} reste scriptable et produit les mêmes données.
 \end{tcolorbox}
 
 \newpage
@@ -66,7 +66,7 @@ et cela n'exclut pas l'usage d'autres langages pour des composants futurs si cel
 Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rust-lang.org/style-guide/}.
 
 \subsection{Note sur le terme \enquote{Live}}
-Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / show control} (réseaux lumière), et non à une
+Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / contrôle de spectacle} (réseaux lumière), et non à une
 garantie de capture en temps réel. La capture en temps réel est optionnelle et pourra être introduite dans des versions ultérieures.
 Le diagnostic en quasi temps réel peut être atteint via le mode suivi, sans capture native immédiate.
 
@@ -89,12 +89,28 @@ Flux & Tuple unidirectionnel (proto, src ip:port, dst ip:port). \\
 \toprule
 \textbf{Acronyme} & \textbf{Développement} \\
 \midrule
-DMX & Digital Multiplex (DMX512 / DMX512-A) \\
-sACN & Streaming ACN (ANSI E1.31) \\
+ArtDMX & Paquet de données DMX Art-Net \\
+Art-Net & Protocole Art-Net \\
+BCP & Best Current Practice (bonnes pratiques actuelles) \\
+CC-BY-4.0 & Creative Commons Attribution 4.0 International \\
 CID & Component Identifier (identifiant de source sACN) \\
-PCAP & Packet Capture \\
+CI & Intégration continue \\
+CLI & Interface en ligne de commande \\
+DMX & Digital Multiplex (DMX512 / DMX512-A) \\
+DMX512 & Digital Multiplex 512 \\
+DoD & Definition of Done (critère de fin) \\
 FPS / PPS / BPS & Trames / Paquets / Octets par seconde \\
-DoD & Definition of Done \\
+GUI & Interface graphique \\
+IP & Internet Protocol (Protocole Internet) \\
+JSON & JavaScript Object Notation \\
+MIT & Licence MIT \\
+MVP & Minimum Viable Product (produit minimum viable) \\
+PCAP & Packet Capture \\
+PCAPNG & PCAP Next Generation \\
+QA & Assurance qualité \\
+RFC & Request for Comments \\
+sACN & Streaming ACN (ANSI E1.31) \\
+UDP & User Datagram Protocol \\
 \bottomrule
 \end{tabularx}
 
@@ -105,7 +121,7 @@ DoD & Definition of Done \\
   \item Analyse hors-ligne de captures PCAP/PCAPNG pour Art-Net et sACN.
   \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps, gigue, pertes, rafales).
   \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
-  \item Rapports JSON versionnés et reproductibles pour tickets, post-mortem, QA et CI.
+  \item Rapports JSON versionnés et reproductibles pour tickets, a posteriori, QA et CI.
 \end{itemize}
 
 \paragraph{Entrée capture (Wireshark non requis).}
@@ -113,8 +129,8 @@ LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique) po
 En v0.1, l’entrée est un fichier PCAP/PCAPNG produit par des outils standards (p.\,ex. \texttt{tcpdump} sous Linux, \texttt{pktmon} sous Windows, ou tout outil de capture exportant PCAP/PCAPNG).
 La capture live est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
 
-\subsection{Stratégie \emph{offline-first} (intention produit)}
-LiveShark est conçu comme un analyseur \emph{offline-first} : les premières versions se concentrent sur l'analyse post-mortem
+\subsection{Stratégie \emph{hors ligne en priorité} (intention produit)}
+LiveShark est conçu comme un analyseur \emph{hors ligne en priorité} : les premières versions se concentrent sur l'analyse a posteriori
 de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
 Il s'agit d'un choix d'ingénierie volontaire, et non d'une limitation produit.
 La capture live / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur offline validé.
@@ -123,7 +139,7 @@ La capture live / l'analyse en ligne est un objectif futur explicite et \PEUT{} 
 (a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture live (future).
 Aucune hypothèse « offline uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
 
-Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la préparation du show et pendant le show :
+Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la préparation du spectacle et pendant le spectacle :
 il analyse un fichier de capture au fur et à mesure de son écriture, sans imposer une capture native immédiate. L'outil vise à
 fournir des \emph{indices de causes probables} sur la base d'éléments observables (pertes, gigue, rafales), au mieux.
 La localisation précise des pertes peut nécessiter plusieurs points de capture (par exemple avant/après un segment sans fil).
@@ -151,7 +167,7 @@ Par défaut :
 \begin{itemize}
   \item \textbf{Fenêtre pps/bps :} 1.0 s (glissante)
   \item \textbf{Fenêtre fps :} 5.0 s (glissante)
-  \item \textbf{Fenêtre jitter :} 10.0 s (glissante) (référence conceptuelle : RFC 3550)
+  \item \textbf{Fenêtre gigue :} 10.0 s (glissante) (référence conceptuelle : RFC 3550)
 \end{itemize}
 
 \section{Exigences contractuelles (extrait)}
