@@ -28,6 +28,14 @@ jobs:
             spec/en/LiveShark_Spec.tex
             spec/fr/LiveShark_Spec.tex
 
+      - name: Verify PDF footer commit marker
+        shell: bash
+        run: |
+          if grep -a "Commit unknown" spec/en/LiveShark_Spec.pdf spec/fr/LiveShark_Spec.pdf; then
+            echo "Found 'Commit unknown' in generated PDFs."
+            exit 1
+          fi
+
       - name: Upload PDF artifacts
         uses: actions/upload-artifact@v4
         with:
