@@ -40,6 +40,10 @@ Notes
 - Hyperlink borders are disabled (no red boxes).
 - Figures are constrained to the page width.
 
+Golden tests
+- Format: `tests/golden/<name>/{input.pcapng, expected_report.json}`.
+- Add a new folder and update `crates/liveshark-core/tests/golden.rs` if needed.
+
 FR
 
 Ce depot fournit une **specification PDF imprimable** pour les non-developpeurs, avec **une seule source editable**.
@@ -79,3 +83,7 @@ Notes
 - Le style visuel est volontairement simple et professionnel (sans effets).
 - Les bordures de liens sont desactivees.
 - Les figures sont contraintes a la largeur de page.
+
+Tests golden
+- Format : `tests/golden/<nom>/{input.pcapng, expected_report.json}`.
+- Ajouter un nouveau dossier et mettre a jour `crates/liveshark-core/tests/golden.rs` si besoin.
