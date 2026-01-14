@@ -26,6 +26,11 @@ pub(crate) struct UniverseSourceStats {
     pub prev_iat: Option<f64>,
     pub jitter_sum: f64,
     pub jitter_samples: VecDeque<(f64, f64)>,
+    pub frame_samples: VecDeque<f64>,
+    pub loss_sum: u64,
+    pub loss_samples: VecDeque<(f64, u64)>,
+    pub burst_start_samples: VecDeque<f64>,
+    pub burst_length_samples: VecDeque<(f64, u64)>,
 }
 
 const JITTER_WINDOW_S: f64 = 10.0;
@@ -204,6 +209,11 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
     if stats.first_ts.is_none() {
         stats.first_ts = ts;
     }
+    if let Some(ts) = ts {
+        stats.frame_samples.push_back(ts);
+        prune_frame_samples(&mut stats.frame_samples, ts);
+    }
+
     if let (Some(ts), Some(last_ts)) = (ts, stats.last_ts) {
         let iat = ts - last_ts;
         if let Some(prev_iat) = stats.prev_iat {
@@ -228,14 +238,31 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
             let gap = seq.wrapping_sub(expected) as u16;
             if gap > 0 && gap < 128 {
                 stats.loss += gap as u64;
+                if let Some(ts) = ts {
+                    stats.loss_sum += gap as u64;
+                    stats.loss_samples.push_back((ts, gap as u64));
+                    prune_loss_samples(&mut stats.loss_samples, &mut stats.loss_sum, ts);
+                }
                 if stats.current_burst == 0 {
                     stats.burst_count += 1;
+                    if let Some(ts) = ts {
+                        stats.burst_start_samples.push_back(ts);
+                        prune_burst_starts(&mut stats.burst_start_samples, ts);
+                    }
                 }
                 stats.current_burst += gap as u64;
                 if stats.current_burst > stats.max_burst_len {
                     stats.max_burst_len = stats.current_burst;
                 }
             } else {
+                if stats.current_burst > 0 {
+                    if let Some(ts) = ts {
+                        stats
+                            .burst_length_samples
+                            .push_back((ts, stats.current_burst));
+                        prune_burst_lengths(&mut stats.burst_length_samples, ts);
+                    }
+                }
                 stats.current_burst = 0;
             }
         }
@@ -244,23 +271,24 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
 }
 
 fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> UniverseMetrics {
-    let mut total_loss = 0u64;
-    let mut total_bursts = 0u64;
-    let mut max_burst = 0u64;
     let mut jitter_sum = 0.0;
     let mut jitter_count = 0u64;
     let mut any_seq = false;
     let mut total_seq_frames = 0u64;
+    let mut total_seq_loss = 0u64;
+    let mut total_seq_bursts = 0u64;
+    let mut total_seq_max_burst = 0u64;
 
     for stats in per_source.values() {
         if stats.last_seq.is_some() {
             any_seq = true;
-            total_seq_frames += stats.frames;
-        }
-        total_loss += stats.loss;
-        total_bursts += stats.burst_count;
-        if stats.max_burst_len > max_burst {
-            max_burst = stats.max_burst_len;
+            total_seq_frames += frames_in_window(stats);
+            total_seq_loss += loss_in_window(stats);
+            total_seq_bursts += burst_count_in_window(stats);
+            let max_burst = max_burst_len_in_window(stats);
+            if max_burst > total_seq_max_burst {
+                total_seq_max_burst = max_burst;
+            }
         }
         if !stats.jitter_samples.is_empty() {
             jitter_sum += stats.jitter_sum / stats.jitter_samples.len() as f64;
@@ -269,7 +297,7 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> Univers
     }
 
     let loss_packets = if any_seq && total_seq_frames > 1 {
-        Some(total_loss)
+        Some(total_seq_loss)
     } else {
         None
     };
@@ -284,12 +312,12 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> Univers
         None
     };
     let burst_count = if any_seq && total_seq_frames > 1 {
-        Some(total_bursts)
+        Some(total_seq_bursts)
     } else {
         None
     };
     let max_burst_len = if any_seq && total_seq_frames > 1 {
-        Some(max_burst)
+        Some(total_seq_max_burst)
     } else {
         None
     };
@@ -328,6 +356,80 @@ fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<
                 *last = Some(ts);
             }
         }
+    }
+}
+
+fn frames_in_window(stats: &UniverseSourceStats) -> u64 {
+    if stats.frame_samples.is_empty() {
+        stats.frames
+    } else {
+        stats.frame_samples.len() as u64
+    }
+}
+
+fn loss_in_window(stats: &UniverseSourceStats) -> u64 {
+    if stats.loss_samples.is_empty() {
+        stats.loss
+    } else {
+        stats.loss_sum
+    }
+}
+
+fn burst_count_in_window(stats: &UniverseSourceStats) -> u64 {
+    if stats.burst_start_samples.is_empty() {
+        stats.burst_count
+    } else {
+        stats.burst_start_samples.len() as u64
+    }
+}
+
+fn max_burst_len_in_window(stats: &UniverseSourceStats) -> u64 {
+    if stats.burst_length_samples.is_empty() && stats.current_burst == 0 {
+        return stats.max_burst_len;
+    }
+    let mut max_len = stats.current_burst;
+    for (_, len) in &stats.burst_length_samples {
+        if *len > max_len {
+            max_len = *len;
+        }
+    }
+    max_len
+}
+
+fn prune_frame_samples(samples: &mut VecDeque<f64>, now: f64) {
+    while let Some(ts) = samples.front().copied() {
+        if now - ts <= JITTER_WINDOW_S {
+            break;
+        }
+        samples.pop_front();
+    }
+}
+
+fn prune_loss_samples(samples: &mut VecDeque<(f64, u64)>, sum: &mut u64, now: f64) {
+    while let Some((ts, loss)) = samples.front().copied() {
+        if now - ts <= JITTER_WINDOW_S {
+            break;
+        }
+        *sum = sum.saturating_sub(loss);
+        samples.pop_front();
+    }
+}
+
+fn prune_burst_starts(samples: &mut VecDeque<f64>, now: f64) {
+    while let Some(ts) = samples.front().copied() {
+        if now - ts <= JITTER_WINDOW_S {
+            break;
+        }
+        samples.pop_front();
+    }
+}
+
+fn prune_burst_lengths(samples: &mut VecDeque<(f64, u64)>, now: f64) {
+    while let Some((ts, _)) = samples.front().copied() {
+        if now - ts <= JITTER_WINDOW_S {
+            break;
+        }
+        samples.pop_front();
     }
 }
 
@@ -394,7 +496,7 @@ mod tests {
         compute_metrics, update_source_stats,
     };
     use crate::analysis::dmx::{DmxFrame, DmxProtocol, DmxStore};
-    use std::collections::HashMap;
+    use std::collections::{HashMap, VecDeque};
     use std::net::IpAddr;
 
     #[test]
@@ -484,6 +586,27 @@ mod tests {
         let metrics = compute_metrics(&per_source);
         let loss_rate = metrics.loss_rate.unwrap_or(0.0);
         assert!((loss_rate - (1.0 / 3.0)).abs() < 0.0001);
+    }
+
+    #[test]
+    fn loss_uses_windowed_samples() {
+        let mut per_source = HashMap::new();
+        per_source.insert(
+            "artnet:10.0.0.1:6454".to_string(),
+            UniverseSourceStats {
+                frames: 2,
+                loss: 5,
+                loss_sum: 2,
+                loss_samples: VecDeque::from([(20.0, 2)]),
+                frame_samples: VecDeque::from([19.0, 20.0]),
+                last_seq: Some(1),
+                ..UniverseSourceStats::default()
+            },
+        );
+
+        let metrics = compute_metrics(&per_source);
+        assert_eq!(metrics.loss_packets, Some(2));
+        assert_eq!(metrics.loss_rate, Some(0.5));
     }
 
     #[test]
