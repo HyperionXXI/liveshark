@@ -120,7 +120,7 @@ fn build_universe_summaries(
             let fps = fps_from_dmx(dmx_store, universe, protocol, stats.frames);
             let mut sources: Vec<SourceSummary> = stats.sources.into_values().collect();
             sources.sort_by(|a, b| a.source_ip.cmp(&b.source_ip));
-            let metrics = compute_metrics(&stats.per_source, stats.frames);
+            let metrics = compute_metrics(&stats.per_source);
 
             UniverseSummary {
                 universe,
@@ -223,20 +223,19 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
     }
 }
 
-fn compute_metrics(
-    per_source: &HashMap<String, UniverseSourceStats>,
-    frames: u64,
-) -> UniverseMetrics {
+fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> UniverseMetrics {
     let mut total_loss = 0u64;
     let mut total_bursts = 0u64;
     let mut max_burst = 0u64;
     let mut jitter_sum = 0.0;
     let mut jitter_count = 0u64;
     let mut any_seq = false;
+    let mut total_seq_frames = 0u64;
 
     for stats in per_source.values() {
         if stats.last_seq.is_some() {
             any_seq = true;
+            total_seq_frames += stats.frames;
         }
         total_loss += stats.loss;
         total_bursts += stats.burst_count;
@@ -249,13 +248,13 @@ fn compute_metrics(
         }
     }
 
-    let loss_packets = if any_seq && frames > 1 {
+    let loss_packets = if any_seq && total_seq_frames > 1 {
         Some(total_loss)
     } else {
         None
     };
     let loss_rate = if let Some(loss) = loss_packets {
-        let denom = frames + loss;
+        let denom = total_seq_frames + loss;
         if denom > 0 {
             Some(loss as f64 / denom as f64)
         } else {
@@ -264,12 +263,12 @@ fn compute_metrics(
     } else {
         None
     };
-    let burst_count = if any_seq && frames > 1 {
+    let burst_count = if any_seq && total_seq_frames > 1 {
         Some(total_bursts)
     } else {
         None
     };
-    let max_burst_len = if any_seq && frames > 1 {
+    let max_burst_len = if any_seq && total_seq_frames > 1 {
         Some(max_burst)
     } else {
         None
@@ -430,9 +429,35 @@ mod tests {
 
         let mut per_source = HashMap::new();
         per_source.insert("artnet:10.0.0.1:6454".to_string(), source_stats);
-        let metrics = compute_metrics(&per_source, 4);
+        let metrics = compute_metrics(&per_source);
 
         let jitter_ms = metrics.jitter_ms.unwrap_or(0.0);
         assert!((jitter_ms - 10000.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn loss_rate_uses_sequence_tracked_frames() {
+        let mut per_source = HashMap::new();
+        per_source.insert(
+            "artnet:10.0.0.1:6454".to_string(),
+            UniverseSourceStats {
+                frames: 2,
+                loss: 1,
+                last_seq: Some(1),
+                ..UniverseSourceStats::default()
+            },
+        );
+        per_source.insert(
+            "artnet:10.0.0.2:6454".to_string(),
+            UniverseSourceStats {
+                frames: 10,
+                last_seq: None,
+                ..UniverseSourceStats::default()
+            },
+        );
+
+        let metrics = compute_metrics(&per_source);
+        let loss_rate = metrics.loss_rate.unwrap_or(0.0);
+        assert!((loss_rate - (1.0 / 3.0)).abs() < 0.0001);
     }
 }
