@@ -61,8 +61,8 @@
     {
       "universe": 1,
       "sources": [
-        "192.168.0.1",
-        "192.168.0.3"
+        "artnet:192.168.0.1:6454",
+        "artnet:192.168.0.3:6454"
       ],
       "overlap_duration_s": 2.5,
       "affected_channels": [],

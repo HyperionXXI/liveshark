@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +33,7 @@ impl DmxStore {
             .push(frame);
     }
 
+    #[allow(dead_code)]
     pub(crate) fn frames_for(&self, universe: u16, source_id: &str) -> Option<&[DmxFrame]> {
         self.frames_by_universe
             .get(&universe)

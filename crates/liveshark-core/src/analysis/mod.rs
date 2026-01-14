@@ -12,6 +12,7 @@ mod flows;
 mod udp;
 mod universes;
 
+use dmx::{DmxFrame, DmxProtocol, DmxStore};
 use flows::{FlowKey, FlowStats, add_flow_stats, build_flow_summaries};
 use udp::parse_udp_packet;
 use universes::{
@@ -45,30 +46,47 @@ pub fn analyze_source<S: PacketSource>(
     let mut flow_stats: HashMap<FlowKey, FlowStats> = HashMap::new();
     let mut artnet_stats: HashMap<u16, UniverseStats> = HashMap::new();
     let mut sacn_stats: HashMap<u16, UniverseStats> = HashMap::new();
+    let mut dmx_store = DmxStore::new();
 
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
         if let Ok(Some(udp)) = parse_udp_packet(linktype, &data) {
             if let Ok(Some(art)) = parse_artdmx(udp.payload) {
-                add_artnet_frame(
+                let source_id = add_artnet_frame(
                     &mut artnet_stats,
                     art.universe,
                     &udp.src_ip,
+                    udp.src_port,
                     art.sequence,
                     ts,
                 );
+                dmx_store.push(DmxFrame {
+                    universe: art.universe,
+                    timestamp: ts,
+                    source_id,
+                    protocol: DmxProtocol::ArtNet,
+                    slots: art.slots,
+                });
             }
             if let Ok(Some(sacn)) = parse_sacn_dmx(udp.payload) {
-                add_sacn_frame(
+                let source_id = add_sacn_frame(
                     &mut sacn_stats,
                     sacn.universe,
                     &udp.src_ip,
+                    udp.src_port,
                     sacn.cid,
                     sacn.source_name,
                     sacn.sequence,
                     ts,
                 );
+                dmx_store.push(DmxFrame {
+                    universe: sacn.universe,
+                    timestamp: ts,
+                    source_id,
+                    protocol: DmxProtocol::Sacn,
+                    slots: sacn.slots,
+                });
             }
             add_flow_stats(&mut flow_stats, &udp);
         }

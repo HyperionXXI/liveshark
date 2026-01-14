@@ -61,8 +61,8 @@
     {
       "universe": 1,
       "sources": [
-        "0102030405060708090a0b0c0d0e0f10",
-        "1112131415161718191a1b1c1d1e1f20"
+        "sacn:cid:0102030405060708090a0b0c0d0e0f10",
+        "sacn:cid:1112131415161718191a1b1c1d1e1f20"
       ],
       "overlap_duration_s": 2.5,
       "affected_channels": [],

@@ -26,46 +26,68 @@ pub(crate) struct UniverseSourceStats {
     pub jitter: f64,
 }
 
+fn artnet_source_id(source_ip: &IpAddr, source_port: u16) -> String {
+    format!("artnet:{}:{}", source_ip, source_port)
+}
+
+fn sacn_source_id(cid: &str, source_ip: &IpAddr, source_port: u16) -> String {
+    if cid.is_empty() {
+        format!("sacn:{}:{}", source_ip, source_port)
+    } else {
+        format!("sacn:cid:{}", cid)
+    }
+}
+
 pub(crate) fn add_artnet_frame(
     stats: &mut HashMap<u16, UniverseStats>,
     universe: u16,
     source_ip: &IpAddr,
+    source_port: u16,
     sequence: Option<u8>,
     ts: Option<f64>,
-) {
+) -> String {
     let entry = stats.entry(universe).or_default();
     entry.frames += 1;
-    let key = source_ip.to_string();
-    entry.sources.entry(key.clone()).or_insert(SourceSummary {
-        source_ip: key.clone(),
-        cid: None,
-        source_name: None,
-    });
-    let source_stats = entry.per_source.entry(key).or_default();
+    let source_id = artnet_source_id(source_ip, source_port);
+    entry
+        .sources
+        .entry(source_id.clone())
+        .or_insert(SourceSummary {
+            source_ip: source_ip.to_string(),
+            cid: None,
+            source_name: None,
+        });
+    let source_stats = entry.per_source.entry(source_id.clone()).or_default();
     update_source_stats(source_stats, sequence, ts);
     update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
+    source_id
 }
 
 pub(crate) fn add_sacn_frame(
     stats: &mut HashMap<u16, UniverseStats>,
     universe: u16,
     source_ip: &IpAddr,
+    source_port: u16,
     cid: String,
     source_name: Option<String>,
     sequence: Option<u8>,
     ts: Option<f64>,
-) {
+) -> String {
     let entry = stats.entry(universe).or_default();
     entry.frames += 1;
-    let key = cid.clone();
-    entry.sources.entry(key.clone()).or_insert(SourceSummary {
-        source_ip: source_ip.to_string(),
-        cid: Some(cid),
-        source_name,
-    });
-    let source_stats = entry.per_source.entry(key).or_default();
+    let source_id = sacn_source_id(&cid, source_ip, source_port);
+    entry
+        .sources
+        .entry(source_id.clone())
+        .or_insert(SourceSummary {
+            source_ip: source_ip.to_string(),
+            cid: Some(cid),
+            source_name,
+        });
+    let source_stats = entry.per_source.entry(source_id.clone()).or_default();
     update_source_stats(source_stats, sequence, ts);
     update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
+    source_id
 }
 
 pub(crate) fn build_artnet_universe_summaries(
@@ -274,8 +296,8 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
 
                 let overlap = (end_a.min(end_b) - start_a.max(start_b)).max(0.0);
                 if overlap > 1.0 {
-                    let src_a_label = source_label(uni, src_a_key);
-                    let src_b_label = source_label(uni, src_b_key);
+                    let src_a_label = source_label(src_a_key);
+                    let src_b_label = source_label(src_b_key);
                     conflicts.push(crate::ConflictSummary {
                         universe: *universe,
                         sources: vec![src_a_label, src_b_label],
@@ -297,12 +319,8 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
     conflicts
 }
 
-fn source_label(stats: &UniverseStats, key: &str) -> String {
-    stats
-        .sources
-        .get(key)
-        .and_then(|s| s.cid.clone().or_else(|| Some(s.source_ip.clone())))
-        .unwrap_or_else(|| key.to_string())
+fn source_label(key: &str) -> String {
+    key.to_string()
 }
 
 #[cfg(test)]
@@ -315,7 +333,7 @@ mod tests {
     fn universe_summary_without_timestamps_has_no_metrics() {
         let mut stats = HashMap::new();
         let ip: IpAddr = "10.0.0.1".parse().unwrap();
-        add_artnet_frame(&mut stats, 1, &ip, None, None);
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, None);
 
         let summaries = build_artnet_universe_summaries(stats);
         assert_eq!(summaries.len(), 1);
@@ -335,17 +353,25 @@ mod tests {
         let ip_a: IpAddr = "10.0.0.1".parse().unwrap();
         let ip_b: IpAddr = "10.0.0.2".parse().unwrap();
 
-        add_artnet_frame(&mut stats, 1, &ip_a, None, Some(0.0));
-        add_artnet_frame(&mut stats, 1, &ip_a, None, Some(2.5));
-        add_artnet_frame(&mut stats, 1, &ip_b, None, Some(1.0));
-        add_artnet_frame(&mut stats, 1, &ip_b, None, Some(3.0));
+        add_artnet_frame(&mut stats, 1, &ip_a, 6454, None, Some(0.0));
+        add_artnet_frame(&mut stats, 1, &ip_a, 6454, None, Some(2.5));
+        add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(1.0));
+        add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(3.0));
 
         let conflicts = build_conflicts(&stats);
         assert_eq!(conflicts.len(), 1);
         let conflict = &conflicts[0];
         assert_eq!(conflict.universe, 1);
         assert_eq!(conflict.sources.len(), 2);
-        assert!(conflict.sources.contains(&ip_a.to_string()));
-        assert!(conflict.sources.contains(&ip_b.to_string()));
+        assert!(
+            conflict
+                .sources
+                .contains(&"artnet:10.0.0.1:6454".to_string())
+        );
+        assert!(
+            conflict
+                .sources
+                .contains(&"artnet:10.0.0.2:6454".to_string())
+        );
     }
 }
