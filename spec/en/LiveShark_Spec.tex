@@ -155,6 +155,13 @@ Unless otherwise stated:
   \item \textbf{jitter window:} 10.0 s sliding window (see metrics definition; concept reference: RFC 3550)
 \end{itemize}
 
+\subsection{Metrics definitions (minimal)}
+\begin{itemize}
+  \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window.
+  \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window.
+  \item \textbf{jitter (IAT):} inter-arrival time jitter computed as the average variation between consecutive inter-arrival times over a 10.0 s sliding window (best-effort, no interpolation).
+\end{itemize}
+
 \section{Contractual requirements (extract)}
 This document is a bootstrap spec: requirements are intentionally minimal at project start.
 
@@ -189,6 +196,38 @@ LiveShark \MUST{} detect concurrent sources: two or more sources emitting on the
 LiveShark \MUST{} generate a versioned JSON report containing at least: capture summary, universes, sources, flows, and conflicts.
 \end{reqbox}
 
+\begin{reqbox}{LS-REP-002}{P1}{}
+The JSON report \MUST{} be deterministic: list ordering is stable and all volatile fields are explicitly defined.
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-003}{P1}{}
+The JSON report \MUST{} include the minimal schema fields and types defined in Appendix A (v0.1).
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-004}{P1}{}
+Conflict records in the JSON report \MUST{} follow the structure defined in Appendix A.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-012}{P0}{}
+LiveShark \MUST{} use a canonical reconstructed DMX frame definition (fields + 512 slots) as defined in Appendix B.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-013}{P1}{}
+LiveShark \MUST{} follow the frame reconstruction rules and fps counting rules defined in Appendix B.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-002}{P1}{}
+LiveShark \MUST{} use the source identity definition for conflicts defined in Appendix C.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-003}{P1}{}
+LiveShark \MUST{} compute overlap for conflicts using the definition in Appendix C.
+\end{reqbox}
+
+\begin{reqbox}{LS-MET-001}{P1}{}
+LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Section 4.1.
+\end{reqbox}
+
 \section{Validation criteria (extract)}
 
 \subsection{Definition of Done v0.1}
@@ -200,8 +239,107 @@ The MVP is considered delivered if:
   \item No crash occurs on truncated/corrupted PCAPs.
 \end{enumerate}
 
+\subsection{Validation checklist (report contract)}
+\begin{enumerate}
+  \item Report includes \texttt{report\_version}, \texttt{tool}, \texttt{generated\_at}, \texttt{input}, and sections
+  \texttt{capture\_summary}, \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]}.
+  \item Deterministic ordering rules are applied (Appendix A).
+  \item At least 4 golden tests: \texttt{artnet}, \texttt{artnet\_conflict}, \texttt{sacn}, \texttt{sacn\_conflict}.
+  \item Volatile fields (\texttt{generated\_at}, and optionally \texttt{input.path}) are normalized in golden tests.
+\end{enumerate}
+
 \subsection{Golden tests}
 Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
+
+\appendix
+\section{Appendix A --- JSON report contract (v0.1)}
+\subsection{Minimal schema (fields and types)}
+\begin{itemize}
+  \item \texttt{report\_version}: integer (schema version).
+  \item \texttt{tool}: object \{\texttt{name}: string, \texttt{version}: string\}.
+  \item \texttt{generated\_at}: string, RFC3339 timestamp.
+  \item \texttt{input}: object \{\texttt{path}: string, \texttt{bytes}: integer\}.
+  \item \texttt{capture\_summary}: object or null (when unavailable).
+  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]}: arrays (may be empty in v0.1).
+\end{itemize}
+
+\subsection{Determinism rules}
+\begin{itemize}
+  \item \textbf{Stable ordering:}
+  \texttt{universes[]} sorted by \texttt{universe} ascending, then \texttt{proto} ascending;
+  \texttt{flows[]} sorted by \texttt{src}, then \texttt{dst};
+  \texttt{conflicts[]} sorted by \texttt{universe}, then \texttt{sources} lexicographically.
+  \item \textbf{Volatile fields:} only \texttt{generated\_at} (and optionally \texttt{input.path}) may vary between runs.
+  \item \textbf{Floats:} no rounding requirement in v0.1; values are reported as computed.
+  \item \textbf{RFC3339:} \texttt{generated\_at}, \texttt{time\_start}, and \texttt{time\_end} use RFC3339.
+\end{itemize}
+
+\subsection{Example (minimal)}
+\begin{verbatim}
+{
+  "report_version": 1,
+  "tool": { "name": "liveshark", "version": "0.1.0" },
+  "generated_at": "1970-01-01T00:00:00Z",
+  "input": { "path": "capture.pcapng", "bytes": 123456 },
+  "capture_summary": null,
+  "universes": [],
+  "flows": [],
+  "conflicts": [],
+  "compliance": []
+}
+\end{verbatim}
+
+\subsection{Example (conflict record)}
+\begin{verbatim}
+{
+  "universe": 1,
+  "sources": ["sacn:cid:11223344", "artnet:192.168.0.2:6454"],
+  "overlap_duration_s": 3.5,
+  "affected_channels": [],
+  "severity": "medium",
+  "conflict_score": 3.5
+}
+\end{verbatim}
+
+\section{Appendix B --- DMX frame reconstruction contract (v0.1)}
+\subsection{Canonical DMX frame definition}
+A reconstructed DMX frame is defined by:
+\begin{itemize}
+  \item \textbf{universe}: 16-bit universe identifier.
+  \item \textbf{timestamp}: capture time (packet timestamp).
+  \item \textbf{source\_id}: stable source identity (see Appendix C).
+  \item \textbf{protocol}: \texttt{artnet} or \texttt{sacn}.
+  \item \textbf{slots[512]}: 512 DMX slot values (0--255).
+\end{itemize}
+
+\subsection{Minimal reconstruction rules}
+\begin{itemize}
+  \item Frames are reconstructed per universe and per source, using validated protocol payloads.
+  \item If a payload provides fewer than 512 slots, missing slots are padded with 0 for that frame.
+  \item Out-of-order frames are accepted; reconstruction and metrics are best-effort.
+  \item FPS counts frames that pass protocol validation and are assigned to a universe.
+\end{itemize}
+
+\section{Appendix C --- Conflict detection contract (v0.1)}
+\subsection{Source identity}
+\begin{itemize}
+  \item \textbf{sACN:} \texttt{sacn:cid:<CID>} when CID is present; otherwise fallback to \texttt{sacn:<ip>:<port>}.
+  \item \textbf{Art-Net:} \texttt{artnet:<ip>:<port>}.
+\end{itemize}
+
+\subsection{Overlap definition}
+Conflict is defined as: same universe, at least two sources, and overlap duration $> 1.0$ s.
+Overlap is computed from the per-source time ranges \texttt{[first\_ts, last\_ts]} and the intersection duration.
+
+\subsection{Conflict record fields}
+\begin{itemize}
+  \item \texttt{universe} (integer)
+  \item \texttt{sources[]} (array of source identifiers)
+  \item \texttt{overlap\_duration\_s} (float seconds)
+  \item \texttt{affected\_channels[]} (array of integers; empty in v0.1)
+  \item \texttt{severity} (string)
+  \item \texttt{conflict\_score} (float)
+\end{itemize}
 
 \section{Licensing}
 Code is licensed under \textbf{MIT OR Apache-2.0}. Documentation and specifications are licensed under \textbf{CC-BY-4.0}.

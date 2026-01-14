@@ -218,6 +218,96 @@ Le MVP est considéré livré si :
 \subsection{Tests golden}
 Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 
+\appendix
+\section{Appendice A --- Contrat du rapport JSON (v0.1)}
+\subsection{Sch?ma minimal (champs et types)}
+\begin{itemize}
+  \item \texttt{report\_version} : entier (version de sch?ma).
+  \item \texttt{tool} : objet \{\texttt{name} : cha?ne, \texttt{version} : cha?ne\}.
+  \item \texttt{generated\_at} : cha?ne, horodatage RFC3339.
+  \item \texttt{input} : objet \{\texttt{path} : cha?ne, \texttt{bytes} : entier\}.
+  \item \texttt{capture\_summary} : objet ou null (si indisponible).
+  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]} : tableaux (peuvent ?tre vides en v0.1).
+\end{itemize}
+
+\subsection{R?gles de d?terminisme}
+\begin{itemize}
+  \item \textbf{Ordonnancement stable :}
+  \texttt{universes[]} tri?s par \texttt{universe} croissant puis \texttt{proto} croissant ;
+  \texttt{flows[]} tri?s par \texttt{src} puis \texttt{dst} ;
+  \texttt{conflicts[]} tri?s par \texttt{universe} puis \texttt{sources} (ordre lexicographique).
+  \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
+  \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapport?es telles que calcul?es.
+  \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
+\end{itemize}
+
+\subsection{Exemple (minimal)}
+\begin{verbatim}
+{
+  "report_version": 1,
+  "tool": { "name": "liveshark", "version": "0.1.0" },
+  "generated_at": "1970-01-01T00:00:00Z",
+  "input": { "path": "capture.pcapng", "bytes": 123456 },
+  "capture_summary": null,
+  "universes": [],
+  "flows": [],
+  "conflicts": [],
+  "compliance": []
+}
+\end{verbatim}
+
+\subsection{Exemple (conflit)}
+\begin{verbatim}
+{
+  "universe": 1,
+  "sources": ["sacn:cid:11223344", "artnet:192.168.0.2:6454"],
+  "overlap_duration_s": 3.5,
+  "affected_channels": [],
+  "severity": "medium",
+  "conflict_score": 3.5
+}
+\end{verbatim}
+
+\section{Appendice B --- Contrat de reconstruction des trames DMX (v0.1)}
+\subsection{D?finition canonique d'une trame DMX}
+Une trame DMX reconstruite est d?finie par :
+\begin{itemize}
+  \item \textbf{universe} : identifiant d'univers 16 bits.
+  \item \textbf{timestamp} : horodatage de capture (timestamp du paquet).
+  \item \textbf{source\_id} : identit? de source stable (voir Appendice C).
+  \item \textbf{protocol} : \texttt{artnet} ou \texttt{sacn}.
+  \item \textbf{slots[512]} : 512 valeurs DMX (0--255).
+\end{itemize}
+
+\subsection{R?gles minimales de reconstruction}
+\begin{itemize}
+  \item Les trames sont reconstruites par univers et par source, ? partir de charges utiles valides.
+  \item Si une charge utile fournit moins de 512 slots, les slots manquants sont remplis par 0 pour cette trame.
+  \item Les trames hors ordre sont accept?es ; la reconstruction et les m?triques sont au mieux.
+  \item Le fps compte les trames valid?es et associ?es ? un univers.
+\end{itemize}
+
+\section{Appendice C --- Contrat de d?tection de conflits (v0.1)}
+\subsection{Identit? de source}
+\begin{itemize}
+  \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est pr?sent ; sinon \texttt{sacn:<ip>:<port>}.
+  \item \textbf{Art-Net :} \texttt{artnet:<ip>:<port>}.
+\end{itemize}
+
+\subsection{D?finition du chevauchement}
+Un conflit est d?fini comme : m?me univers, au moins deux sources, et chevauchement $> 1.0$ s.
+Le chevauchement est calcul? ? partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
+
+\subsection{Champs d'un conflit}
+\begin{itemize}
+  \item \texttt{universe} (entier)
+  \item \texttt{sources[]} (liste d'identifiants de source)
+  \item \texttt{overlap\_duration\_s} (secondes, flottant)
+  \item \texttt{affected\_channels[]} (liste d'entiers ; vide en v0.1)
+  \item \texttt{severity} (cha?ne)
+  \item \texttt{conflict\_score} (flottant)
+\end{itemize}
+
 \section{Licence}
 Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les specifications sont sous licence \textbf{CC-BY-4.0}.
 Les fichiers PDF sont des artefacts de build générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être committés} dans le dépôt.
