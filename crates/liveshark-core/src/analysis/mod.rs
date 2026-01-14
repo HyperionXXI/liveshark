@@ -5,7 +5,9 @@ use thiserror::Error;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
-use crate::{CaptureSummary, DEFAULT_GENERATED_AT, Report, make_stub_report};
+use crate::{
+    CaptureSummary, ComplianceSummary, DEFAULT_GENERATED_AT, Report, Violation, make_stub_report,
+};
 
 mod dmx;
 mod flows;
@@ -48,33 +50,56 @@ pub fn analyze_source<S: PacketSource>(
     let mut sacn_stats: HashMap<u16, UniverseStats> = HashMap::new();
     let mut dmx_store = DmxStore::new();
     let mut dmx_state = DmxStateStore::new();
+    let mut compliance = ComplianceSummary {
+        protocol: "artnet".to_string(),
+        compliance_percentage: 100.0,
+        violations: Vec::new(),
+    };
 
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
         if let Ok(Some(udp)) = parse_udp_packet(linktype, &data) {
-            if let Ok(Some(art)) = parse_artdmx(udp.payload) {
-                let source_id = add_artnet_frame(
-                    &mut artnet_stats,
-                    art.universe,
-                    &udp.src_ip,
-                    udp.src_port,
-                    art.sequence,
-                    ts,
-                );
-                let slots = dmx_state.apply_partial(
-                    art.universe,
-                    source_id.clone(),
-                    DmxProtocol::ArtNet,
-                    &art.slots,
-                );
-                dmx_store.push(DmxFrame {
-                    universe: art.universe,
-                    timestamp: ts,
-                    source_id,
-                    protocol: DmxProtocol::ArtNet,
-                    slots,
-                });
+            match parse_artdmx(udp.payload) {
+                Ok(Some(art)) => {
+                    let source_id = add_artnet_frame(
+                        &mut artnet_stats,
+                        art.universe,
+                        &udp.src_ip,
+                        udp.src_port,
+                        art.sequence,
+                        ts,
+                    );
+                    let slots = dmx_state.apply_partial(
+                        art.universe,
+                        source_id.clone(),
+                        DmxProtocol::ArtNet,
+                        &art.slots,
+                    );
+                    dmx_store.push(DmxFrame {
+                        universe: art.universe,
+                        timestamp: ts,
+                        source_id,
+                        protocol: DmxProtocol::ArtNet,
+                        slots,
+                    });
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    if let crate::protocols::artnet::error::ArtNetError::InvalidUniverseId {
+                        value,
+                    } = err
+                    {
+                        compliance.violations.push(Violation {
+                            id: "LS-ARTNET-UNIVERSE-ID".to_string(),
+                            severity: "error".to_string(),
+                            message: format!(
+                                "Invalid Art-Net universe id (value={}); packet ignored",
+                                value
+                            ),
+                        });
+                    }
+                }
             }
             if let Ok(Some(sacn)) = parse_sacn_dmx(udp.payload) {
                 let source_id = add_sacn_frame(
@@ -136,6 +161,9 @@ pub fn analyze_source<S: PacketSource>(
         });
         universes
     };
+    if !compliance.violations.is_empty() {
+        report.compliance.push(compliance);
+    }
     Ok(report)
 }
 

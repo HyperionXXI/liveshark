@@ -24,7 +24,7 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
     }
 
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
-    let universe = reader.read_u16_le(layout::UNIVERSE_RANGE.clone())?;
+    let universe = reader.read_universe_id(layout::UNIVERSE_RANGE.clone())?;
     let length = reader.read_u16_be(layout::LENGTH_RANGE.clone())?;
     if length == 0 || length as usize > layout::DMX_MAX_SLOTS {
         return Err(ArtNetError::InvalidLength { length });
@@ -48,6 +48,7 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
 #[cfg(test)]
 mod tests {
     use super::parse_artdmx;
+    use crate::protocols::artnet::error::ArtNetError;
     use crate::protocols::artnet::layout;
 
     #[test]
@@ -99,5 +100,21 @@ mod tests {
         let err = parse_artdmx(&payload).unwrap_err();
         let msg = err.to_string();
         assert!(msg.contains("invalid ArtDMX length"));
+    }
+
+    #[test]
+    fn parse_invalid_universe_id() {
+        let mut payload = vec![0u8; layout::DMX_DATA_OFFSET];
+        payload[..layout::ARTNET_ID.len()].copy_from_slice(layout::ARTNET_ID);
+        payload[layout::OP_CODE_RANGE.clone()]
+            .copy_from_slice(&layout::ARTDMX_OPCODE.to_le_bytes());
+        payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&0x8000u16.to_le_bytes());
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&2u16.to_be_bytes());
+
+        let err = parse_artdmx(&payload).unwrap_err();
+        assert!(matches!(
+            err,
+            ArtNetError::InvalidUniverseId { value: 0x8000 }
+        ));
     }
 }

@@ -32,6 +32,14 @@ impl<'a> ArtNetReader<'a> {
         Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
     }
 
+    pub fn read_universe_id(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
+        let value = self.read_u16_le(range)?;
+        if value > 0x7fff {
+            return Err(ArtNetError::InvalidUniverseId { value });
+        }
+        Ok(value)
+    }
+
     pub fn read_u16_be(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
         let bytes = self.read_slice(range)?;
         if bytes.len() != 2 {
@@ -91,5 +99,16 @@ mod tests {
         let reader = ArtNetReader::new(&payload);
         let err = reader.read_optional_nonzero_u8(0).unwrap_err();
         assert!(matches!(err, ArtNetError::TooShort { .. }));
+    }
+
+    #[test]
+    fn read_universe_id_rejects_out_of_range() {
+        let payload = [0x00u8, 0x80u8];
+        let reader = ArtNetReader::new(&payload);
+        let err = reader.read_universe_id(0..2).unwrap_err();
+        assert!(matches!(
+            err,
+            ArtNetError::InvalidUniverseId { value: 0x8000 }
+        ));
     }
 }
