@@ -88,7 +88,7 @@ pub fn analyze_source<S: PacketSource>(
                     slots: sacn.slots,
                 });
             }
-            add_flow_stats(&mut flow_stats, &udp);
+            add_flow_stats(&mut flow_stats, &udp, ts);
         }
     }
 

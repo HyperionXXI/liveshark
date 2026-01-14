@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 
 use crate::FlowSummary;
@@ -17,9 +17,19 @@ pub(crate) struct FlowKey {
 pub(crate) struct FlowStats {
     pub packets: u64,
     pub bytes: u64,
+    pub last_ts: Option<f64>,
+    pub prev_iat: Option<f64>,
+    pub jitter_sum: f64,
+    pub jitter_samples: VecDeque<(f64, f64)>,
 }
 
-pub(crate) fn add_flow_stats(stats: &mut HashMap<FlowKey, FlowStats>, packet: &UdpPacket<'_>) {
+const JITTER_WINDOW_S: f64 = 10.0;
+
+pub(crate) fn add_flow_stats(
+    stats: &mut HashMap<FlowKey, FlowStats>,
+    packet: &UdpPacket<'_>,
+    ts: Option<f64>,
+) {
     let key = FlowKey {
         src_ip: packet.src_ip,
         src_port: packet.src_port,
@@ -29,6 +39,7 @@ pub(crate) fn add_flow_stats(stats: &mut HashMap<FlowKey, FlowStats>, packet: &U
     let entry = stats.entry(key).or_default();
     entry.packets += 1;
     entry.bytes += packet.payload.len() as u64;
+    update_flow_jitter(entry, ts);
 }
 
 pub(crate) fn build_flow_summaries(
@@ -43,13 +54,19 @@ pub(crate) fn build_flow_summaries(
                 .map(|(pps, bps)| (Some(pps), Some(bps)))
                 .unwrap_or((None, None));
 
+            let iat_jitter_ms = if entry_has_jitter(&stats) {
+                Some((stats.jitter_sum / stats.jitter_samples.len() as f64) * 1000.0)
+            } else {
+                None
+            };
+
             FlowSummary {
                 app_proto: "udp".to_string(),
                 src: format_endpoint(key.src_ip, key.src_port),
                 dst: format_endpoint(key.dst_ip, key.dst_port),
                 pps,
                 bps,
-                iat_jitter_ms: None,
+                iat_jitter_ms,
             }
         })
         .collect();
@@ -65,9 +82,39 @@ fn format_endpoint(ip: IpAddr, port: u16) -> String {
     }
 }
 
+fn update_flow_jitter(stats: &mut FlowStats, ts: Option<f64>) {
+    let ts = match ts {
+        Some(ts) => ts,
+        None => return,
+    };
+
+    if let Some(last_ts) = stats.last_ts {
+        let iat = ts - last_ts;
+        if let Some(prev_iat) = stats.prev_iat {
+            let diff = (iat - prev_iat).abs();
+            stats.jitter_sum += diff;
+            stats.jitter_samples.push_back((ts, diff));
+            while let Some((sample_ts, sample)) = stats.jitter_samples.front().copied() {
+                if ts - sample_ts <= JITTER_WINDOW_S {
+                    break;
+                }
+                stats.jitter_sum -= sample;
+                stats.jitter_samples.pop_front();
+            }
+        }
+        stats.prev_iat = Some(iat);
+    }
+    stats.last_ts = Some(ts);
+}
+
+fn entry_has_jitter(stats: &FlowStats) -> bool {
+    !stats.jitter_samples.is_empty()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{FlowKey, FlowStats, build_flow_summaries};
+    use super::{FlowKey, FlowStats, add_flow_stats, build_flow_summaries};
+    use crate::analysis::udp::UdpPacket;
     use std::collections::HashMap;
     use std::net::IpAddr;
 
@@ -88,6 +135,7 @@ mod tests {
             FlowStats {
                 packets: 10,
                 bytes: 100,
+                ..Default::default()
             },
         );
         stats.insert(
@@ -100,6 +148,7 @@ mod tests {
             FlowStats {
                 packets: 5,
                 bytes: 50,
+                ..Default::default()
             },
         );
 
@@ -128,6 +177,7 @@ mod tests {
             FlowStats {
                 packets: 10,
                 bytes: 100,
+                ..Default::default()
             },
         );
 
@@ -136,5 +186,45 @@ mod tests {
         let summary = &summaries[0];
         assert_eq!(summary.pps, Some(5.0));
         assert_eq!(summary.bps, Some(50.0));
+    }
+
+    #[test]
+    fn flow_jitter_is_average_of_iat_diffs() {
+        let mut stats = HashMap::new();
+        let packet = UdpPacket {
+            src_ip: "10.0.0.1".parse().unwrap(),
+            src_port: 1000,
+            dst_ip: "10.0.0.2".parse().unwrap(),
+            dst_port: 2000,
+            payload: &[0u8; 4],
+        };
+
+        add_flow_stats(&mut stats, &packet, Some(0.0));
+        add_flow_stats(&mut stats, &packet, Some(1.0));
+        add_flow_stats(&mut stats, &packet, Some(3.0));
+
+        let summaries = build_flow_summaries(stats, Some(3.0));
+        let summary = &summaries[0];
+        let jitter = summary.iat_jitter_ms.unwrap_or(0.0);
+        assert!((jitter - 1000.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn flow_jitter_missing_timestamps_is_none() {
+        let mut stats = HashMap::new();
+        let packet = UdpPacket {
+            src_ip: "10.0.0.1".parse().unwrap(),
+            src_port: 1000,
+            dst_ip: "10.0.0.2".parse().unwrap(),
+            dst_port: 2000,
+            payload: &[0u8; 4],
+        };
+
+        add_flow_stats(&mut stats, &packet, None);
+        add_flow_stats(&mut stats, &packet, None);
+
+        let summaries = build_flow_summaries(stats, None);
+        let summary = &summaries[0];
+        assert!(summary.iat_jitter_ms.is_none());
     }
 }
