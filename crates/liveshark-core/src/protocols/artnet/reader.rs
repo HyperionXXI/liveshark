@@ -41,6 +41,15 @@ impl<'a> ArtNetReader<'a> {
             })
     }
 
+    pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, ArtNetError> {
+        let value = self.read_u8(offset)?;
+        if value == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(value))
+        }
+    }
+
     pub fn read_slice(&self, range: std::ops::Range<usize>) -> Result<&'a [u8], ArtNetError> {
         self.payload
             .get(range.clone())
@@ -52,5 +61,27 @@ impl<'a> ArtNetReader<'a> {
 
     pub fn read_signature(&self) -> Result<&'a [u8], ArtNetError> {
         self.read_slice(0..layout::ARTNET_ID.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ArtNetReader;
+    use crate::protocols::artnet::error::ArtNetError;
+
+    #[test]
+    fn read_optional_nonzero_u8() {
+        let payload = [0x00u8, 0x12u8];
+        let reader = ArtNetReader::new(&payload);
+        assert_eq!(reader.read_optional_nonzero_u8(0).unwrap(), None);
+        assert_eq!(reader.read_optional_nonzero_u8(1).unwrap(), Some(0x12));
+    }
+
+    #[test]
+    fn read_optional_nonzero_u8_too_short() {
+        let payload = [];
+        let reader = ArtNetReader::new(&payload);
+        let err = reader.read_optional_nonzero_u8(0).unwrap_err();
+        assert!(matches!(err, ArtNetError::TooShort { .. }));
     }
 }

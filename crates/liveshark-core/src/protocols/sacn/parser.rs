@@ -42,9 +42,8 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
 
     let universe = reader.read_u16_be(layout::UNIVERSE_RANGE.clone())?;
     let cid = reader.read_cid_hex()?;
-    let source_name =
-        parse_optional_string(reader.read_ascii_string(layout::SOURCE_NAME_RANGE.clone())?);
-    let sequence = parse_optional_nonzero(reader.read_u8(layout::SEQUENCE_OFFSET)?);
+    let source_name = reader.read_optional_ascii_string(layout::SOURCE_NAME_RANGE.clone())?;
+    let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
 
     Ok(Some(SacnDmx {
         universe,
@@ -52,14 +51,6 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
         source_name,
         sequence,
     }))
-}
-
-fn parse_optional_string(value: String) -> Option<String> {
-    if value.is_empty() { None } else { Some(value) }
-}
-
-fn parse_optional_nonzero(value: u8) -> Option<u8> {
-    if value == 0 { None } else { Some(value) }
 }
 
 #[cfg(test)]

@@ -69,4 +69,68 @@ impl<'a> SacnReader<'a> {
         let bytes = self.read_slice(layout::CID_RANGE.clone())?;
         Ok(bytes.iter().map(|b| format!("{:02x}", b)).collect())
     }
+
+    pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, SacnError> {
+        let value = self.read_u8(offset)?;
+        if value == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(value))
+        }
+    }
+
+    pub fn read_optional_ascii_string(
+        &self,
+        range: std::ops::Range<usize>,
+    ) -> Result<Option<String>, SacnError> {
+        let value = self.read_ascii_string(range)?;
+        if value.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(value))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SacnReader;
+    use crate::protocols::sacn::error::SacnError;
+
+    #[test]
+    fn read_optional_nonzero_u8() {
+        let payload = [0x00u8, 0x12u8];
+        let reader = SacnReader::new(&payload);
+        assert_eq!(reader.read_optional_nonzero_u8(0).unwrap(), None);
+        assert_eq!(reader.read_optional_nonzero_u8(1).unwrap(), Some(0x12));
+    }
+
+    #[test]
+    fn read_optional_nonzero_u8_too_short() {
+        let payload = [];
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_optional_nonzero_u8(0).unwrap_err();
+        assert!(matches!(err, SacnError::TooShort { .. }));
+    }
+
+    #[test]
+    fn read_optional_ascii_string() {
+        let payload = [b't', b'e', b's', b't', 0x00];
+        let reader = SacnReader::new(&payload);
+        let value = reader.read_optional_ascii_string(0..payload.len()).unwrap();
+        assert_eq!(value.as_deref(), Some("test"));
+
+        let empty = [0x00u8; 4];
+        let reader = SacnReader::new(&empty);
+        let value = reader.read_optional_ascii_string(0..empty.len()).unwrap();
+        assert!(value.is_none());
+    }
+
+    #[test]
+    fn read_optional_ascii_string_too_short() {
+        let payload = [];
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_optional_ascii_string(0..1).unwrap_err();
+        assert!(matches!(err, SacnError::TooShort { .. }));
+    }
 }

@@ -22,15 +22,10 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
         return Ok(None);
     }
 
-    let sequence = reader.read_u8(layout::SEQUENCE_OFFSET)?;
+    let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
     let universe = reader.read_u16_le(layout::UNIVERSE_RANGE.clone())?;
-    let sequence = parse_optional_nonzero(sequence);
 
     Ok(Some(ArtDmx { universe, sequence }))
-}
-
-fn parse_optional_nonzero(value: u8) -> Option<u8> {
-    if value == 0 { None } else { Some(value) }
 }
 
 #[cfg(test)]
