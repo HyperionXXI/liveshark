@@ -35,3 +35,8 @@ fn golden_sacn() {
 fn golden_artnet_conflict() {
     run_golden("tests/golden/artnet_conflict");
 }
+
+#[test]
+fn golden_sacn_conflict() {
+    run_golden("tests/golden/sacn_conflict");
+}

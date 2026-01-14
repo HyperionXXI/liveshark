@@ -1,0 +1,74 @@
+{
+  "report_version": 1,
+  "tool": {
+    "name": "liveshark",
+    "version": "0.1.0"
+  },
+  "generated_at": "IGNORED",
+  "input": {
+    "path": "tests/golden/sacn_conflict/input.pcapng",
+    "bytes": 848
+  },
+  "capture_summary": {
+    "packets_total": 4,
+    "time_start": "1970-01-01T00:00:01Z",
+    "time_end": "1970-01-01T00:00:05Z"
+  },
+  "universes": [
+    {
+      "universe": 1,
+      "proto": "sacn",
+      "sources": [
+        {
+          "source_ip": "10.0.0.1",
+          "cid": "0102030405060708090a0b0c0d0e0f10",
+          "source_name": "Source A"
+        },
+        {
+          "source_ip": "10.0.0.2",
+          "cid": "1112131415161718191a1b1c1d1e1f20",
+          "source_name": "Source B"
+        }
+      ],
+      "fps": 1.0,
+      "frames_count": 4,
+      "loss_packets": 0,
+      "loss_rate": 0.0,
+      "burst_count": 0,
+      "max_burst_len": 0,
+      "jitter_ms": 0.0
+    }
+  ],
+  "flows": [
+    {
+      "app_proto": "udp",
+      "src": "10.0.0.1:5568",
+      "dst": "239.255.0.1:5568",
+      "pps": 0.5,
+      "bps": 63.0,
+      "iat_jitter_ms": null
+    },
+    {
+      "app_proto": "udp",
+      "src": "10.0.0.2:5568",
+      "dst": "239.255.0.1:5568",
+      "pps": 0.5,
+      "bps": 63.0,
+      "iat_jitter_ms": null
+    }
+  ],
+  "conflicts": [
+    {
+      "universe": 1,
+      "sources": [
+        "0102030405060708090a0b0c0d0e0f10",
+        "1112131415161718191a1b1c1d1e1f20"
+      ],
+      "overlap_duration_s": 2.5,
+      "affected_channels": [],
+      "severity": "medium",
+      "conflict_score": 2.5
+    }
+  ],
+  "compliance": []
+}

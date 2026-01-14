@@ -18,6 +18,7 @@ pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
 mod tests {
     use super::{is_pcapng_magic, read_magic_and_rewind};
     use std::io::Cursor;
+    use std::io::Read;
 
     #[test]
     fn detect_pcapng_magic() {
