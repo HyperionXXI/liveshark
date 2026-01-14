@@ -12,8 +12,8 @@ Thumbs.db
 .venv/
 
 # Temporary workspace
-/tmp/
-out/
+tmp/**
+out/**
 
 # LaTeX (on versionne les sources, pas les builds)
 spec/**/build/
@@ -31,5 +31,5 @@ spec/**/build/
 **/*.lof
 **/*.lot
 *.xdv
-spec/**/*.pdf
+**/*.pdf
 spec/common/git-commit.tex

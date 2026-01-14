@@ -8,6 +8,7 @@ What is authoritative?
 - **Authoritative source (normative):** `spec/en/LiveShark_Spec.tex`
 - **French translation:** `spec/fr/LiveShark_Spec.tex` (best-effort, may lag)
 - **PDF files:** build artifacts generated from `.tex` sources. They are provided for convenience and **must not** be treated as the source of truth.
+- **Rust architecture rules (normative):** `docs/RUST_ARCHITECTURE.md`
 
 Build the PDFs
 Option A -- MiKTeX GUI (Windows, no terminal required)
@@ -58,6 +59,7 @@ Quelle est la reference ?
 - **Source normative (fait foi) :** `spec/en/LiveShark_Spec.tex`
 - **Traduction francaise :** `spec/fr/LiveShark_Spec.tex` (best-effort, peut etre en retard)
 - **Fichiers PDF :** artefacts generes depuis les `.tex`. Ils sont fournis par confort et **ne sont pas la source de verite**.
+- **Regles d'architecture Rust (normatif) :** `docs/RUST_ARCHITECTURE.fr.md`
 
 Generer les PDF
 Option A -- MiKTeX GUI (Windows, sans terminal)
