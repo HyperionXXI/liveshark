@@ -157,7 +157,10 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
     }
 }
 
-fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>, frames: u64) -> UniverseMetrics {
+fn compute_metrics(
+    per_source: &HashMap<String, UniverseSourceStats>,
+    frames: u64,
+) -> UniverseMetrics {
     let mut total_loss = 0u64;
     let mut total_bursts = 0u64;
     let mut max_burst = 0u64;
@@ -180,7 +183,11 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>, frames: u6
         }
     }
 
-    let loss_packets = if any_seq && frames > 1 { Some(total_loss) } else { None };
+    let loss_packets = if any_seq && frames > 1 {
+        Some(total_loss)
+    } else {
+        None
+    };
     let loss_rate = if let Some(loss) = loss_packets {
         let denom = frames + loss;
         if denom > 0 {
@@ -191,8 +198,16 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>, frames: u6
     } else {
         None
     };
-    let burst_count = if any_seq && frames > 1 { Some(total_bursts) } else { None };
-    let max_burst_len = if any_seq && frames > 1 { Some(max_burst) } else { None };
+    let burst_count = if any_seq && frames > 1 {
+        Some(total_bursts)
+    } else {
+        None
+    };
+    let max_burst_len = if any_seq && frames > 1 {
+        Some(max_burst)
+    } else {
+        None
+    };
     let jitter_ms = if jitter_count > 0 {
         Some((jitter_sum / jitter_count as f64) * 1000.0)
     } else {

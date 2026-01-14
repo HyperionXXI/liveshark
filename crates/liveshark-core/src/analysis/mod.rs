@@ -49,7 +49,7 @@ pub fn analyze_source<S: PacketSource>(
         packets_total += 1;
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
         if let Some(udp) = parse_udp_packet(linktype, &data) {
-            if let Some(art) = parse_artdmx(udp.payload) {
+            if let Ok(Some(art)) = parse_artdmx(udp.payload) {
                 add_artnet_frame(
                     &mut artnet_stats,
                     art.universe,
@@ -58,7 +58,7 @@ pub fn analyze_source<S: PacketSource>(
                     ts,
                 );
             }
-            if let Some(sacn) = parse_sacn_dmx(udp.payload) {
+            if let Ok(Some(sacn)) = parse_sacn_dmx(udp.payload) {
                 add_sacn_frame(
                     &mut sacn_stats,
                     sacn.universe,
