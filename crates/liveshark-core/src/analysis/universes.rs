@@ -337,11 +337,12 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
                 if overlap > 1.0 {
                     let src_a_label = source_label(src_a_key);
                     let src_b_label = source_label(src_b_key);
+                    let affected_channels = compute_affected_channels();
                     conflicts.push(crate::ConflictSummary {
                         universe: *universe,
                         sources: vec![src_a_label, src_b_label],
                         overlap_duration_s: overlap,
-                        affected_channels: vec![],
+                        affected_channels,
                         severity: "medium".to_string(),
                         conflict_score: overlap,
                     });
@@ -356,6 +357,10 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
             .then_with(|| a.sources.join(",").cmp(&b.sources.join(",")))
     });
     conflicts
+}
+
+fn compute_affected_channels() -> Vec<u16> {
+    Vec::new()
 }
 
 fn source_label(key: &str) -> String {
