@@ -64,3 +64,77 @@ fn format_endpoint(ip: IpAddr, port: u16) -> String {
         IpAddr::V6(addr) => format!("[{}]:{}", addr, port),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{FlowKey, FlowStats, build_flow_summaries};
+    use std::collections::HashMap;
+    use std::net::IpAddr;
+
+    #[test]
+    fn summaries_are_sorted_and_no_duration_means_none_rates() {
+        let mut stats = HashMap::new();
+        let a: IpAddr = "10.0.0.1".parse().unwrap();
+        let b: IpAddr = "10.0.0.2".parse().unwrap();
+        let c: IpAddr = "10.0.0.3".parse().unwrap();
+
+        stats.insert(
+            FlowKey {
+                src_ip: b,
+                src_port: 1000,
+                dst_ip: c,
+                dst_port: 2000,
+            },
+            FlowStats {
+                packets: 10,
+                bytes: 100,
+            },
+        );
+        stats.insert(
+            FlowKey {
+                src_ip: a,
+                src_port: 1000,
+                dst_ip: c,
+                dst_port: 2000,
+            },
+            FlowStats {
+                packets: 5,
+                bytes: 50,
+            },
+        );
+
+        let summaries = build_flow_summaries(stats, None);
+        assert_eq!(summaries.len(), 2);
+        assert!(summaries[0].src < summaries[1].src);
+        assert!(summaries[0].pps.is_none());
+        assert!(summaries[0].bps.is_none());
+        assert!(summaries[1].pps.is_none());
+        assert!(summaries[1].bps.is_none());
+    }
+
+    #[test]
+    fn summaries_compute_rates_when_duration_known() {
+        let mut stats = HashMap::new();
+        let a: IpAddr = "10.0.0.1".parse().unwrap();
+        let b: IpAddr = "10.0.0.2".parse().unwrap();
+
+        stats.insert(
+            FlowKey {
+                src_ip: a,
+                src_port: 1000,
+                dst_ip: b,
+                dst_port: 2000,
+            },
+            FlowStats {
+                packets: 10,
+                bytes: 100,
+            },
+        );
+
+        let summaries = build_flow_summaries(stats, Some(2.0));
+        assert_eq!(summaries.len(), 1);
+        let summary = &summaries[0];
+        assert_eq!(summary.pps, Some(5.0));
+        assert_eq!(summary.bps, Some(50.0));
+    }
+}
