@@ -52,7 +52,7 @@ L'interface idéale pour l'utilisateur final est une \textbf{interface graphique
 \subsection{Version de référence et politique de traduction}
 \textbf{Version de référence (fait foi).} La spécification anglaise dans \texttt{spec/en} est la \emph{version de référence} :
 en cas de divergence ou de traduction incomplète, \textbf{la version anglaise fait foi}.\\
-\textbf{Traduction indicative (best-effort).} La version française dans \texttt{spec/fr} est une aide à la relecture et peut être
+\textbf{Traduction indicative (non normative).} La version française dans \texttt{spec/fr} est une aide à la relecture et peut être
 \textbf{en retard}. En cas de différence, la version de référence prévaut.
 
 \subsection{Mots-clés normatifs}
@@ -127,17 +127,17 @@ UDP & User Datagram Protocol \\
 \paragraph{Entrée capture (Wireshark non requis).}
 LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique) pour fonctionner.
 En v0.1, l’entrée est un fichier PCAP/PCAPNG produit par des outils standards (p.\,ex. \texttt{tcpdump} sous Linux, \texttt{pktmon} sous Windows, ou tout outil de capture exportant PCAP/PCAPNG).
-La capture live est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
+La capture en direct est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
 
 \subsection{Stratégie \emph{hors ligne en priorité} (intention produit)}
 LiveShark est conçu comme un analyseur \emph{hors ligne en priorité} : les premières versions se concentrent sur l'analyse a posteriori
 de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
 Il s'agit d'un choix d'ingénierie volontaire, et non d'une limitation produit.
-La capture live / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur offline validé.
+La capture en direct / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur hors ligne validé.
 
-\textbf{Compatibilité future.} Le pipeline d'analyse \DOIT{} être architecturé afin que l'entrée des paquets puisse provenir :
-(a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture live (future).
-Aucune hypothèse « offline uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
+\textbf{Compatibilité future.} La chaîne d'analyse \DOIT{} être architecturé afin que l'entrée des paquets puisse provenir :
+(a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture en direct (future).
+Aucune hypothèse « hors ligne uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
 
 Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la préparation du spectacle et pendant le spectacle :
 il analyse un fichier de capture au fur et à mesure de son écriture, sans imposer une capture native immédiate. L'outil vise à
@@ -158,7 +158,7 @@ La localisation précise des pertes peut nécessiter plusieurs points de capture
 \input{../common/figures/dataflow.tex}
 \end{adjustbox}
 \caption{Pipeline conceptuel d'analyse hors-ligne (niveau élevé).}
-\textit{Note :} Le pipeline accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrée depuis une capture live
+\textit{Note :} La chaîne d'analyse accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrée depuis une capture en direct
 est un objectif futur (v0.3+) conforme à l'exigence LS-ARCH-001.
 \end{figure}
 
@@ -176,7 +176,7 @@ Ce document est une base de démarrage : les exigences sont volontairement minim
 \subsection{Priorité P0 (fondations MVP)}
 \begin{reqbox}{LS-ARCH-001}{P0}{}
 Le cœur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
-(a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture live (future), sans modifier le modèle métier ni le schéma de rapport.
+(a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture en direct (future), sans modifier le modèle métier ni le schéma de rapport.
 \end{reqbox}
 
 \begin{reqbox}{LS-PROD-001}{P0}{}
@@ -206,7 +206,7 @@ LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : r�
 
 \section{Critères de validation (extrait)}
 
-\subsection{Definition of Done v0.1}
+\subsection{Définition de fin v0.1}
 Le MVP est considéré livré si :
 \begin{enumerate}
   \item \texttt{liveshark pcap analyse file.pcapng} fonctionne sur 3 captures.
@@ -220,24 +220,24 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 
 \appendix
 \section{Appendice A --- Contrat du rapport JSON (v0.1)}
-\subsection{Sch?ma minimal (champs et types)}
+\subsection{Schéma minimal (champs et types)}
 \begin{itemize}
-  \item \texttt{report\_version} : entier (version de sch?ma).
-  \item \texttt{tool} : objet \{\texttt{name} : cha?ne, \texttt{version} : cha?ne\}.
-  \item \texttt{generated\_at} : cha?ne, horodatage RFC3339.
-  \item \texttt{input} : objet \{\texttt{path} : cha?ne, \texttt{bytes} : entier\}.
+  \item \texttt{report\_version} : entier (version de schéma).
+  \item \texttt{tool} : objet \{\texttt{name} : chaîne, \texttt{version} : chaîne\}.
+  \item \texttt{generated\_at} : chaîne, horodatage RFC3339.
+  \item \texttt{input} : objet \{\texttt{path} : chaîne, \texttt{bytes} : entier\}.
   \item \texttt{capture\_summary} : objet ou null (si indisponible).
-  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]} : tableaux (peuvent ?tre vides en v0.1).
+  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]} : tableaux (peuvent être vides en v0.1).
 \end{itemize}
 
-\subsection{R?gles de d?terminisme}
+\subsection{Règles de déterminisme}
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
-  \texttt{universes[]} tri?s par \texttt{universe} croissant puis \texttt{proto} croissant ;
-  \texttt{flows[]} tri?s par \texttt{src} puis \texttt{dst} ;
-  \texttt{conflicts[]} tri?s par \texttt{universe} puis \texttt{sources} (ordre lexicographique).
+  \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
+  \texttt{flows[]} triés par \texttt{src} puis \texttt{dst} ;
+  \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique).
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
-  \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapport?es telles que calcul?es.
+  \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapportées telles que calculées.
   \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
 \end{itemize}
 
@@ -269,34 +269,34 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 \end{verbatim}
 
 \section{Appendice B --- Contrat de reconstruction des trames DMX (v0.1)}
-\subsection{D?finition canonique d'une trame DMX}
-Une trame DMX reconstruite est d?finie par :
+\subsection{Définition canonique d'une trame DMX}
+Une trame DMX reconstruite est définie par :
 \begin{itemize}
   \item \textbf{universe} : identifiant d'univers 16 bits.
   \item \textbf{timestamp} : horodatage de capture (timestamp du paquet).
-  \item \textbf{source\_id} : identit? de source stable (voir Appendice C).
+  \item \textbf{source\_id} : identité de source stable (voir Appendice C).
   \item \textbf{protocol} : \texttt{artnet} ou \texttt{sacn}.
   \item \textbf{slots[512]} : 512 valeurs DMX (0--255).
 \end{itemize}
 
-\subsection{R?gles minimales de reconstruction}
+\subsection{Règles minimales de reconstruction}
 \begin{itemize}
-  \item Les trames sont reconstruites par univers et par source, ? partir de charges utiles valides.
+  \item Les trames sont reconstruites par univers et par source, à partir de charges utiles valides.
   \item Si une charge utile fournit moins de 512 slots, les slots manquants sont remplis par 0 pour cette trame.
-  \item Les trames hors ordre sont accept?es ; la reconstruction et les m?triques sont au mieux.
-  \item Le fps compte les trames valid?es et associ?es ? un univers.
+  \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont au mieux.
+  \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
 
-\section{Appendice C --- Contrat de d?tection de conflits (v0.1)}
-\subsection{Identit? de source}
+\section{Appendice C --- Contrat de détection de conflits (v0.1)}
+\subsection{Identité de source}
 \begin{itemize}
-  \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est pr?sent ; sinon \texttt{sacn:<ip>:<port>}.
+  \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est présent ; sinon \texttt{sacn:<ip>:<port>}.
   \item \textbf{Art-Net :} \texttt{artnet:<ip>:<port>}.
 \end{itemize}
 
-\subsection{D?finition du chevauchement}
-Un conflit est d?fini comme : m?me univers, au moins deux sources, et chevauchement $> 1.0$ s.
-Le chevauchement est calcul? ? partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
+\subsection{Définition du chevauchement}
+Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
+Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
 
 \subsection{Champs d'un conflit}
 \begin{itemize}
@@ -304,13 +304,13 @@ Le chevauchement est calcul? ? partir des intervalles \texttt{[first\_ts, last\_
   \item \texttt{sources[]} (liste d'identifiants de source)
   \item \texttt{overlap\_duration\_s} (secondes, flottant)
   \item \texttt{affected\_channels[]} (liste d'entiers ; vide en v0.1)
-  \item \texttt{severity} (cha?ne)
+  \item \texttt{severity} (chaîne)
   \item \texttt{conflict\_score} (flottant)
 \end{itemize}
 
 \section{Licence}
 Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les specifications sont sous licence \textbf{CC-BY-4.0}.
-Les fichiers PDF sont des artefacts de build générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être committés} dans le dépôt.
+Les fichiers PDF sont des artefacts de compilation générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être versionnÃ©s} dans le dépôt.
 
 \section{Références normatives}
 \begin{tabularx}{\linewidth}{@{}l X@{}}

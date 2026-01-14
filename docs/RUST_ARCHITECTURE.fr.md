@@ -1,8 +1,7 @@
-# Règles d'architecture Rust (normatives)
+# Règles d'architecture Rust — traduction française (informative)
 
-Ce document est normatif pour le code Rust de LiveShark. Il définit comment les
-données externes sont décodées et comment le code est structuré. L'anglais fait
-foi ; le français est une traduction.
+Ce document est la traduction française (informative) de `docs/RUST_ARCHITECTURE.md`.
+En cas de divergence, la version anglaise fait foi.
 
 ## Portée
 

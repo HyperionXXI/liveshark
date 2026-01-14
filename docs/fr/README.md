@@ -1,4 +1,4 @@
-# Documentation LiveShark (spec-first)
+# Documentation LiveShark (spécification d'abord)
 
 Ce dépôt fournit une **spécification PDF imprimable** pour les non-développeurs, avec **une seule source éditable**.
 
@@ -16,7 +16,7 @@ Option A -- MiKTeX GUI (Windows, sans terminal)
 Note : cela ne nécessite pas Perl ; `latexmk` oui.
 
 Intégration continue
-- GitHub Actions compile les PDF et injecte l'empreinte du commit dans le pied de page.
+- GitHub Actions compile les PDF et injecte l'empreinte de révision Git dans le pied de page.
 
 Option B -- Make (si disponible)
 ```bash
