@@ -123,6 +123,7 @@ UDP & User Datagram Protocol \\
   \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
   \item Rapports JSON versionnés et reproductibles pour tickets, a posteriori, QA et CI.
 \end{itemize}
+Voir les Appendices A--D pour les contrats normatifs (rapport, trames, conflits, m?triques).
 
 \paragraph{Entrée capture (Wireshark non requis).}
 LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique) pour fonctionner.
@@ -151,6 +152,34 @@ La localisation précise des pertes peut nécessiter plusieurs points de capture
   \item ``Laser over IP'' démarre en mode \textbf{métriques de flux UDP} uniquement ; la reconstruction de trames laser est hors scope v0.1.
 \end{itemize}
 
+\subsection{Extensions optionnelles (registre non normatif)}
+LiveShark est conçu pour le diagnostic. Les extensions DOIVENT améliorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et DOIVENT rester reproductibles (mêmes entrées $\rightarrow$ mêmes sorties).
+
+Chaque extension déclare son niveau de support :
+\begin{itemize}
+  \item \textbf{Niveau flux :} métriques réseau sans sémantique métier du contenu.
+  \item \textbf{Niveau messages/trames :} décodage structuré avec un modèle métier stable.
+\end{itemize}
+
+LiveShark PEUT fournir des \emph{pistes de causes probables} uniquement sous forme d’heuristiques. Ces pistes DOIVENT être justifiées par des motifs observables et NE DOIVENT PAS être présentées comme des causes certaines.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Extension (candidate)} & \textbf{Niveau} & \textbf{Valeur diagnostic (exemples)} \\
+\midrule
+OSC & Messages & Chronologie des messages de contrôle; corrélation avec anomalies DMX/réseau \\
+RTP (générique) & Messages & Trous de séquence, gigue, désordre; base pour bilans de santé de type AES67 \\
+RTP-MIDI & Messages & Timing des messages MIDI; corrélation avec signaux de conduite/codes temporels sur le réseau \\
+Infrastructure réseau & Flux & Motifs IGMP/mDNS/DHCP/ARP/DNS; problèmes de multicast/découverte/adressage \\
+Protocoles laser propriétaires & Flux & Perte/gigue/rafales par flux; détection multi-sources si applicable \\
+\bottomrule
+\end{tabularx}
+\caption{Registre d’extensions non normatif (susceptible d’évoluer).}
+\end{table}
+
 \section{Architecture (concept)}
 \begin{figure}[H]
 \centering
@@ -169,6 +198,14 @@ Par défaut :
   \item \textbf{Fenêtre fps :} 5.0 s (glissante)
   \item \textbf{Fenêtre gigue :} 10.0 s (glissante) (référence conceptuelle : RFC 3550)
 \end{itemize}
+\subsection{D?finitions des m?triques (minimal)}
+\begin{itemize}
+  \item \textbf{pps/bps :} paquets/octets par seconde sur une fen?tre glissante de 1.0 s.
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fen?tre glissante de 5.0 s.
+  \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arriv?e cons?cutifs sur une fen?tre glissante de 10.0 s (au mieux, sans interpolation).
+\end{itemize}
+Voir l'Appendice D pour les d?finitions op?rationnelles et les unit?s.
+
 
 \section{Exigences contractuelles (extrait)}
 Ce document est une base de démarrage : les exigences sont volontairement minimales.
@@ -194,6 +231,14 @@ LiveShark \DOIT{} décoder Art-Net ArtDMX et reconstruire des trames DMX (512 sl
 \begin{reqbox}{LS-FR-011}{P0}{}
 LiveShark \DOIT{} décoder sACN (E1.31) et reconstruire des trames DMX par univers.
 \end{reqbox}
+\begin{reqbox}{LS-FR-012}{P0}{}
+LiveShark \DOIT{} utiliser une d?finition canonique des trames DMX reconstruites (champs + 512 slots) telle que d?finie dans l'Appendice B.
+\end{reqbox}
+
+\begin{reqbox}{LS-FR-013}{P1}{}
+LiveShark \DOIT{} suivre les r?gles de reconstruction des trames et de comptage du fps d?finies dans l'Appendice B.
+\end{reqbox}
+
 
 \subsection{Priorité P1 (différenciateurs critiques)}
 \begin{reqbox}{LS-CONF-001}{P1}{}
@@ -203,6 +248,58 @@ LiveShark \DOIT{} détecter les sources concurrentes : deux sources ou plus sur 
 \begin{reqbox}{LS-REP-001}{P1}{}
 LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : résumé capture, univers, sources, flux et conflits.
 \end{reqbox}
+\begin{reqbox}{LS-REP-002}{P1}{}
+Le rapport JSON \DOIT{} ?tre d?terministe : l'ordre des listes est stable et les champs volatils sont explicitement d?finis.
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-003}{P1}{}
+Le rapport JSON \DOIT{} inclure les champs et types minimaux d?finis dans l'Appendice A (v0.1).
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-004}{P1}{}
+Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure d?finie dans l'Appendice A.
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-010}{P1}{}
+Le rapport JSON \DOIT{} inclure les champs minimaux d?finis dans l'Appendice A (v0.1).
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-011}{P1}{}
+Le rapport JSON \DOIT{} respecter les r?gles de d?terminisme d?finies dans l'Appendice A (tri stable et champs volatils).
+\end{reqbox}
+
+\begin{reqbox}{LS-REP-012}{P1}{}
+Le rapport JSON \DOIT{} inclure les exemples d?crits dans l'Appendice A (minimal + conflit).
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-002}{P1}{}
+LiveShark \DOIT{} utiliser la d?finition d'identit? de source pour les conflits d?finie dans l'Appendice C.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-003}{P1}{}
+LiveShark \DOIT{} calculer le chevauchement des conflits selon la d?finition de l'Appendice C.
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-010}{P1}{}
+LiveShark \DOIT{} utiliser la d?finition d'identit? de source pour la d?tection des conflits d?finie dans l'Appendice C (CID + repli).
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-011}{P1}{}
+LiveShark \DOIT{} calculer le chevauchement des conflits en utilisant les horodatages de capture et le seuil d?fini dans l'Appendice C (v0.1).
+\end{reqbox}
+
+\begin{reqbox}{LS-CONF-012}{P1}{}
+Les enregistrements \texttt{conflicts[]} \DOIT{} inclure les champs requis d?finis dans l'Appendice C (v0.1).
+\end{reqbox}
+
+\begin{reqbox}{LS-MET-001}{P1}{}
+LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que d?finis dans la Section 4.1.
+\end{reqbox}
+
+\begin{reqbox}{LS-MET-010}{P1}{}
+LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que d?finis dans l'Appendice D (v0.1).
+\end{reqbox}
+
 
 \section{Critères de validation (extrait)}
 
@@ -219,29 +316,32 @@ Le MVP est considéré livré si :
 Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 
 \appendix
-\section{Appendice A --- Contrat du rapport JSON (v0.1)}
-\subsection{Schéma minimal (champs et types)}
+\section{Appendices (normatifs)}
+\subsection{Appendice A --- Contrat du rapport JSON (v0.1)}
+\subsubsection{Schéma minimal (champs et types)}
 \begin{itemize}
   \item \texttt{report\_version} : entier (version de schéma).
-  \item \texttt{tool} : objet \{\texttt{name} : chaîne, \texttt{version} : chaîne\}.
+  \item \texttt{tool.name} et \texttt{tool.version} : cha?nes (identification de l'outil).
   \item \texttt{generated\_at} : chaîne, horodatage RFC3339.
-  \item \texttt{input} : objet \{\texttt{path} : chaîne, \texttt{bytes} : entier\}.
+  \item \texttt{input.path} : cha?ne ; \texttt{input.bytes} : entier.
   \item \texttt{capture\_summary} : objet ou null (si indisponible).
-  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]} : tableaux (peuvent être vides en v0.1).
+  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent ?tre vides en v0.1).
+  \item \texttt{compliance[]} : tableau (peut ?tre vide en v0.1).
 \end{itemize}
 
-\subsection{Règles de déterminisme}
+\subsubsection{Règles de déterminisme}
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
   \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
   \texttt{flows[]} triés par \texttt{src} puis \texttt{dst} ;
-  \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique).
+  \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
+  \texttt{compliance[]} tri?s par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
   \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapportées telles que calculées.
   \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
 \end{itemize}
 
-\subsection{Exemple (minimal)}
+\subsubsection{Exemple (minimal)}
 \begin{verbatim}
 {
   "report_version": 1,
@@ -256,7 +356,7 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 }
 \end{verbatim}
 
-\subsection{Exemple (conflit)}
+\subsubsection{Exemple (conflit)}
 \begin{verbatim}
 {
   "universe": 1,
@@ -268,8 +368,8 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 }
 \end{verbatim}
 
-\section{Appendice B --- Contrat de reconstruction des trames DMX (v0.1)}
-\subsection{Définition canonique d'une trame DMX}
+\subsection{Appendice B --- Contrat de reconstruction des trames DMX (v0.1)}
+\subsubsection{Définition canonique d'une trame DMX}
 Une trame DMX reconstruite est définie par :
 \begin{itemize}
   \item \textbf{universe} : identifiant d'univers 16 bits.
@@ -279,7 +379,7 @@ Une trame DMX reconstruite est définie par :
   \item \textbf{slots[512]} : 512 valeurs DMX (0--255).
 \end{itemize}
 
-\subsection{Règles minimales de reconstruction}
+\subsubsection{Règles minimales de reconstruction}
 \begin{itemize}
   \item Les trames sont reconstruites par univers et par source, à partir de charges utiles valides.
   \item Si une charge utile fournit moins de 512 slots, les slots manquants sont remplis par 0 pour cette trame.
@@ -287,18 +387,18 @@ Une trame DMX reconstruite est définie par :
   \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
 
-\section{Appendice C --- Contrat de détection de conflits (v0.1)}
-\subsection{Identité de source}
+\subsection{Appendice C --- Contrat de détection de conflits (v0.1)}
+\subsubsection{Identité de source}
 \begin{itemize}
   \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est présent ; sinon \texttt{sacn:<ip>:<port>}.
   \item \textbf{Art-Net :} \texttt{artnet:<ip>:<port>}.
 \end{itemize}
 
-\subsection{Définition du chevauchement}
+\subsubsection{Définition du chevauchement}
 Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
 Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
 
-\subsection{Champs d'un conflit}
+\subsubsection{Champs d'un conflit}
 \begin{itemize}
   \item \texttt{universe} (entier)
   \item \texttt{sources[]} (liste d'identifiants de source)
@@ -306,6 +406,14 @@ Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last
   \item \texttt{affected\_channels[]} (liste d'entiers ; vide en v0.1)
   \item \texttt{severity} (chaîne)
   \item \texttt{conflict\_score} (flottant)
+\end{itemize}
+Optionnel (pr?vu, non normatif) : \texttt{first_seen}, \texttt{last_seen} et \texttt{protocols[]}.
+
+\subsection{Appendice D --- D?finitions des m?triques (v0.1)}
+\begin{itemize}
+  \item \textbf{pps/bps :} paquets/octets par seconde sur une fen?tre glissante de 1.0 s ; unit?s paquets/s et octets/s.
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fen?tre glissante de 5.0 s ; unit? trames/s.
+  \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arriv?e cons?cutifs sur une fen?tre glissante de 10.0 s ; unit? en secondes (rapport?e en ms si applicable).
 \end{itemize}
 
 \section{Licence}
