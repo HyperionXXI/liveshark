@@ -50,7 +50,13 @@ pub fn analyze_source<S: PacketSource>(
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
         if let Some(udp) = parse_udp_packet(linktype, &data) {
             if let Some(art) = parse_artdmx(udp.payload) {
-                add_artnet_frame(&mut artnet_stats, art.universe, &udp.src_ip, ts);
+                add_artnet_frame(
+                    &mut artnet_stats,
+                    art.universe,
+                    &udp.src_ip,
+                    art.sequence,
+                    ts,
+                );
             }
             if let Some(sacn) = parse_sacn_dmx(udp.payload) {
                 add_sacn_frame(
@@ -59,6 +65,7 @@ pub fn analyze_source<S: PacketSource>(
                     &udp.src_ip,
                     sacn.cid,
                     sacn.source_name,
+                    sacn.sequence,
                     ts,
                 );
             }

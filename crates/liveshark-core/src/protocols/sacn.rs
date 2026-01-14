@@ -2,6 +2,7 @@ pub struct SacnDmx {
     pub universe: u16,
     pub cid: String,
     pub source_name: Option<String>,
+    pub sequence: Option<u8>,
 }
 
 pub fn parse_sacn_dmx(payload: &[u8]) -> Option<SacnDmx> {
@@ -33,11 +34,14 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Option<SacnDmx> {
     let universe = u16::from_be_bytes([payload[113], payload[114]]);
     let cid = format_cid(&payload[22..38]);
     let source_name = parse_source_name(&payload[44..108]);
+    let sequence = payload[111];
+    let sequence = if sequence == 0 { None } else { Some(sequence) };
 
     Some(SacnDmx {
         universe,
         cid,
         source_name,
+        sequence,
     })
 }
 

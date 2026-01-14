@@ -1,5 +1,6 @@
 pub struct ArtDmx {
     pub universe: u16,
+    pub sequence: Option<u8>,
 }
 
 pub fn parse_artdmx(payload: &[u8]) -> Option<ArtDmx> {
@@ -13,6 +14,8 @@ pub fn parse_artdmx(payload: &[u8]) -> Option<ArtDmx> {
     if opcode != 0x5000 {
         return None;
     }
+    let sequence = payload[12];
     let universe = u16::from_le_bytes([payload[14], payload[15]]);
-    Some(ArtDmx { universe })
+    let sequence = if sequence == 0 { None } else { Some(sequence) };
+    Some(ArtDmx { universe, sequence })
 }

@@ -54,6 +54,16 @@ pub struct UniverseSummary {
     pub sources: Vec<SourceSummary>,
     pub fps: Option<f64>,
     pub frames_count: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loss_packets: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loss_rate: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub burst_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_burst_len: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jitter_ms: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
