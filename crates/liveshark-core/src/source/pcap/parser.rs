@@ -45,15 +45,23 @@ fn create_reader(file: File) -> Result<PcapReader, PcapSourceError> {
     let magic = read_magic_and_rewind(&mut file)?;
 
     if is_pcapng_magic(&magic) {
-        let reader = PcapNGReader::new(layout::PCAP_READER_BUFFER_SIZE, file)
-            .map_err(|e| PcapSourceError::Pcap(e.to_string()))?;
+        let reader = PcapNGReader::new(layout::PCAP_READER_BUFFER_SIZE, file).map_err(|e| {
+            PcapSourceError::Pcap {
+                context: "pcapng reader init",
+                message: e.to_string(),
+            }
+        })?;
         Ok(PcapReader::Ng {
             reader,
             linktypes: Vec::new(),
         })
     } else {
-        let reader = LegacyPcapReader::new(layout::PCAP_READER_BUFFER_SIZE, file)
-            .map_err(|e| PcapSourceError::Pcap(e.to_string()))?;
+        let reader = LegacyPcapReader::new(layout::PCAP_READER_BUFFER_SIZE, file).map_err(|e| {
+            PcapSourceError::Pcap {
+                context: "pcap reader init",
+                message: e.to_string(),
+            }
+        })?;
         Ok(PcapReader::Legacy {
             reader,
             linktype: None,
@@ -89,11 +97,17 @@ fn next_packet(reader: &mut PcapReader) -> Result<Option<PacketEvent>, PcapSourc
                 }
                 Err(pcap_parser::PcapError::Eof) => return Ok(None),
                 Err(pcap_parser::PcapError::Incomplete(_)) => {
-                    reader
-                        .refill()
-                        .map_err(|e| PcapSourceError::Pcap(e.to_string()))?;
+                    reader.refill().map_err(|e| PcapSourceError::Pcap {
+                        context: "pcap reader refill",
+                        message: e.to_string(),
+                    })?;
                 }
-                Err(e) => return Err(PcapSourceError::Pcap(e.to_string())),
+                Err(e) => {
+                    return Err(PcapSourceError::Pcap {
+                        context: "pcap reader next",
+                        message: e.to_string(),
+                    });
+                }
             },
             PcapReader::Ng { reader, linktypes } => match reader.next() {
                 Ok((offset, block)) => {
@@ -123,11 +137,17 @@ fn next_packet(reader: &mut PcapReader) -> Result<Option<PacketEvent>, PcapSourc
                 }
                 Err(pcap_parser::PcapError::Eof) => return Ok(None),
                 Err(pcap_parser::PcapError::Incomplete(_)) => {
-                    reader
-                        .refill()
-                        .map_err(|e| PcapSourceError::Pcap(e.to_string()))?;
+                    reader.refill().map_err(|e| PcapSourceError::Pcap {
+                        context: "pcapng reader refill",
+                        message: e.to_string(),
+                    })?;
                 }
-                Err(e) => return Err(PcapSourceError::Pcap(e.to_string())),
+                Err(e) => {
+                    return Err(PcapSourceError::Pcap {
+                        context: "pcapng reader next",
+                        message: e.to_string(),
+                    });
+                }
             },
         }
     }

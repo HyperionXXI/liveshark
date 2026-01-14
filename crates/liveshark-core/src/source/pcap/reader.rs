@@ -17,6 +17,7 @@ pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{is_pcapng_magic, read_magic_and_rewind};
+    use crate::source::pcap::error::PcapSourceError;
     use std::io::Cursor;
     use std::io::Read;
 
@@ -35,5 +36,13 @@ mod tests {
         let mut buf = [0u8; 1];
         cursor.read_exact(&mut buf).unwrap();
         assert_eq!(buf[0], 0x0a);
+    }
+
+    #[test]
+    fn read_magic_too_short() {
+        let bytes = [0x0a, 0x0d, 0x0d];
+        let mut cursor = Cursor::new(bytes);
+        let err = read_magic_and_rewind(&mut cursor).unwrap_err();
+        assert!(matches!(err, PcapSourceError::Io(_)));
     }
 }
