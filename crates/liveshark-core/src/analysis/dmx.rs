@@ -33,6 +33,22 @@ impl DmxStore {
             .push(frame);
     }
 
+    pub(crate) fn frames_for_universe(
+        &self,
+        universe: u16,
+        protocol: DmxProtocol,
+    ) -> Vec<&DmxFrame> {
+        let Some(per_source) = self.frames_by_universe.get(&universe) else {
+            return Vec::new();
+        };
+
+        per_source
+            .values()
+            .flat_map(|frames| frames.iter())
+            .filter(|frame| frame.protocol == protocol)
+            .collect()
+    }
+
     #[allow(dead_code)]
     pub(crate) fn frames_for(&self, universe: u16, source_id: &str) -> Option<&[DmxFrame]> {
         self.frames_by_universe

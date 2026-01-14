@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 
+use super::dmx::{DmxProtocol, DmxStore};
 use crate::{SourceSummary, UniverseSummary};
 
 #[derive(Debug, Default)]
@@ -92,29 +93,28 @@ pub(crate) fn add_sacn_frame(
 
 pub(crate) fn build_artnet_universe_summaries(
     stats: HashMap<u16, UniverseStats>,
+    dmx_store: &DmxStore,
 ) -> Vec<UniverseSummary> {
-    build_universe_summaries(stats, "artnet")
+    build_universe_summaries(stats, dmx_store, DmxProtocol::ArtNet, "artnet")
 }
 
 pub(crate) fn build_sacn_universe_summaries(
     stats: HashMap<u16, UniverseStats>,
+    dmx_store: &DmxStore,
 ) -> Vec<UniverseSummary> {
-    build_universe_summaries(stats, "sacn")
+    build_universe_summaries(stats, dmx_store, DmxProtocol::Sacn, "sacn")
 }
 
 fn build_universe_summaries(
     stats: HashMap<u16, UniverseStats>,
+    dmx_store: &DmxStore,
+    protocol: DmxProtocol,
     proto: &str,
 ) -> Vec<UniverseSummary> {
     let mut universes: Vec<UniverseSummary> = stats
         .into_iter()
         .map(|(universe, stats)| {
-            let fps = match (stats.first_ts, stats.last_ts) {
-                (Some(start), Some(end)) if end > start => {
-                    Some(stats.frames as f64 / (end - start))
-                }
-                _ => None,
-            };
+            let fps = fps_from_dmx(dmx_store, universe, protocol, stats.frames);
             let mut sources: Vec<SourceSummary> = stats.sources.into_values().collect();
             sources.sort_by(|a, b| a.source_ip.cmp(&b.source_ip));
             let metrics = compute_metrics(&stats.per_source, stats.frames);
@@ -136,6 +136,35 @@ fn build_universe_summaries(
 
     universes.sort_by(|a, b| a.universe.cmp(&b.universe));
     universes
+}
+
+fn fps_from_dmx(
+    dmx_store: &DmxStore,
+    universe: u16,
+    protocol: DmxProtocol,
+    fallback_frames: u64,
+) -> Option<f64> {
+    let frames = dmx_store.frames_for_universe(universe, protocol);
+    let mut first_ts = None;
+    let mut last_ts = None;
+    let mut counted = 0u64;
+
+    for frame in frames {
+        if let Some(ts) = frame.timestamp {
+            update_ts_bounds(&mut first_ts, &mut last_ts, Some(ts));
+            counted += 1;
+        }
+    }
+
+    let frame_count = if counted > 0 {
+        counted
+    } else {
+        fallback_frames
+    };
+    match (first_ts, last_ts) {
+        (Some(start), Some(end)) if end > start => Some(frame_count as f64 / (end - start)),
+        _ => None,
+    }
 }
 
 struct UniverseMetrics {
@@ -326,6 +355,7 @@ fn source_label(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{add_artnet_frame, build_artnet_universe_summaries, build_conflicts};
+    use crate::analysis::dmx::DmxStore;
     use std::collections::HashMap;
     use std::net::IpAddr;
 
@@ -335,7 +365,8 @@ mod tests {
         let ip: IpAddr = "10.0.0.1".parse().unwrap();
         add_artnet_frame(&mut stats, 1, &ip, 6454, None, None);
 
-        let summaries = build_artnet_universe_summaries(stats);
+        let dmx_store = DmxStore::default();
+        let summaries = build_artnet_universe_summaries(stats, &dmx_store);
         assert_eq!(summaries.len(), 1);
         let summary = &summaries[0];
         assert_eq!(summary.universe, 1);

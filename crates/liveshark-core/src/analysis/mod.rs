@@ -114,8 +114,8 @@ pub fn analyze_source<S: PacketSource>(
     report.conflicts = conflicts;
     report.flows = build_flow_summaries(flow_stats, duration_s);
     report.universes = {
-        let mut universes = build_artnet_universe_summaries(artnet_stats);
-        universes.extend(build_sacn_universe_summaries(sacn_stats));
+        let mut universes = build_artnet_universe_summaries(artnet_stats, &dmx_store);
+        universes.extend(build_sacn_universe_summaries(sacn_stats, &dmx_store));
         universes.sort_by(|a, b| {
             a.universe
                 .cmp(&b.universe)
