@@ -18,6 +18,7 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 - French best-effort translation: `spec/fr/LiveShark_Spec.tex`
 - Documentation build instructions: `docs/README.md`
 - Rust architecture rules (normative): `docs/RUST_ARCHITECTURE.md`
+
 The project specification (requirements) is written in LaTeX (`.tex`); see "Build the PDFs" below to compile it.
 
 ## Usage modes
@@ -36,6 +37,7 @@ The specs are compiled directly from the `.tex` sources (no external diagram too
 Option A -- MiKTeX GUI (Windows, no terminal required)
 - Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
 - Use XeLaTeX and compile to PDF.
+
 Note: this does not require Perl; `latexmk` does.
 
 Option B -- Make (if available)
