@@ -1,5 +1,6 @@
 use super::error::SacnError;
 use super::layout;
+use crate::protocols::common::reader::optional_nonzero_u8;
 
 pub struct SacnReader<'a> {
     payload: &'a [u8],
@@ -72,11 +73,7 @@ impl<'a> SacnReader<'a> {
 
     pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, SacnError> {
         let value = self.read_u8(offset)?;
-        if value == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(value))
-        }
+        Ok(optional_nonzero_u8(value))
     }
 
     pub fn read_optional_ascii_string(

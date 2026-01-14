@@ -1,5 +1,6 @@
 use super::error::ArtNetError;
 use super::layout;
+use crate::protocols::common::reader::optional_nonzero_u8;
 
 pub struct ArtNetReader<'a> {
     payload: &'a [u8],
@@ -43,11 +44,7 @@ impl<'a> ArtNetReader<'a> {
 
     pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, ArtNetError> {
         let value = self.read_u8(offset)?;
-        if value == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(value))
-        }
+        Ok(optional_nonzero_u8(value))
     }
 
     pub fn read_slice(&self, range: std::ops::Range<usize>) -> Result<&'a [u8], ArtNetError> {
