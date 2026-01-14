@@ -10,8 +10,8 @@ pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 pub const REPORT_VERSION: u32 = 1;
 
-/// Rapport minimal (M0).
-/// Objectif : format stable + versionné, même avant le parsing réel.
+/// Minimal report (M0).
+/// Goal: stable, versioned format even before real parsing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Report {
     pub report_version: u32,
@@ -20,7 +20,7 @@ pub struct Report {
 
     pub input: InputInfo,
 
-    /// Champs prévus, encore vides en M0.
+    /// Planned fields, still empty in M0.
     pub capture_summary: Option<CaptureSummary>,
     pub universes: Vec<UniverseSummary>,
     pub flows: Vec<FlowSummary>,

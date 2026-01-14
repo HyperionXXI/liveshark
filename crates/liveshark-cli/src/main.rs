@@ -49,34 +49,27 @@ fn main() -> Result<()> {
 }
 
 fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<()> {
-    let meta = fs::metadata(&input).with_context(|| {
-        format!(
-            "Impossible de lire le fichier d'entrée: {}",
-            input.display()
-        )
-    })?;
+    let meta = fs::metadata(&input)
+        .with_context(|| format!("Failed to read input file: {}", input.display()))?;
 
     if !meta.is_file() {
-        anyhow::bail!("Entrée invalide (pas un fichier): {}", input.display());
+        anyhow::bail!("Invalid input (not a file): {}", input.display());
     }
 
-    let rep = liveshark_core::analyze_pcap_file(&input).context("Échec analyse PCAP/PCAPNG")?;
-    let json = serde_json::to_string_pretty(&rep).context("Échec sérialisation JSON")?;
+    let rep = liveshark_core::analyze_pcap_file(&input).context("PCAP/PCAPNG analysis failed")?;
+    let json = serde_json::to_string_pretty(&rep).context("JSON serialization failed")?;
 
     if let Some(parent) = report.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent).with_context(|| {
-                format!(
-                    "Impossible de créer le dossier de sortie: {}",
-                    parent.display()
-                )
+                format!("Failed to create output directory: {}", parent.display())
             })?;
         }
     }
 
     fs::write(&report, json)
-        .with_context(|| format!("Impossible d'écrire le report: {}", report.display()))?;
+        .with_context(|| format!("Failed to write report: {}", report.display()))?;
 
-    eprintln!("OK: report écrit -> {}", report.display());
+    eprintln!("OK: report written -> {}", report.display());
     Ok(())
 }
