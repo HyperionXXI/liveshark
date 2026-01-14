@@ -433,7 +433,10 @@ fn prune_burst_lengths(samples: &mut VecDeque<(f64, u64)>, now: f64) {
     }
 }
 
-pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate::ConflictSummary> {
+pub(crate) fn build_conflicts(
+    stats: &HashMap<u16, UniverseStats>,
+    dmx_store: &DmxStore,
+) -> Vec<crate::ConflictSummary> {
     let mut conflicts = Vec::new();
 
     for (universe, uni) in stats {
@@ -455,11 +458,20 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
                     _ => continue,
                 };
 
-                let overlap = (end_a.min(end_b) - start_a.max(start_b)).max(0.0);
+                let overlap_start = start_a.max(start_b);
+                let overlap_end = end_a.min(end_b);
+                let overlap = (overlap_end - overlap_start).max(0.0);
                 if overlap > 1.0 {
                     let src_a_label = source_label(src_a_key);
                     let src_b_label = source_label(src_b_key);
-                    let affected_channels = compute_affected_channels();
+                    let affected_channels = compute_affected_channels(
+                        dmx_store,
+                        *universe,
+                        src_a_key,
+                        src_b_key,
+                        overlap_start,
+                        overlap_end,
+                    );
                     conflicts.push(crate::ConflictSummary {
                         universe: *universe,
                         sources: vec![src_a_label, src_b_label],
@@ -481,8 +493,49 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
     conflicts
 }
 
-fn compute_affected_channels() -> Vec<u16> {
-    Vec::new()
+fn compute_affected_channels(
+    dmx_store: &DmxStore,
+    universe: u16,
+    src_a_key: &str,
+    src_b_key: &str,
+    overlap_start: f64,
+    overlap_end: f64,
+) -> Vec<u16> {
+    let frames_a = match dmx_store.frames_for(universe, src_a_key) {
+        Some(frames) => frames,
+        None => return Vec::new(),
+    };
+    let frames_b = match dmx_store.frames_for(universe, src_b_key) {
+        Some(frames) => frames,
+        None => return Vec::new(),
+    };
+    let frame_a = last_frame_in_window(frames_a, overlap_start, overlap_end);
+    let frame_b = last_frame_in_window(frames_b, overlap_start, overlap_end);
+    let (Some(frame_a), Some(frame_b)) = (frame_a, frame_b) else {
+        return Vec::new();
+    };
+
+    let mut affected = Vec::new();
+    for (idx, (a, b)) in frame_a.slots.iter().zip(frame_b.slots.iter()).enumerate() {
+        if a != b && (*a != 0 || *b != 0) {
+            let channel = idx.saturating_add(1) as u16;
+            affected.push(channel);
+        }
+    }
+    affected
+}
+
+fn last_frame_in_window<'a>(
+    frames: &'a [super::dmx::DmxFrame],
+    start: f64,
+    end: f64,
+) -> Option<&'a super::dmx::DmxFrame> {
+    frames
+        .iter()
+        .filter_map(|frame| frame.timestamp.map(|ts| (ts, frame)))
+        .filter(|(ts, _)| *ts >= start && *ts <= end)
+        .max_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(_, frame)| frame)
 }
 
 fn source_label(key: &str) -> String {
@@ -529,7 +582,8 @@ mod tests {
         add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(1.0));
         add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(3.0));
 
-        let conflicts = build_conflicts(&stats);
+        let dmx_store = DmxStore::default();
+        let conflicts = build_conflicts(&stats, &dmx_store);
         assert_eq!(conflicts.len(), 1);
         let conflict = &conflicts[0];
         assert_eq!(conflict.universe, 1);

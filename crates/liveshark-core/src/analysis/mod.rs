@@ -109,8 +109,8 @@ pub fn analyze_source<S: PacketSource>(
         _ => None,
     };
 
-    let mut conflicts = build_conflicts(&artnet_stats);
-    conflicts.extend(build_conflicts(&sacn_stats));
+    let mut conflicts = build_conflicts(&artnet_stats, &dmx_store);
+    conflicts.extend(build_conflicts(&sacn_stats, &dmx_store));
     report.conflicts = conflicts;
     report.flows = build_flow_summaries(flow_stats, duration_s);
     report.universes = {
