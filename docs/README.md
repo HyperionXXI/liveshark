@@ -33,6 +33,11 @@ The specs are compiled directly from the `.tex` sources (no external diagram too
 Outputs:
 - `spec/en/LiveShark_Spec.pdf`
 - `spec/fr/LiveShark_Spec.pdf`
+
+Mini-glossary
+- **Offline analysis / post-mortem:** analysis of a completed capture file.
+- **Follow mode:** near-real-time analysis of a capture file that is still being written.
+- **Near-real-time:** low-latency analysis driven by file growth, without native capture.
 Note: PDFs are generated artifacts and should not be committed to the repository.
 
 Notes
@@ -77,6 +82,11 @@ Les specs sont compilees directement depuis les sources `.tex` (aucun outil de d
 Sorties :
 - `spec/en/LiveShark_Spec.pdf`
 - `spec/fr/LiveShark_Spec.pdf`
+
+Mini-glossaire
+- **Analyse hors ligne / a posteriori :** analyse d'un fichier de capture terminé.
+- **Mode suivi :** analyse en quasi temps reel d'un fichier de capture en cours d'ecriture.
+- **Quasi temps reel :** faible latence liee a la croissance du fichier, sans capture native.
 Note : les PDF sont des artefacts générés et ne doivent pas être committés dans le dépôt.
 
 Notes

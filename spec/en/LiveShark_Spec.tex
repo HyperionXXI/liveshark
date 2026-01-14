@@ -20,6 +20,8 @@
 \textbf{offline PCAP analysis} with \textbf{DMX frame reconstruction}, \textbf{automatic conflict detection},
 and \textbf{reproducible reports}.\\
 \textbf{Audience.} Designed to be readable by \textbf{non-software specialists} (lighting technicians, integrators, QA).
+Planned \textbf{follow mode} enables near-real-time analysis of a capture file that is still being written by an external tool.\\
+The ideal user interface is a well-designed \textbf{GUI}; the \textbf{CLI} remains scriptable and produces the same report data.
 \end{tcolorbox}
 
 \newpage
@@ -48,6 +50,7 @@ Rust code SHOULD follow the standard Rust style guide: \texttt{https://doc.rust-
 \subsection{Term note: \enquote{Live}}
 In the project name, \enquote{Live} refers to \textbf{live entertainment / show control} (lighting networks), not to a guarantee
 of real-time capture capability. Real-time capture is optional and may be introduced in later releases.
+Near-real-time diagnostic can be achieved via follow mode without requiring native live capture.
 
 \subsection{Core terms}
 \begin{tabularx}{\linewidth}{@{}l X@{}}
@@ -82,7 +85,7 @@ DoD & Definition of Done \\
 \subsection{Goals}
 \begin{itemize}
   \item Offline analysis of PCAP/PCAPNG for Art-Net and sACN.
-  \item DMX frame reconstruction (512 slots) and metrics (fps, pps/bps, jitter).
+  \item DMX frame reconstruction (512 slots) and metrics (fps, pps/bps, jitter, loss, bursts).
   \item Automatic detection of \textbf{conflicts} (multiple sources on same universe with overlap).
   \item Versioned, reproducible JSON reports for tickets, post-mortem, QA and CI.
 \end{itemize}
@@ -102,6 +105,11 @@ Live capture / online analysis is an explicit future objective and \MAY{} be imp
 \textbf{Forward compatibility.} The core analysis pipeline \MUST{} be architected so that packet input can come from either:
 (a) a file reader (PCAP/PCAPNG), or (b) a live capture source (future). No offline-only assumption \MUST{} be embedded in the
 domain model (frames, conflicts, reports).
+
+Follow mode is the pragmatic path for reliable diagnostics during show preparation and during the show: it analyzes a capture
+file as it grows, without requiring native capture on day one. The tool aims to surface \emph{probable causes} based on
+observable indicators (loss patterns, jitter, bursts) on a best-effort basis. Precise loss localization can require multiple
+capture points (for example, before and after a wireless segment).
 
 
 

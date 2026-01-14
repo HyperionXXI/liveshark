@@ -39,6 +39,8 @@
 Il se concentre sur l'\textbf{analyse hors-ligne de captures PCAP}, la \textbf{reconstruction de trames DMX},
 la \textbf{détection automatique de conflits} et des \textbf{rapports reproductibles}.\\
 \textbf{Public.} Le texte vise aussi des \textbf{non-spécialistes du développement logiciel} (techniciens lumière, intégrateurs, QA).
+Un \textbf{mode suivi} est prévu pour une analyse en quasi temps réel d'un fichier de capture en cours d'écriture (outil externe).\\
+L'interface idéale pour l'utilisateur final est une \textbf{GUI} bien conçue ; la \textbf{CLI} reste scriptable et produit les mêmes données.
 \end{tcolorbox}
 
 \newpage
@@ -66,6 +68,7 @@ Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rus
 \subsection{Note sur le terme \enquote{Live}}
 Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / show control} (réseaux lumière), et non à une
 garantie de capture en temps réel. La capture en temps réel est optionnelle et pourra être introduite dans des versions ultérieures.
+Le diagnostic en quasi temps réel peut être atteint via le mode suivi, sans capture native immédiate.
 
 \subsection{Termes de base}
 \begin{tabularx}{\linewidth}{@{}l X@{}}
@@ -100,7 +103,7 @@ DoD & Definition of Done \\
 \subsection{Objectifs}
 \begin{itemize}
   \item Analyse hors-ligne de captures PCAP/PCAPNG pour Art-Net et sACN.
-  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps, jitter).
+  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps, gigue, pertes, rafales).
   \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
   \item Rapports JSON versionnés et reproductibles pour tickets, post-mortem, QA et CI.
 \end{itemize}
@@ -111,14 +114,19 @@ En v0.1, l’entrée est un fichier PCAP/PCAPNG produit par des outils standards
 La capture live est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
 
 \subsection{Stratégie \emph{offline-first} (intention produit)}
-LiveShark est conçu comme un analyseur \emph{offline-first} : les premières versions se concentrent sur l’analyse post-mortem
+LiveShark est conçu comme un analyseur \emph{offline-first} : les premières versions se concentrent sur l'analyse post-mortem
 de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
-Il s’agit d’un choix d’ingénierie volontaire, et non d’une limitation produit.
-La capture live / l’analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur offline validé.
+Il s'agit d'un choix d'ingénierie volontaire, et non d'une limitation produit.
+La capture live / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur offline validé.
 
-\textbf{Compatibilité future.} Le pipeline d’analyse \DOIT{} être architecturé afin que l’entrée des paquets puisse provenir :
-(a) d’un lecteur de fichiers (PCAP/PCAPNG), ou (b) d’une source de capture live (future).
+\textbf{Compatibilité future.} Le pipeline d'analyse \DOIT{} être architecturé afin que l'entrée des paquets puisse provenir :
+(a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture live (future).
 Aucune hypothèse « offline uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
+
+Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la préparation du show et pendant le show :
+il analyse un fichier de capture au fur et à mesure de son écriture, sans imposer une capture native immédiate. L'outil vise à
+fournir des \emph{indices de causes probables} sur la base d'éléments observables (pertes, gigue, rafales), au mieux.
+La localisation précise des pertes peut nécessiter plusieurs points de capture (par exemple avant/après un segment sans fil).
 
 \subsection{Non-objectifs}
 \begin{itemize}

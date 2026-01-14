@@ -19,6 +19,15 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 - Documentation build instructions: `docs/README.md`
 The project specification (requirements) is written in LaTeX (`.tex`); see "Build the PDFs" below to compile it.
 
+## Usage modes
+
+- **Offline analysis (post-mortem):** analyze a completed PCAP/PCAPNG capture file.
+- **Follow mode (planned):** near-real-time analysis of a capture file that is still being written by an external tool.
+- **Native live capture (future, optional):** a possible future objective, not required for the initial milestone.
+
+Offline-first is an implementation strategy (robustness, reproducibility), not a product limitation.
+LiveShark also targets reliable network diagnostics for small/medium show rigs (wired/wireless), focusing on loss, jitter, and burst patterns with probable-cause hints when possible.
+
 ## Build the PDFs (for non-developers)
 
 The specs are compiled directly from the `.tex` sources (no external diagram tools required).
