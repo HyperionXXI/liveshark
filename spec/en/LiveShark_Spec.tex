@@ -167,7 +167,7 @@ LiveShark may emit \emph{probable-cause hints} only as heuristics. Such hints mu
 \end{adjustbox}
 \caption{Conceptual offline analysis pipeline (high level).}
 \textit{Note:} The pipeline currently accepts (v0.1) only PCAP/PCAPNG files. Live capture input is a future objective (v0.3+),
-aligned with requirement LS-ARCH-001.
+aligned with the input abstraction requirement in P0.
 \end{figure}
 
 \section{Metrics (defaults)}
@@ -381,13 +381,15 @@ A reconstructed DMX frame is defined by:
 
 \subsubsection{Universe normalization}
 The canonical universe is the 16-bit integer decoded from the protocol payload. For Art-Net, it is the little-endian
-\texttt{universe} field from ArtDMX. For sACN, it is the big-endian \texttt{universe} field from the framing layer.
-The report uses this canonical value; the same universe means identical numeric values across protocols.
+\texttt{universe} field from ArtDMX, where \texttt{universe\_id = 256 * net + subuni} (0..32767). For sACN, it is the
+big-endian \texttt{universe} field from the framing layer. The report uses this canonical value; the same universe
+means identical numeric values across protocols.
 
 \subsubsection{Minimal reconstruction rules}
 \begin{itemize}
   \item Frames are reconstructed per universe and per source, using validated protocol payloads.
-  \item If a payload provides fewer than 512 slots, missing slots are padded with 0 for that frame.
+\item Before the first observed frame for a source and universe, slot values default to 0.
+\item If a payload provides fewer than 512 slots, missing slots retain the last known value for that source and universe.
   \item Out-of-order frames are accepted; reconstruction and metrics are heuristic, without panic.
   \item FPS counts frames that pass protocol validation and are assigned to a universe.
 \end{itemize}
@@ -403,6 +405,8 @@ The report uses this canonical value; the same universe means identical numeric 
 \subsubsection{Overlap definition}
 Conflict is defined as: same universe, at least two sources, and overlap duration $> 1.0$ s.
 Overlap is computed from the per-source time ranges \texttt{[first\_ts, last\_ts]} and the intersection duration.
+In v0.1, conflict detection is a conservative approximation based on time overlap; false positives are possible when
+sources do not actively compete on the same channels at the same time.
 
 \subsubsection{Conflict record fields}
 \begin{itemize}

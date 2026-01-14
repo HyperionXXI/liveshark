@@ -182,7 +182,7 @@ LiveShark PEUT fournir des \emph{pistes de causes probables} uniquement sous for
 \end{adjustbox}
 \caption{Pipeline conceptuel d'analyse hors-ligne (niveau élevé).}
 \textit{Note :} La chaîne d'analyse accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrée depuis une capture en direct
-est un objectif futur (v0.3+) conforme à l'exigence LS-ARCH-001.
+est un objectif futur (v0.3+) conforme à l'exigence d'abstraction d'entrée en P0.
 \end{figure}
 
 \section{Métriques (valeurs par défaut)}
@@ -388,15 +388,17 @@ Une trame DMX reconstruite est définie par :
 \subsubsection{Règles minimales de reconstruction}
 \begin{itemize}
   \item Les trames sont reconstruites par univers et par source, à partir de charges utiles valides.
-  \item Si une charge utile fournit moins de 512 slots, les slots manquants sont remplis par 0 pour cette trame.
+  \item Avant la première trame observée pour une source et un univers, les valeurs de slots sont à 0 par défaut.
+  \item Si une charge utile fournit moins de 512 slots, les slots manquants conservent la dernière valeur connue pour cette source et cet univers.
   \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont heuristiques.
   \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
 
 \subsubsection{Normalisation des univers}
 L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, c'est le champ
-\texttt{universe} en little-endian d'ArtDMX. Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche de framing.
-Le rapport utilise cette valeur canonique ; un même univers signifie des valeurs numériques identiques entre protocoles.
+\texttt{universe} en little-endian d'ArtDMX, avec \texttt{universe\_id = 256 * net + subuni} (0..32767). Pour sACN, c'est le
+champ \texttt{universe} en big-endian de la couche de framing. Le rapport utilise cette valeur canonique ; un même univers
+signifie des valeurs numériques identiques entre protocoles.
 
 \subsection{Appendice C --- Contrat de détection de conflits (v0.1)}
 \subsubsection{Identité de source}
@@ -409,6 +411,8 @@ Le rapport utilise cette valeur canonique ; un même univers signifie des valeur
 \subsubsection{Définition du chevauchement}
 Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
 Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
+En v0.1, la détection de conflit est une approximation prudente basée sur le chevauchement temporel ; des faux positifs
+sont possibles lorsque les sources ne concurrencent pas activement les mêmes canaux au même moment.
 
 \subsubsection{Champs d'un conflit}
 \begin{itemize}
