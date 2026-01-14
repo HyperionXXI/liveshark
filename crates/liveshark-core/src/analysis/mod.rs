@@ -12,7 +12,7 @@ mod flows;
 mod udp;
 mod universes;
 
-use dmx::{DmxFrame, DmxProtocol, DmxStore};
+use dmx::{DmxFrame, DmxProtocol, DmxStateStore, DmxStore};
 use flows::{FlowKey, FlowStats, add_flow_stats, build_flow_summaries};
 use udp::parse_udp_packet;
 use universes::{
@@ -47,6 +47,7 @@ pub fn analyze_source<S: PacketSource>(
     let mut artnet_stats: HashMap<u16, UniverseStats> = HashMap::new();
     let mut sacn_stats: HashMap<u16, UniverseStats> = HashMap::new();
     let mut dmx_store = DmxStore::new();
+    let mut dmx_state = DmxStateStore::new();
 
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
@@ -61,12 +62,18 @@ pub fn analyze_source<S: PacketSource>(
                     art.sequence,
                     ts,
                 );
+                let slots = dmx_state.apply_partial(
+                    art.universe,
+                    source_id.clone(),
+                    DmxProtocol::ArtNet,
+                    &art.slots,
+                );
                 dmx_store.push(DmxFrame {
                     universe: art.universe,
                     timestamp: ts,
                     source_id,
                     protocol: DmxProtocol::ArtNet,
-                    slots: art.slots,
+                    slots,
                 });
             }
             if let Ok(Some(sacn)) = parse_sacn_dmx(udp.payload) {
@@ -80,12 +87,18 @@ pub fn analyze_source<S: PacketSource>(
                     sacn.sequence,
                     ts,
                 );
+                let slots = dmx_state.apply_partial(
+                    sacn.universe,
+                    source_id.clone(),
+                    DmxProtocol::Sacn,
+                    &sacn.slots,
+                );
                 dmx_store.push(DmxFrame {
                     universe: sacn.universe,
                     timestamp: ts,
                     source_id,
                     protocol: DmxProtocol::Sacn,
-                    slots: sacn.slots,
+                    slots,
                 });
             }
             add_flow_stats(&mut flow_stats, &udp, ts);

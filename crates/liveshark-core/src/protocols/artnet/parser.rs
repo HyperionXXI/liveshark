@@ -6,7 +6,7 @@ use super::reader::ArtNetReader;
 pub struct ArtDmx {
     pub universe: u16,
     pub sequence: Option<u8>,
-    pub slots: [u8; layout::DMX_MAX_SLOTS],
+    pub slots: Vec<u8>,
 }
 
 pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
@@ -36,8 +36,7 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
         .ok_or(ArtNetError::InvalidLength { length })?;
     reader.require_len(needed)?;
     let data = reader.read_slice(layout::DMX_DATA_OFFSET..needed)?;
-    let mut slots = [0u8; layout::DMX_MAX_SLOTS];
-    slots[..data_len].copy_from_slice(data);
+    let slots = data.to_vec();
 
     Ok(Some(ArtDmx {
         universe,
@@ -70,7 +69,7 @@ mod tests {
         assert_eq!(parsed.universe, 1);
         assert_eq!(parsed.sequence, Some(0x12));
         assert_eq!(&parsed.slots[..4], &[1, 2, 3, 4]);
-        assert_eq!(parsed.slots[4], 0);
+        assert_eq!(parsed.slots.len(), 4);
     }
 
     #[test]

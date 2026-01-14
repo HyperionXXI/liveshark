@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum DmxProtocol {
     ArtNet,
     Sacn,
@@ -18,6 +18,18 @@ pub(crate) struct DmxFrame {
 #[derive(Debug, Default)]
 pub(crate) struct DmxStore {
     frames_by_universe: HashMap<u16, HashMap<String, Vec<DmxFrame>>>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct DmxStateStore {
+    states: HashMap<DmxStateKey, [u8; 512]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct DmxStateKey {
+    universe: u16,
+    source_id: String,
+    protocol: DmxProtocol,
 }
 
 impl DmxStore {
@@ -57,9 +69,35 @@ impl DmxStore {
     }
 }
 
+impl DmxStateStore {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn apply_partial(
+        &mut self,
+        universe: u16,
+        source_id: String,
+        protocol: DmxProtocol,
+        partial_slots: &[u8],
+    ) -> [u8; 512] {
+        let key = DmxStateKey {
+            universe,
+            source_id,
+            protocol,
+        };
+        let entry = self.states.entry(key).or_insert([0u8; 512]);
+        let len = partial_slots.len().min(512);
+        if len > 0 {
+            entry[..len].copy_from_slice(&partial_slots[..len]);
+        }
+        *entry
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{DmxFrame, DmxProtocol, DmxStore};
+    use super::{DmxFrame, DmxProtocol, DmxStateStore, DmxStore};
 
     #[test]
     fn stores_frames_by_universe_and_source() {
@@ -79,5 +117,29 @@ mod tests {
         let stored = store.frames_for(1, "artnet:10.0.0.1:6454").unwrap();
         assert_eq!(stored.len(), 1);
         assert_eq!(stored[0], frame);
+    }
+
+    #[test]
+    fn stateful_reconstruction_retains_last_known_values() {
+        let mut state = DmxStateStore::new();
+        let slots = state.apply_partial(
+            1,
+            "artnet:10.0.0.1:6454".to_string(),
+            DmxProtocol::ArtNet,
+            &[1, 2, 3],
+        );
+        assert_eq!(&slots[..3], &[1, 2, 3]);
+        assert_eq!(slots[3], 0);
+
+        let slots = state.apply_partial(
+            1,
+            "artnet:10.0.0.1:6454".to_string(),
+            DmxProtocol::ArtNet,
+            &[9],
+        );
+        assert_eq!(slots[0], 9);
+        assert_eq!(slots[1], 2);
+        assert_eq!(slots[2], 3);
+        assert_eq!(slots[3], 0);
     }
 }

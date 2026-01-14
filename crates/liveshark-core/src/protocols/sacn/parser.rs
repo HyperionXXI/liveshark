@@ -8,7 +8,7 @@ pub struct SacnDmx {
     pub cid: String,
     pub source_name: Option<String>,
     pub sequence: Option<u8>,
-    pub slots: [u8; layout::DMX_MAX_SLOTS],
+    pub slots: Vec<u8>,
 }
 
 pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
@@ -56,14 +56,15 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
             }
         }
     }
-    let mut slots = [0u8; layout::DMX_MAX_SLOTS];
-    if data_len > 0 {
+    let slots = if data_len > 0 {
         let needed = layout::DMX_DATA_OFFSET
             .checked_add(data_len)
             .ok_or(SacnError::InvalidDmxLength { length: 0 })?;
         let data = reader.read_slice(layout::DMX_DATA_OFFSET..needed)?;
-        slots[..data_len].copy_from_slice(data);
-    }
+        data.to_vec()
+    } else {
+        Vec::new()
+    };
 
     Ok(Some(SacnDmx {
         universe,
@@ -106,7 +107,7 @@ mod tests {
         assert_eq!(parsed.universe, 1);
         assert_eq!(parsed.sequence, Some(0x01));
         assert_eq!(&parsed.slots[..2], &[1, 2]);
-        assert_eq!(parsed.slots[2], 0);
+        assert_eq!(parsed.slots.len(), 2);
     }
 
     #[test]
@@ -145,6 +146,6 @@ mod tests {
         assert!(parsed.is_some());
         let parsed = parsed.unwrap();
         assert_eq!(parsed.universe, 1);
-        assert!(parsed.slots.iter().all(|b| *b == 0));
+        assert!(parsed.slots.is_empty());
     }
 }
