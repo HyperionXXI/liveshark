@@ -49,6 +49,30 @@ fn main() -> Result<()> {
 }
 
 fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<()> {
+    let input_abs = fs::canonicalize(&input)
+        .with_context(|| format!("Failed to resolve input path: {}", input.display()))?;
+    let report_abs = report
+        .parent()
+        .map(|parent| {
+            if parent.as_os_str().is_empty() {
+                fs::canonicalize(".")
+            } else {
+                fs::canonicalize(parent)
+            }
+        })
+        .transpose()
+        .with_context(|| format!("Failed to resolve output path: {}", report.display()))?;
+    if let Some(report_dir) = report_abs {
+        let report_target = report_dir.join(
+            report
+                .file_name()
+                .ok_or_else(|| anyhow::anyhow!("Invalid report path"))?,
+        );
+        if report_target == input_abs {
+            anyhow::bail!("Report path must differ from input: {}", report.display());
+        }
+    }
+
     let meta = fs::metadata(&input)
         .with_context(|| format!("Failed to read input file: {}", input.display()))?;
 
