@@ -41,6 +41,11 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
         return Ok(None);
     }
 
+    let start_code = reader.read_u8(layout::START_CODE_OFFSET)?;
+    if start_code != 0x00 {
+        return Ok(None);
+    }
+
     let universe = reader.read_u16_be(layout::UNIVERSE_RANGE.clone())?;
     let cid = reader.read_cid_hex()?;
     let source_name = reader.read_optional_ascii_string(layout::SOURCE_NAME_RANGE.clone())?;
@@ -49,12 +54,14 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let mut data_len = available_len.min(layout::DMX_MAX_SLOTS);
     if payload.len() >= layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end {
         let value = reader.read_u16_be(layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone())?;
-        if value > 0 {
-            let count_len = (value - 1) as usize;
-            if count_len <= layout::DMX_MAX_SLOTS {
-                data_len = count_len.min(available_len);
-            }
+        if value == 0 {
+            return Err(SacnError::InvalidPropertyValueCount { count: value });
         }
+        let count_len = (value - 1) as usize;
+        if count_len > layout::DMX_MAX_SLOTS {
+            return Err(SacnError::InvalidPropertyValueCount { count: value });
+        }
+        data_len = count_len.min(available_len);
     }
     let slots = if data_len > 0 {
         let needed = layout::DMX_DATA_OFFSET
@@ -78,6 +85,7 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
 #[cfg(test)]
 mod tests {
     use super::parse_sacn_dmx;
+    use crate::protocols::sacn::error::SacnError;
     use crate::protocols::sacn::layout;
 
     #[test]
@@ -95,6 +103,7 @@ mod tests {
             .copy_from_slice(&layout::FRAMING_VECTOR_DMX.to_be_bytes());
         payload[layout::DMP_VECTOR_OFFSET] = layout::DMP_VECTOR_SET_PROPERTY;
         payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
+        payload[layout::START_CODE_OFFSET] = 0x00;
         payload[layout::SEQUENCE_OFFSET] = 0x01;
         payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
             .copy_from_slice(&count.to_be_bytes());
@@ -127,7 +136,7 @@ mod tests {
 
     #[test]
     fn parse_invalid_property_value_count() {
-        let mut payload = vec![0u8; layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end];
+        let mut payload = vec![0u8; layout::DMX_DATA_OFFSET];
         payload[layout::PREAMBLE_SIZE_RANGE.clone()]
             .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
         payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
@@ -139,13 +148,14 @@ mod tests {
             .copy_from_slice(&layout::FRAMING_VECTOR_DMX.to_be_bytes());
         payload[layout::DMP_VECTOR_OFFSET] = layout::DMP_VECTOR_SET_PROPERTY;
         payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
+        payload[layout::START_CODE_OFFSET] = 0x00;
         payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
             .copy_from_slice(&0u16.to_be_bytes());
 
-        let parsed = parse_sacn_dmx(&payload).unwrap();
-        assert!(parsed.is_some());
-        let parsed = parsed.unwrap();
-        assert_eq!(parsed.universe, 1);
-        assert!(parsed.slots.is_empty());
+        let err = parse_sacn_dmx(&payload).unwrap_err();
+        assert!(matches!(
+            err,
+            SacnError::InvalidPropertyValueCount { count: 0 }
+        ));
     }
 }
