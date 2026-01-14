@@ -148,13 +148,13 @@ fn fps_from_dmx(
     fallback_frames: u64,
 ) -> Option<f64> {
     let frames = dmx_store.frames_for_universe(universe, protocol);
-    let mut first_ts = None;
     let mut last_ts = None;
+    let mut earliest_ts = None;
     let mut counted = 0u64;
 
     for frame in frames {
         if let Some(ts) = frame.timestamp {
-            update_ts_bounds(&mut first_ts, &mut last_ts, Some(ts));
+            update_ts_bounds(&mut earliest_ts, &mut last_ts, Some(ts));
             counted += 1;
         }
     }
@@ -164,8 +164,28 @@ fn fps_from_dmx(
     } else {
         fallback_frames
     };
-    match (first_ts, last_ts) {
-        (Some(start), Some(end)) if end > start => Some(frame_count as f64 / (end - start)),
+    let (Some(last_ts), Some(earliest_ts)) = (last_ts, earliest_ts) else {
+        return None;
+    };
+    if last_ts <= earliest_ts || frame_count == 0 {
+        return None;
+    }
+    let window_start = last_ts - 5.0;
+    let mut window_count = 0u64;
+    for frame in dmx_store.frames_for_universe(universe, protocol) {
+        if let Some(ts) = frame.timestamp {
+            if ts >= window_start {
+                window_count += 1;
+            }
+        }
+    }
+    let window_duration = if last_ts - earliest_ts < 5.0 {
+        last_ts - earliest_ts
+    } else {
+        5.0
+    };
+    match window_duration {
+        duration if duration > 0.0 && window_count > 0 => Some(window_count as f64 / duration),
         _ => None,
     }
 }
@@ -373,7 +393,7 @@ mod tests {
         UniverseSourceStats, add_artnet_frame, build_artnet_universe_summaries, build_conflicts,
         compute_metrics, update_source_stats,
     };
-    use crate::analysis::dmx::DmxStore;
+    use crate::analysis::dmx::{DmxFrame, DmxProtocol, DmxStore};
     use std::collections::HashMap;
     use std::net::IpAddr;
 
@@ -464,5 +484,32 @@ mod tests {
         let metrics = compute_metrics(&per_source);
         let loss_rate = metrics.loss_rate.unwrap_or(0.0);
         assert!((loss_rate - (1.0 / 3.0)).abs() < 0.0001);
+    }
+
+    #[test]
+    fn fps_uses_last_five_seconds() {
+        let mut stats = HashMap::new();
+        let ip: IpAddr = "10.0.0.1".parse().unwrap();
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, Some(0.0));
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, Some(1.0));
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, Some(2.0));
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, Some(7.0));
+
+        let mut dmx_store = DmxStore::default();
+        let mut slots = [0u8; 512];
+        slots[0] = 1;
+        for ts in [0.0, 1.0, 2.0, 7.0] {
+            dmx_store.push(DmxFrame {
+                universe: 1,
+                timestamp: Some(ts),
+                source_id: "artnet:10.0.0.1:6454".to_string(),
+                protocol: DmxProtocol::ArtNet,
+                slots,
+            });
+        }
+
+        let summaries = build_artnet_universe_summaries(stats, &dmx_store);
+        let fps = summaries[0].fps.unwrap_or(0.0);
+        assert!((fps - 0.4).abs() < 0.0001);
     }
 }
