@@ -23,3 +23,12 @@ pub enum SourceError {
     #[error("PCAP parse error: {0}")]
     Pcap(String),
 }
+
+impl From<pcap::error::PcapSourceError> for SourceError {
+    fn from(value: pcap::error::PcapSourceError) -> Self {
+        match value {
+            pcap::error::PcapSourceError::Io(err) => SourceError::Io(err),
+            pcap::error::PcapSourceError::Pcap(err) => SourceError::Pcap(err),
+        }
+    }
+}
