@@ -8,6 +8,7 @@ pub struct SacnDmx {
     pub cid: String,
     pub source_name: Option<String>,
     pub sequence: Option<u8>,
+    pub slots: [u8; layout::DMX_MAX_SLOTS],
 }
 
 pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
@@ -44,12 +45,32 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let cid = reader.read_cid_hex()?;
     let source_name = reader.read_optional_ascii_string(layout::SOURCE_NAME_RANGE.clone())?;
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
+    let available_len = payload.len().saturating_sub(layout::DMX_DATA_OFFSET);
+    let mut data_len = available_len.min(layout::DMX_MAX_SLOTS);
+    if payload.len() >= layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end {
+        let value = reader.read_u16_be(layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone())?;
+        if value > 0 {
+            let count_len = (value - 1) as usize;
+            if count_len <= layout::DMX_MAX_SLOTS {
+                data_len = count_len.min(available_len);
+            }
+        }
+    }
+    let mut slots = [0u8; layout::DMX_MAX_SLOTS];
+    if data_len > 0 {
+        let needed = layout::DMX_DATA_OFFSET
+            .checked_add(data_len)
+            .ok_or(SacnError::InvalidDmxLength { length: 0 })?;
+        let data = reader.read_slice(layout::DMX_DATA_OFFSET..needed)?;
+        slots[..data_len].copy_from_slice(data);
+    }
 
     Ok(Some(SacnDmx {
         universe,
         cid,
         source_name,
         sequence,
+        slots,
     }))
 }
 
@@ -60,7 +81,8 @@ mod tests {
 
     #[test]
     fn parse_valid_sacn() {
-        let mut payload = vec![0u8; layout::MIN_LEN];
+        let count = 3u16;
+        let mut payload = vec![0u8; layout::DMX_DATA_OFFSET + (count - 1) as usize];
         payload[layout::PREAMBLE_SIZE_RANGE.clone()]
             .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
         payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
@@ -73,12 +95,18 @@ mod tests {
         payload[layout::DMP_VECTOR_OFFSET] = layout::DMP_VECTOR_SET_PROPERTY;
         payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
         payload[layout::SEQUENCE_OFFSET] = 0x01;
+        payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+            .copy_from_slice(&count.to_be_bytes());
+        payload[layout::START_CODE_OFFSET] = 0x00;
+        payload[layout::DMX_DATA_OFFSET..layout::DMX_DATA_OFFSET + 2].copy_from_slice(&[1, 2]);
 
         let parsed = parse_sacn_dmx(&payload).unwrap();
         assert!(parsed.is_some());
         let parsed = parsed.unwrap();
         assert_eq!(parsed.universe, 1);
         assert_eq!(parsed.sequence, Some(0x01));
+        assert_eq!(&parsed.slots[..2], &[1, 2]);
+        assert_eq!(parsed.slots[2], 0);
     }
 
     #[test]
@@ -94,5 +122,29 @@ mod tests {
         let err = parse_sacn_dmx(&payload).unwrap_err();
         let msg = err.to_string();
         assert!(msg.contains("payload too short"));
+    }
+
+    #[test]
+    fn parse_invalid_property_value_count() {
+        let mut payload = vec![0u8; layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end];
+        payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+        payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+        payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(layout::ACN_PID);
+        payload[layout::ROOT_VECTOR_RANGE.clone()]
+            .copy_from_slice(&layout::ROOT_VECTOR_DATA.to_be_bytes());
+        payload[layout::FRAMING_VECTOR_RANGE.clone()]
+            .copy_from_slice(&layout::FRAMING_VECTOR_DMX.to_be_bytes());
+        payload[layout::DMP_VECTOR_OFFSET] = layout::DMP_VECTOR_SET_PROPERTY;
+        payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
+        payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+            .copy_from_slice(&0u16.to_be_bytes());
+
+        let parsed = parse_sacn_dmx(&payload).unwrap();
+        assert!(parsed.is_some());
+        let parsed = parsed.unwrap();
+        assert_eq!(parsed.universe, 1);
+        assert!(parsed.slots.iter().all(|b| *b == 0));
     }
 }

@@ -32,6 +32,17 @@ impl<'a> ArtNetReader<'a> {
         Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
     }
 
+    pub fn read_u16_be(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
+        let bytes = self.read_slice(range)?;
+        if bytes.len() != 2 {
+            return Err(ArtNetError::TooShort {
+                needed: 2,
+                actual: bytes.len(),
+            });
+        }
+        Ok(u16::from_be_bytes([bytes[0], bytes[1]]))
+    }
+
     pub fn read_u8(&self, offset: usize) -> Result<u8, ArtNetError> {
         self.payload
             .get(offset)

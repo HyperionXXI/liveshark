@@ -11,6 +11,10 @@ pub const SEQUENCE_OFFSET: usize = 111;
 pub const UNIVERSE_RANGE: std::ops::Range<usize> = 113..115;
 
 pub const DMP_VECTOR_OFFSET: usize = 117;
+pub const DMP_PROPERTY_VALUE_COUNT_RANGE: std::ops::Range<usize> = 123..125;
+pub const START_CODE_OFFSET: usize = 125;
+pub const DMX_DATA_OFFSET: usize = 126;
+pub const DMX_MAX_SLOTS: usize = 512;
 
 pub const ACN_PID: &[u8; 12] = b"ASC-E1.17\0\0\0";
 pub const PREAMBLE_SIZE: u16 = 0x0010;
