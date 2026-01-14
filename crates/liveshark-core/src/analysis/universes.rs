@@ -20,6 +20,7 @@ pub(crate) struct UniverseSourceStats {
     pub max_burst_len: u64,
     pub current_burst: u64,
     pub last_seq: Option<u8>,
+    pub first_ts: Option<f64>,
     pub last_ts: Option<f64>,
     pub prev_iat: Option<f64>,
     pub jitter: f64,
@@ -126,6 +127,9 @@ struct UniverseMetrics {
 fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts: Option<f64>) {
     stats.frames += 1;
 
+    if stats.first_ts.is_none() {
+        stats.first_ts = ts;
+    }
     if let (Some(ts), Some(last_ts)) = (ts, stats.last_ts) {
         let iat = ts - last_ts;
         if let Some(prev_iat) = stats.prev_iat {
@@ -244,4 +248,51 @@ fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<
             }
         }
     }
+}
+
+pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate::ConflictSummary> {
+    let mut conflicts = Vec::new();
+
+    for (universe, uni) in stats {
+        let sources: Vec<_> = uni.per_source.iter().collect();
+        for i in 0..sources.len() {
+            for j in (i + 1)..sources.len() {
+                let (src_a_key, src_a_stats) = sources[i];
+                let (src_b_key, src_b_stats) = sources[j];
+
+                let (start_a, end_a) = match (src_a_stats.first_ts, src_a_stats.last_ts) {
+                    (Some(start), Some(end)) => (start, end),
+                    _ => continue,
+                };
+                let (start_b, end_b) = match (src_b_stats.first_ts, src_b_stats.last_ts) {
+                    (Some(start), Some(end)) => (start, end),
+                    _ => continue,
+                };
+
+                let overlap = (end_a.min(end_b) - start_a.max(start_b)).max(0.0);
+                if overlap > 1.0 {
+                    let src_a_label = source_label(uni, src_a_key);
+                    let src_b_label = source_label(uni, src_b_key);
+                    conflicts.push(crate::ConflictSummary {
+                        universe: *universe,
+                        sources: vec![src_a_label, src_b_label],
+                        overlap_duration_s: overlap,
+                        affected_channels: vec![],
+                        severity: "medium".to_string(),
+                        conflict_score: overlap,
+                    });
+                }
+            }
+        }
+    }
+
+    conflicts
+}
+
+fn source_label(stats: &UniverseStats, key: &str) -> String {
+    stats
+        .sources
+        .get(key)
+        .and_then(|s| s.cid.clone().or_else(|| Some(s.source_ip.clone())))
+        .unwrap_or_else(|| key.to_string())
 }

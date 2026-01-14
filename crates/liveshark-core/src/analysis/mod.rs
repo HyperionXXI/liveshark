@@ -15,7 +15,7 @@ use flows::{FlowKey, FlowStats, add_flow_stats, build_flow_summaries};
 use udp::parse_udp_packet;
 use universes::{
     UniverseStats, add_artnet_frame, add_sacn_frame, build_artnet_universe_summaries,
-    build_sacn_universe_summaries,
+    build_conflicts, build_sacn_universe_summaries,
 };
 
 use crate::protocols::artnet::parse_artdmx;
@@ -85,6 +85,9 @@ pub fn analyze_source<S: PacketSource>(
         _ => None,
     };
 
+    let mut conflicts = build_conflicts(&artnet_stats);
+    conflicts.extend(build_conflicts(&sacn_stats));
+    report.conflicts = conflicts;
     report.flows = build_flow_summaries(flow_stats, duration_s);
     report.universes = {
         let mut universes = build_artnet_universe_summaries(artnet_stats);
