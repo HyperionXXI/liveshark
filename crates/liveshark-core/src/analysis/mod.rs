@@ -48,7 +48,7 @@ pub fn analyze_source<S: PacketSource>(
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
-        if let Some(udp) = parse_udp_packet(linktype, &data) {
+        if let Ok(Some(udp)) = parse_udp_packet(linktype, &data) {
             if let Ok(Some(art)) = parse_artdmx(udp.payload) {
                 add_artnet_frame(
                     &mut artnet_stats,
