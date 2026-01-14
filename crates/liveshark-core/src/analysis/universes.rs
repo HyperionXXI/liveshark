@@ -254,11 +254,14 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
     let mut conflicts = Vec::new();
 
     for (universe, uni) in stats {
-        let sources: Vec<_> = uni.per_source.iter().collect();
-        for i in 0..sources.len() {
-            for j in (i + 1)..sources.len() {
-                let (src_a_key, src_a_stats) = sources[i];
-                let (src_b_key, src_b_stats) = sources[j];
+        let mut keys: Vec<&String> = uni.per_source.keys().collect();
+        keys.sort();
+        for i in 0..keys.len() {
+            for j in (i + 1)..keys.len() {
+                let src_a_key = keys[i];
+                let src_b_key = keys[j];
+                let src_a_stats = &uni.per_source[src_a_key];
+                let src_b_stats = &uni.per_source[src_b_key];
 
                 let (start_a, end_a) = match (src_a_stats.first_ts, src_a_stats.last_ts) {
                     (Some(start), Some(end)) => (start, end),
@@ -286,6 +289,11 @@ pub(crate) fn build_conflicts(stats: &HashMap<u16, UniverseStats>) -> Vec<crate:
         }
     }
 
+    conflicts.sort_by(|a, b| {
+        a.universe
+            .cmp(&b.universe)
+            .then_with(|| a.sources.join(",").cmp(&b.sources.join(",")))
+    });
     conflicts
 }
 

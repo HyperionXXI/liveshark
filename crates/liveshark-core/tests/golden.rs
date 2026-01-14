@@ -1,12 +1,10 @@
 use std::fs;
 use std::path::Path;
 
-use liveshark_core::{analyze_pcap_file, Report};
+use liveshark_core::{Report, analyze_pcap_file};
 
 fn run_golden(dir: &str) {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
     let input = root.join(dir).join("input.pcapng");
     let expected_path = root.join(dir).join("expected_report.json");
 
@@ -31,4 +29,9 @@ fn golden_artnet() {
 #[test]
 fn golden_sacn() {
     run_golden("tests/golden/sacn");
+}
+
+#[test]
+fn golden_artnet_conflict() {
+    run_golden("tests/golden/artnet_conflict");
 }
