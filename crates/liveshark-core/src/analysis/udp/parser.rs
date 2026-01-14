@@ -63,6 +63,7 @@ pub fn parse_udp_packet(
 #[cfg(test)]
 mod tests {
     use super::parse_udp_packet;
+    use crate::analysis::udp::error::UdpError;
     use etherparse::PacketBuilder;
     use pcap_parser::Linktype;
 
@@ -94,5 +95,12 @@ mod tests {
 
         let parsed = parse_udp_packet(Linktype::ETHERNET, &packet).unwrap();
         assert!(parsed.is_none());
+    }
+
+    #[test]
+    fn parse_slice_error() {
+        let data = [];
+        let result = parse_udp_packet(Linktype::ETHERNET, &data);
+        assert!(matches!(result, Err(UdpError::Slice(_))));
     }
 }
