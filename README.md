@@ -15,8 +15,9 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 ## Documentation / Specification
 
 - Printable specification sources (authoritative): `spec/en/LiveShark_Spec.tex`
-- French best-effort translation: `spec/fr/LiveShark_Spec.tex`
+- French translation (informational, may lag): `spec/fr/LiveShark_Spec.tex`
 - Documentation build instructions: `docs/README.md`
+- Documentation FR: `docs/fr/README.md`
 - Rust architecture rules (normative): `docs/RUST_ARCHITECTURE.md`
 
 The project specification (requirements) is written in LaTeX (`.tex`); see "Build the PDFs" below to compile it.

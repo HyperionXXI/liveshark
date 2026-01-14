@@ -1,42 +1,43 @@
-# Regles d'architecture Rust (Normatif)
+# Règles d'architecture Rust (normatives)
 
-Ce document est normatif pour le code Rust de LiveShark. Il definit la
-structure et la methode de parsing des donnees externes. EN fait foi; FR est
-une traduction.
+Ce document est normatif pour le code Rust de LiveShark. Il définit comment les
+données externes sont décodées et comment le code est structuré. L'anglais fait
+foi ; le français est une traduction.
 
-## Portee
+## Portée
 
-Ces regles s'appliquent a toutes les entrees externes: PCAP/PCAPNG, trames
-reseau, fichiers, et charges utiles de protocoles.
+Ces règles s'appliquent à toutes les entrées externes : PCAP/PCAPNG, trames
+réseau, fichiers, et charges utiles de protocoles.
 
-## Modele par couches (obligatoire)
+## Modèle de décodage par couches (obligatoire)
 
-Pour chaque protocole ou type de message, utiliser les modules suivants:
+Pour chaque protocole ou type de message, utiliser les modules suivants :
 
-- `layout`: constantes d'offsets, longueurs et ranges du format
-- `reader`: helpers de lecture securises (octets, entiers, slices, chaines)
-- `parser`: logique metier uniquement (conversion vers structures domaine)
-- `error`: type d'erreur dedie, messages actionnables
-- `tests`: tests unitaires; golden tests si pertinent
+- `layout` : constantes pour les offsets, longueurs et plages du format
+- `reader` : fonctions utilitaires sûres pour lire octets, entiers, tranches (« slices ») et chaînes
+- `parser` : logique métier uniquement (conversion vers structures de domaine)
+- `error` : type d'erreur dédié avec messages exploitables
+- `tests` : tests unitaires ; tests golden quand la sortie alimente des rapports
 
-Le parseur ne doit pas contenir d'acces bas niveau aux octets. Tous les acces
-passent par `reader`.
+Le parseur ne doit pas contenir d'accès bas niveau aux octets. Toute lecture
+passe par `reader`.
 
-## Aucun "magic number" (obligatoire)
+## Pas de constantes magiques (obligatoire)
 
-Aucune constante numerique brute dans le parsing. Tous les offsets/longueurs/
-ranges sont definis une seule fois dans `layout` via des `const` nommes en
-SCREAMING_SNAKE_CASE.
+Aucun littéral numérique dans la logique de décodage. Tous les
+offsets/longueurs/plages doivent être définis une seule fois dans `layout` en
+`const` nommées en SCREAMING_SNAKE_CASE.
 
-## Aucune panic sur donnees externes (obligatoire)
+## Pas de panique sur données externes (obligatoire)
 
-Pas de `unwrap`, `expect`, indexation directe, ni operation pouvant paniquer.
-Tout parsing retourne `Result<_, ParseError>` (ou `Error` du module) et utilise
-des acces non paniquants (`.get`, readers).
+Pas de `unwrap`, `expect`, indexation directe, ni d'opération pouvant paniquer
+sur des entrées invalides/courtes. Tout décodage retourne
+`Result<_, ParseError>` (ou `Error`) et utilise un accès non paniquant (`.get`,
+lecteurs sûrs).
 
-## Helpers reader (obligatoire)
+## Fonctions utilitaires de lecture (obligatoire)
 
-Centraliser les helpers dans `reader`:
+Centraliser les fonctions utilitaires dans `reader` :
 
 - `read_u8(offset) -> Result<u8, _>`
 - `read_u16_be(range) -> Result<u16, _>`
@@ -45,24 +46,25 @@ Centraliser les helpers dans `reader`:
 - `read_slice(range) -> Result<&[u8], _>`
 - `read_ascii_string(range) -> Result<String, _>`
 
-Toute convention protocolaire (ex. "0 signifie absent") doit etre encapsulee
-dans une fonction dediee (ex. `parse_optional_nonzero`), pas repetee.
+Les conventions de protocole (ex. « 0 signifie absent ») doivent être
+encapsulées dans une fonction utilitaire (ex. `parse_optional_nonzero`), sans
+répétition.
 
 ## Tests (obligatoire)
 
-Chaque parseur a des tests unitaires. Si le parseur impacte un rapport, ajouter
-des tests golden avec des entrees representatives.
+Chaque parseur a des tests unitaires. Si le parseur impacte la sortie des
+rapports, ajouter des tests golden avec des entrées représentatives.
 
 ## Formatage (obligatoire)
 
-Tout le code Rust doit etre formate via `cargo fmt` (rustfmt par defaut).
-Aucune deviation manuelle.
+Tout code Rust doit être formaté avec `cargo fmt` (rustfmt par défaut). Aucune
+déviation manuelle de style.
 
-## Liens de reference
+## Liens de référence
 
-- Rust Style Guide: https://doc.rust-lang.org/style-guide/
-- Rust Book (gestion d'erreurs, Result vs panic): https://doc.rust-lang.org/book/ch09-00-error-handling.html
-- RFC 1679 (panic-safe slicing): https://rust-lang.github.io/rfcs/1679-panic-safe-slicing.html
-- Rust std slice `.get`: https://doc.rust-lang.org/std/primitive.slice.html#method.get
-- Separation of Concerns (SoC): https://en.wikipedia.org/wiki/Separation_of_concerns
-- DRY: https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+- Rust Style Guide : https://doc.rust-lang.org/style-guide/
+- Rust Book (gestion des erreurs, Result vs panic) : https://doc.rust-lang.org/book/ch09-00-error-handling.html
+- RFC 1679 (panic-safe slicing) : https://rust-lang.github.io/rfcs/1679-panic-safe-slicing.html
+- Rust std slice `.get` : https://doc.rust-lang.org/std/primitive.slice.html#method.get
+- Séparation des préoccupations (SoC) : https://en.wikipedia.org/wiki/Separation_of_concerns
+- DRY : https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
