@@ -241,7 +241,7 @@ LiveShark \DOIT{} détecter les sources concurrentes : deux sources ou plus sur 
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-001}{P1}{}
-LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : résumé capture, univers, sources, flux et conflits.
+LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : résumé de capture, univers (avec sources par univers), flux et conflits.
 \end{reqbox}
 \begin{reqbox}{LS-REP-002}{P1}{}
 Le rapport JSON \DOIT{} être déterministe : l'ordre des listes est stable et les champs volatils sont explicitement définis.
@@ -252,7 +252,7 @@ Le rapport JSON \DOIT{} inclure les champs et types minimaux définis dans l'App
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-004}{P1}{}
-Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure définie dans l'Appendice A.
+Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure définie dans l'Appendice C.
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-010}{P1}{}
@@ -301,7 +301,7 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
 \subsection{Définition de fin v0.1}
 Le MVP est considéré livré si :
 \begin{enumerate}
-  \item \texttt{liveshark pcap analyse file.pcapng} fonctionne sur 3 captures.
+  \item \texttt{liveshark pcap analyse --report out/report.json file.pcapng} fonctionne sur 3 captures.
   \item Art-Net et sACN sont décodés (univers, sources, fps).
   \item Le rapport JSON contient \texttt{conflicts[]} (détection auto).
   \item Aucun crash sur PCAP tronqué/corrompu.
@@ -322,14 +322,25 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{capture\_summary} : objet ou null (si indisponible).
   \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent être vides en v0.1).
   \item \texttt{compliance[]} : tableau (peut être vide en v0.1).
+  \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),
+  \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel et \texttt{source\_name} optionnel ;
+  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),
+  \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels
+  \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms}
+  (omis si indisponibles).
+  \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
+  et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} optionnels (omis si indisponibles).
+  \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
 \end{itemize}
 
 \subsubsection{Règles de déterminisme}
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
   \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
+  \texttt{sources[]} dans chaque univers triés par \texttt{source\_ip} croissant ;
   \texttt{flows[]} triés par \texttt{src} puis \texttt{dst} ;
   \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
+  \texttt{sources[]} dans chaque conflit triés par ordre lexicographique des identifiants de source ;
   \texttt{compliance[]} triés par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
   \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapportées telles que calculées.
@@ -355,7 +366,7 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 \begin{verbatim}
 {
   "universe": 1,
-  "sources": ["sacn:cid:11223344", "artnet:192.168.0.2:6454"],
+  "sources": ["sacn:cid:11223344556677889900aabbccddeeff", "artnet:192.168.0.2:6454"],
   "overlap_duration_s": 3.5,
   "affected_channels": [],
   "severity": "medium",
@@ -378,9 +389,14 @@ Une trame DMX reconstruite est définie par :
 \begin{itemize}
   \item Les trames sont reconstruites par univers et par source, à partir de charges utiles valides.
   \item Si une charge utile fournit moins de 512 slots, les slots manquants sont remplis par 0 pour cette trame.
-  \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont au mieux.
+  \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont heuristiques.
   \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
+
+\subsubsection{Normalisation des univers}
+L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, c'est le champ
+\texttt{universe} en little-endian d'ArtDMX. Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche de framing.
+Le rapport utilise cette valeur canonique ; un même univers signifie des valeurs numériques identiques entre protocoles.
 
 \subsection{Appendice C --- Contrat de détection de conflits (v0.1)}
 \subsubsection{Identité de source}
@@ -388,6 +404,7 @@ Une trame DMX reconstruite est définie par :
   \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est présent ; sinon \texttt{sacn:<ip>:<port>}.
   \item \textbf{Art-Net :} \texttt{artnet:<ip>:<port>}.
 \end{itemize}
+\textbf{Format du CID :} hexadécimal minuscule, 32 caractères, sans séparateurs.
 
 \subsubsection{Définition du chevauchement}
 Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
@@ -402,6 +419,7 @@ Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last
   \item \texttt{severity} (chaîne)
   \item \texttt{conflict\_score} (flottant)
 \end{itemize}
+En v0.1, \texttt{severity} est fixé à \texttt{"medium"} et \texttt{conflict\_score} est égal à \texttt{overlap\_duration\_s}.
 Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et \texttt{protocols[]}.
 
 \subsection{Appendice D --- Définitions des métriques (v0.1)}
@@ -409,11 +427,15 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
   \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
   \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arrivée consécutifs sur une fenêtre glissante de 10.0 s ; unité en secondes (rapportée en ms si applicable).
+  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés dans la fenêtre glissante ;
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence.
+  \item \textbf{rafales :} \texttt{burst\_count} est le nombre de rafales de pertes dans la fenêtre glissante ; \texttt{max\_burst\_len} est la
+  longueur maximale de rafale observée dans la même fenêtre.
 \end{itemize}
 
 \section{Licence}
-Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les specifications sont sous licence \textbf{CC-BY-4.0}.
-Les fichiers PDF sont des artefacts de compilation générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être versionnÃ©s} dans le dépôt.
+Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les spécifications sont sous licence \textbf{CC-BY-4.0}.
+Les fichiers PDF sont des artefacts de compilation générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être versionnés} dans le dépôt.
 
 \section{Références normatives}
 \begin{tabularx}{\linewidth}{@{}l X@{}}
