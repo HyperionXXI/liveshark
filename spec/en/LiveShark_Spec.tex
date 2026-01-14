@@ -33,7 +33,7 @@ The ideal user interface is a well-designed \textbf{GUI}; the \textbf{CLI} remai
 \subsection{Authoritative version and translation policy}
 \textbf{Authoritative version (prevails).} The English specification in \texttt{spec/en} is the \emph{authoritative}
 version: in case of discrepancy or incomplete translation, \textbf{the English version prevails}.\\
-\textbf{Best-effort translation.} A French translation may exist in \texttt{spec/fr}. It is provided as a convenience and
+\textbf{French translation (informational).} A French translation may exist in \texttt{spec/fr}. It is provided as a convenience and
 \textbf{may lag behind}. When differences exist, the authoritative version prevails.
 
 \subsection{Normative keywords}
@@ -124,9 +124,12 @@ Live capture / online analysis is an explicit future objective and \MAY{} be imp
 domain model (frames, conflicts, reports).
 
 Follow mode is the pragmatic path for reliable diagnostics during show preparation and during the show: it analyzes a capture
-file as it grows, without requiring native capture on day one. The tool aims to surface \emph{probable causes} based on
-observable indicators (loss patterns, jitter, bursts) on a best-effort basis. Precise loss localization can require multiple
-capture points (for example, before and after a wireless segment).
+file as it grows, without requiring native capture on day one.
+
+LiveShark may emit \emph{probable-cause hints} only as heuristics and separate from measured metrics. Any hint \MUST{} be
+justified by observable indicators (loss patterns, jitter, bursts, timing asymmetries) and \MUSTNOT{} be presented as a certain
+cause. Robust loss localization may require multiple capture points (for example, before and after a wireless segment) and is
+reported only when feasible based on the available evidence.
 
 
 
@@ -148,22 +151,13 @@ Each extension declares its support level:
 
 LiveShark may emit \emph{probable-cause hints} only as heuristics. Such hints must be justified by observable patterns and must never be presented as certain causes.
 
-\begin{table}[h]
-\centering
-\small
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l >{\raggedright\arraybackslash}X@{}}
-\toprule
-\textbf{Extension (candidate)} & \textbf{Level} & \textbf{Diagnostic value (examples)} \\
-\midrule
-OSC & Message & Control-message timeline; correlation with DMX/network anomalies \\
-RTP (generic) & Message & Sequence gaps, jitter, reordering; basis for AES67-style health checks \\
-RTP-MIDI & Message & MIDI message timing; correlation with cues/timecode over the network \\
-Network infrastructure & Flow & IGMP/mDNS/DHCP/ARP/DNS patterns; multicast/discovery/addressing issues \\
-Laser proprietary protocols & Flow & Loss/jitter/bursts per flow; multi-source detection when applicable \\
-\bottomrule
-\end{tabularx}
-\caption{Non-normative extension register (subject to change).}
-\end{table}
+\begin{itemize}
+  \item \textbf{OSC (Message):} control-message timeline; correlation with DMX/network anomalies.
+  \item \textbf{RTP (generic) (Message):} sequence gaps, jitter, reordering; basis for AES67-style health checks.
+  \item \textbf{RTP-MIDI (Message):} MIDI message timing; correlation with cues/timecode over the network.
+  \item \textbf{Network infrastructure (Flow):} IGMP/mDNS/DHCP/ARP/DNS patterns; multicast/discovery/addressing issues.
+  \item \textbf{Laser proprietary protocols (Flow):} loss/jitter/bursts per flow; multi-source detection when applicable.
+\end{itemize}
 
 \section{Architecture (conceptual)}
 \begin{figure}[H]
@@ -188,7 +182,8 @@ Unless otherwise stated:
 \begin{itemize}
   \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window.
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window.
-  \item \textbf{jitter (IAT):} inter-arrival time jitter computed as the average variation between consecutive inter-arrival times over a 10.0 s sliding window (best-effort, no interpolation).
+  \item \textbf{jitter (IAT):} inter-arrival time jitter computed as the average variation between consecutive inter-arrival times over a 10.0 s sliding window (heuristic, no interpolation).
+  \item \textbf{loss (observed):} when protocol sequence numbers exist (e.g., sACN), loss is reported as observed sequence gaps at the capture point; otherwise it is a heuristic based on cadence gaps. This does not guarantee loss at the receiver.
 \end{itemize}
 See Appendix D for operational definitions and units.
 
@@ -376,7 +371,7 @@ A reconstructed DMX frame is defined by:
 \begin{itemize}
   \item Frames are reconstructed per universe and per source, using validated protocol payloads.
   \item If a payload provides fewer than 512 slots, missing slots are padded with 0 for that frame.
-  \item Out-of-order frames are accepted; reconstruction and metrics are best-effort without panic.
+  \item Out-of-order frames are accepted; reconstruction and metrics are heuristic, without panic.
   \item FPS counts frames that pass protocol validation and are assigned to a universe.
 \end{itemize}
 
