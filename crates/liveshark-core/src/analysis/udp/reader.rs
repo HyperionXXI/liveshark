@@ -30,3 +30,25 @@ impl<'a> UdpReader<'a> {
             })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::UdpReader;
+    use crate::analysis::udp::error::UdpError;
+
+    #[test]
+    fn payload_without_header_ok() {
+        let payload = [0u8; 12];
+        let reader = UdpReader::new(&payload);
+        let payload = reader.payload_without_header().unwrap();
+        assert_eq!(payload.len(), 4);
+    }
+
+    #[test]
+    fn payload_without_header_too_short() {
+        let payload = [0u8; 7];
+        let reader = UdpReader::new(&payload);
+        let err = reader.payload_without_header().unwrap_err();
+        assert!(matches!(err, UdpError::TooShort { .. }));
+    }
+}
