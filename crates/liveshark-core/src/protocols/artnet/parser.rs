@@ -2,6 +2,7 @@ use super::error::ArtNetError;
 use super::layout;
 use super::reader::ArtNetReader;
 
+#[derive(Debug)]
 pub struct ArtDmx {
     pub universe: u16,
     pub sequence: Option<u8>,

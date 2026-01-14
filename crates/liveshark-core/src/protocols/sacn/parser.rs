@@ -2,6 +2,7 @@ use super::error::SacnError;
 use super::layout;
 use super::reader::SacnReader;
 
+#[derive(Debug)]
 pub struct SacnDmx {
     pub universe: u16,
     pub cid: String,
