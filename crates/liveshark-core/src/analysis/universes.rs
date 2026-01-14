@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 
 use super::dmx::{DmxProtocol, DmxStore};
@@ -24,8 +24,11 @@ pub(crate) struct UniverseSourceStats {
     pub first_ts: Option<f64>,
     pub last_ts: Option<f64>,
     pub prev_iat: Option<f64>,
-    pub jitter: f64,
+    pub jitter_sum: f64,
+    pub jitter_samples: VecDeque<(f64, f64)>,
 }
+
+const JITTER_WINDOW_S: f64 = 10.0;
 
 fn artnet_source_id(source_ip: &IpAddr, source_port: u16) -> String {
     format!("artnet:{}:{}", source_ip, source_port)
@@ -185,7 +188,15 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
         let iat = ts - last_ts;
         if let Some(prev_iat) = stats.prev_iat {
             let diff = (iat - prev_iat).abs();
-            stats.jitter += (diff - stats.jitter) / 16.0;
+            stats.jitter_sum += diff;
+            stats.jitter_samples.push_back((ts, diff));
+            while let Some((sample_ts, sample)) = stats.jitter_samples.front().copied() {
+                if ts - sample_ts <= JITTER_WINDOW_S {
+                    break;
+                }
+                stats.jitter_sum -= sample;
+                stats.jitter_samples.pop_front();
+            }
         }
         stats.prev_iat = Some(iat);
     }
@@ -232,8 +243,8 @@ fn compute_metrics(
         if stats.max_burst_len > max_burst {
             max_burst = stats.max_burst_len;
         }
-        if stats.prev_iat.is_some() {
-            jitter_sum += stats.jitter;
+        if !stats.jitter_samples.is_empty() {
+            jitter_sum += stats.jitter_sum / stats.jitter_samples.len() as f64;
             jitter_count += 1;
         }
     }
@@ -354,7 +365,10 @@ fn source_label(key: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{add_artnet_frame, build_artnet_universe_summaries, build_conflicts};
+    use super::{
+        UniverseSourceStats, add_artnet_frame, build_artnet_universe_summaries, build_conflicts,
+        compute_metrics, update_source_stats,
+    };
     use crate::analysis::dmx::DmxStore;
     use std::collections::HashMap;
     use std::net::IpAddr;
@@ -404,5 +418,21 @@ mod tests {
                 .sources
                 .contains(&"artnet:10.0.0.2:6454".to_string())
         );
+    }
+
+    #[test]
+    fn jitter_uses_sliding_window() {
+        let mut source_stats = UniverseSourceStats::default();
+        update_source_stats(&mut source_stats, None, Some(0.0));
+        update_source_stats(&mut source_stats, None, Some(1.0));
+        update_source_stats(&mut source_stats, None, Some(2.0));
+        update_source_stats(&mut source_stats, None, Some(13.0));
+
+        let mut per_source = HashMap::new();
+        per_source.insert("artnet:10.0.0.1:6454".to_string(), source_stats);
+        let metrics = compute_metrics(&per_source, 4);
+
+        let jitter_ms = metrics.jitter_ms.unwrap_or(0.0);
+        assert!((jitter_ms - 10000.0).abs() < 0.1);
     }
 }
