@@ -5,7 +5,7 @@ use thiserror::Error;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
-use crate::{CaptureSummary, Report, make_stub_report};
+use crate::{CaptureSummary, DEFAULT_GENERATED_AT, Report, make_stub_report};
 
 mod flows;
 mod udp;
@@ -79,6 +79,11 @@ pub fn analyze_source<S: PacketSource>(
         time_start: ts_to_rfc3339(first_ts),
         time_end: ts_to_rfc3339(last_ts),
     });
+    report.generated_at = report
+        .capture_summary
+        .as_ref()
+        .and_then(|summary| summary.time_end.clone().or(summary.time_start.clone()))
+        .unwrap_or_else(|| DEFAULT_GENERATED_AT.to_string());
 
     let duration_s = match (first_ts, last_ts) {
         (Some(start), Some(end)) if end > start => Some(end - start),

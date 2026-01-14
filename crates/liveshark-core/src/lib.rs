@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 mod analysis;
 mod protocols;
@@ -9,6 +8,7 @@ pub use analysis::{AnalysisError, analyze_pcap_file, analyze_source};
 pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 pub const REPORT_VERSION: u32 = 1;
+pub const DEFAULT_GENERATED_AT: &str = "1970-01-01T00:00:00Z";
 
 /// Minimal report (M0).
 /// Goal: stable, versioned format even before real parsing.
@@ -109,17 +109,13 @@ pub struct Violation {
 
 /// Fabrique un report stub (M0) avec les champs de base remplis.
 pub fn make_stub_report(input_path: &str, input_bytes: u64) -> Report {
-    let now = OffsetDateTime::now_utc()
-        .format(&Rfc3339)
-        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string());
-
     Report {
         report_version: REPORT_VERSION,
         tool: ToolInfo {
             name: "liveshark".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         },
-        generated_at: now,
+        generated_at: DEFAULT_GENERATED_AT.to_string(),
         input: InputInfo {
             path: input_path.to_string(),
             bytes: input_bytes,
