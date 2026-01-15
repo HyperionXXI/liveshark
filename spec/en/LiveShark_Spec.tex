@@ -325,7 +325,7 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{flows[]} elements contain: \texttt{app\_proto} (string), \texttt{src} (string), \texttt{dst} (string),
   and optional \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} (omitted when unavailable).
   \item \texttt{conflicts[]} elements are defined in Appendix C.
-  \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 uses 100.0),
+  \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 uses 100.0 as a placeholder),
   and \texttt{violations[]} (array of objects with \texttt{id}, \texttt{severity}, \texttt{message}, \texttt{count}, and optional
   \texttt{examples[]} with at most 3 strings).
 \end{itemize}
