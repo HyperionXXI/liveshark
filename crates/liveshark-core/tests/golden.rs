@@ -40,3 +40,18 @@ fn golden_artnet_conflict() {
 fn golden_sacn_conflict() {
     run_golden("tests/golden/sacn_conflict");
 }
+
+#[test]
+fn golden_flow_only() {
+    run_golden("tests/golden/flow_only");
+}
+
+#[test]
+fn golden_artnet_invalid_length() {
+    run_golden("tests/golden/artnet_invalid_length");
+}
+
+#[test]
+fn golden_sacn_invalid_start_code() {
+    run_golden("tests/golden/sacn_invalid_start_code");
+}

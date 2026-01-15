@@ -4,7 +4,7 @@
     "name": "liveshark",
     "version": "0.1.0"
   },
-  "generated_at": "IGNORED",
+  "generated_at": "1970-01-01T00:00:01Z",
   "input": {
     "path": "tests/golden/artnet/input.pcapng",
     "bytes": 144
@@ -40,5 +40,21 @@
     }
   ],
   "conflicts": [],
-  "compliance": []
+  "compliance": [
+    {
+      "protocol": "sacn",
+      "compliance_percentage": 100.0,
+      "violations": [
+        {
+          "id": "LS-SACN-TOO-SHORT",
+          "severity": "error",
+          "message": "sACN payload too short; packet ignored",
+          "count": 1,
+          "examples": [
+            "needed=118, actual=20"
+          ]
+        }
+      ]
+    }
+  ]
 }
