@@ -345,6 +345,10 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 
 \subsubsection{Identifiants de violations compliance (v0.1, non exhaustif)}
 \begin{itemize}
+  \item \texttt{LS-ARTNET-LENGTH} : longueur ArtDMX invalide (0 ou $> 512$) ; paquet ignoré.
+  \item \texttt{LS-ARTNET-TOO-SHORT} : charge utile trop courte ; paquet ignoré.
+  \item \texttt{LS-SACN-DMX-LENGTH} : longueur des données DMX sACN invalide ; paquet ignoré.
+  \item \texttt{LS-SACN-TOO-SHORT} : charge utile trop courte ; paquet ignoré.
   \item \texttt{LS-ARTNET-UNIVERSE-ID} : identifiant d'univers Art-Net hors plage (valeur $> 0x7FFF$) ; paquet ignoré.
   \item \texttt{LS-SACN-START-CODE} : start code sACN différent de 0x00 ; paquet ignoré.
   \item \texttt{LS-SACN-PROPERTY-COUNT} : property value count sACN à 0 ou supérieur à 512 ; paquet ignoré.
