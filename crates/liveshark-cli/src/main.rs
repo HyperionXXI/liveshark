@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 #[command(
     about = "Offline-first analyzer for show-control network captures (Art-Net / sACN).",
     long_about = None,
-    after_help = "Examples:\n  liveshark analyse capture.pcapng -o report.json\n  liveshark analyze capture.pcapng --stdout\n  liveshark analyse capture.pcapng -o report.json --pretty"
+    after_help = "Examples:\n  liveshark analyse capture.pcapng -o report.json\n  liveshark analyze capture.pcap -o report.json\n  liveshark pcap analyse capture.pcapng --report report.json"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -32,7 +32,7 @@ enum PcapCommands {
     /// Analyse a capture file and generate a versioned JSON report (P0: UDP flows).
     #[command(alias = "analyze")]
     #[command(
-        after_help = "Examples:\n  liveshark analyse capture.pcapng -o report.json\n  liveshark analyze capture.pcapng --stdout\n  liveshark analyse capture.pcapng -o report.json --pretty"
+        after_help = "Examples:\n  liveshark analyse capture.pcapng -o report.json\n  liveshark analyze capture.pcap -o report.json\n  liveshark pcap analyse capture.pcapng --report report.json"
     )]
     Analyse {
         /// Path to a .pcap or .pcapng file
