@@ -281,6 +281,12 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Section 4.
 \begin{reqbox}{LS-MET-010}{P1}{}
 LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D (v0.1).
 \end{reqbox}
+\section{Known limitations (v0.1)}
+\begin{itemize}
+  \item \textbf{Compliance percentage} is a placeholder (reported as 100.0) until a formal denominator is defined.
+  \item \textbf{Conflict detection} uses time overlap only and may produce false positives when sources are active on different channels.
+  \item \textbf{sACN validation} drops packets with non-zero start code or invalid property value count.
+\end{itemize}
 \section{Validation criteria (extract)}
 
 \subsection{Definition of Done v0.1}

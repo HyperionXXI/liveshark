@@ -296,6 +296,13 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
 \end{reqbox}
 
 
+\section{Limites connues (v0.1)}
+\begin{itemize}
+  \item \textbf{Pourcentage de conformité} : valeur de remplacement (100.0) tant qu'un dénominateur formel n'est pas défini.
+  \item \textbf{Détection des conflits} : basée uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux différents.
+  \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
+\end{itemize}
+
 \section{Critères de validation (extrait)}
 
 \subsection{Définition de fin v0.1}
