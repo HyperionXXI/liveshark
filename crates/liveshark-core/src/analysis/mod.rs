@@ -55,9 +55,10 @@ pub fn analyze_source<S: PacketSource>(
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
         update_ts_bounds(&mut first_ts, &mut last_ts, ts);
-        if let Ok(Some(udp)) = parse_udp_packet(linktype, &data) {
-            match parse_artdmx(udp.payload) {
-                Ok(Some(art)) => {
+        match parse_udp_packet(linktype, &data) {
+            Ok(Some(udp)) => {
+                match parse_artdmx(udp.payload) {
+                    Ok(Some(art)) => {
                     let source_id = add_artnet_frame(
                         &mut artnet_stats,
                         art.universe,
@@ -113,9 +114,9 @@ pub fn analyze_source<S: PacketSource>(
                         );
                     }
                 },
-            }
-            match parse_sacn_dmx(udp.payload) {
-                Ok(Some(sacn)) => {
+                }
+                match parse_sacn_dmx(udp.payload) {
+                    Ok(Some(sacn)) => {
                     let source_id = add_sacn_frame(
                         &mut sacn_stats,
                         sacn.universe,
@@ -185,8 +186,46 @@ pub fn analyze_source<S: PacketSource>(
                         );
                     }
                 },
+                }
+                add_flow_stats(&mut flow_stats, &udp, ts);
             }
-            add_flow_stats(&mut flow_stats, &udp, ts);
+            Ok(None) => {}
+            Err(err) => match err {
+                crate::analysis::udp::error::UdpError::Slice(message) => record_violation(
+                    &mut compliance,
+                    "udp",
+                    "LS-UDP-SLICE",
+                    "error",
+                    "UDP slice error; packet ignored",
+                    message,
+                ),
+                crate::analysis::udp::error::UdpError::MissingNetworkLayer => record_violation(
+                    &mut compliance,
+                    "udp",
+                    "LS-UDP-MISSING-NETWORK",
+                    "error",
+                    "Missing network layer; packet ignored",
+                    "missing network layer".to_string(),
+                ),
+                crate::analysis::udp::error::UdpError::MissingIpPayload => record_violation(
+                    &mut compliance,
+                    "udp",
+                    "LS-UDP-MISSING-PAYLOAD",
+                    "error",
+                    "Missing IP payload; packet ignored",
+                    "missing IP payload".to_string(),
+                ),
+                crate::analysis::udp::error::UdpError::TooShort { needed, actual } => {
+                    record_violation(
+                        &mut compliance,
+                        "udp",
+                        "LS-UDP-TOO-SHORT",
+                        "error",
+                        "UDP payload too short; packet ignored",
+                        format!("needed={}, actual={}", needed, actual),
+                    )
+                }
+            },
         }
     }
 
@@ -223,6 +262,9 @@ pub fn analyze_source<S: PacketSource>(
     };
     if !compliance.is_empty() {
         let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
+        for entry in &mut entries {
+            entry.violations.sort_by(|a, b| a.id.cmp(&b.id));
+        }
         entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
         report.compliance = entries;
     }
@@ -247,7 +289,7 @@ fn record_violation(
 
     if let Some(existing) = entry.violations.iter_mut().find(|v| v.id == id) {
         existing.count += 1;
-        if existing.examples.len() < 3 {
+        if existing.examples.len() < 3 && !existing.examples.contains(&example) {
             existing.examples.push(example);
         }
         return;
@@ -305,6 +347,60 @@ mod tests {
         let sacn = compliance.get("sacn").expect("sacn compliance");
         assert_eq!(sacn.violations.len(), 1);
         assert_eq!(sacn.violations[0].count, 1);
+    }
+
+    #[test]
+    fn compliance_examples_are_deduplicated_and_capped() {
+        let mut compliance: HashMap<String, ComplianceSummary> = HashMap::new();
+
+        record_violation(
+            &mut compliance,
+            "udp",
+            "LS-UDP-SLICE",
+            "error",
+            "UDP slice error; packet ignored",
+            "slice-a".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "udp",
+            "LS-UDP-SLICE",
+            "error",
+            "UDP slice error; packet ignored",
+            "slice-a".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "udp",
+            "LS-UDP-SLICE",
+            "error",
+            "UDP slice error; packet ignored",
+            "slice-b".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "udp",
+            "LS-UDP-SLICE",
+            "error",
+            "UDP slice error; packet ignored",
+            "slice-c".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "udp",
+            "LS-UDP-SLICE",
+            "error",
+            "UDP slice error; packet ignored",
+            "slice-d".to_string(),
+        );
+
+        let udp = compliance.get("udp").expect("udp compliance");
+        let violation = &udp.violations[0];
+        assert_eq!(violation.count, 5);
+        assert_eq!(violation.examples.len(), 3);
+        assert!(violation.examples.contains(&"slice-a".to_string()));
+        assert!(violation.examples.contains(&"slice-b".to_string()));
+        assert!(violation.examples.contains(&"slice-c".to_string()));
     }
 }
 

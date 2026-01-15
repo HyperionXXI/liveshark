@@ -338,6 +338,10 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
 
 \subsubsection{Compliance violation IDs (v0.1, non-exhaustive)}
 \begin{itemize}
+  \item \texttt{LS-UDP-SLICE}: UDP slice error; packet ignored.
+  \item \texttt{LS-UDP-MISSING-NETWORK}: missing network layer; packet ignored.
+  \item \texttt{LS-UDP-MISSING-PAYLOAD}: missing IP payload; packet ignored.
+  \item \texttt{LS-UDP-TOO-SHORT}: UDP payload too short; packet ignored.
   \item \texttt{LS-ARTNET-UNIVERSE-ID}: Art-Net universe id out of range (value $> 0x7FFF$); packet ignored.
   \item \texttt{LS-ARTNET-LENGTH}: ArtDMX length invalid (0 or $> 512$); packet ignored.
   \item \texttt{LS-ARTNET-TOO-SHORT}: payload too short; packet ignored.
