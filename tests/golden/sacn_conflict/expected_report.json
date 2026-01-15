@@ -34,5 +34,23 @@
     }
   ],
   "conflicts": [],
-  "compliance": []
+  "compliance": [
+    {
+      "protocol": "sacn",
+      "compliance_percentage": 100.0,
+      "violations": [
+        {
+          "id": "LS-SACN-PROPERTY-COUNT",
+          "severity": "error",
+          "message": "Invalid sACN property value count; packet ignored",
+          "count": 4,
+          "examples": [
+            "count=0",
+            "count=0",
+            "count=0"
+          ]
+        }
+      ]
+    }
+  ]
 }

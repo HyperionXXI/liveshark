@@ -50,11 +50,7 @@ pub fn analyze_source<S: PacketSource>(
     let mut sacn_stats: HashMap<u16, UniverseStats> = HashMap::new();
     let mut dmx_store = DmxStore::new();
     let mut dmx_state = DmxStateStore::new();
-    let mut compliance = ComplianceSummary {
-        protocol: "artnet".to_string(),
-        compliance_percentage: 100.0,
-        violations: Vec::new(),
-    };
+    let mut compliance: HashMap<String, ComplianceSummary> = HashMap::new();
 
     while let Some(PacketEvent { ts, linktype, data }) = source.next_packet()? {
         packets_total += 1;
@@ -92,6 +88,7 @@ pub fn analyze_source<S: PacketSource>(
                     {
                         record_violation(
                             &mut compliance,
+                            "artnet",
                             "LS-ARTNET-UNIVERSE-ID",
                             "error",
                             "Invalid Art-Net universe id; packet ignored",
@@ -100,30 +97,58 @@ pub fn analyze_source<S: PacketSource>(
                     }
                 }
             }
-            if let Ok(Some(sacn)) = parse_sacn_dmx(udp.payload) {
-                let source_id = add_sacn_frame(
-                    &mut sacn_stats,
-                    sacn.universe,
-                    &udp.src_ip,
-                    udp.src_port,
-                    sacn.cid,
-                    sacn.source_name,
-                    sacn.sequence,
-                    ts,
-                );
-                let slots = dmx_state.apply_partial(
-                    sacn.universe,
-                    source_id.clone(),
-                    DmxProtocol::Sacn,
-                    &sacn.slots,
-                );
-                dmx_store.push(DmxFrame {
-                    universe: sacn.universe,
-                    timestamp: ts,
-                    source_id,
-                    protocol: DmxProtocol::Sacn,
-                    slots,
-                });
+            match parse_sacn_dmx(udp.payload) {
+                Ok(Some(sacn)) => {
+                    let source_id = add_sacn_frame(
+                        &mut sacn_stats,
+                        sacn.universe,
+                        &udp.src_ip,
+                        udp.src_port,
+                        sacn.cid,
+                        sacn.source_name,
+                        sacn.sequence,
+                        ts,
+                    );
+                    let slots = dmx_state.apply_partial(
+                        sacn.universe,
+                        source_id.clone(),
+                        DmxProtocol::Sacn,
+                        &sacn.slots,
+                    );
+                    dmx_store.push(DmxFrame {
+                        universe: sacn.universe,
+                        timestamp: ts,
+                        source_id,
+                        protocol: DmxProtocol::Sacn,
+                        slots,
+                    });
+                }
+                Ok(None) => {}
+                Err(err) => match err {
+                    crate::protocols::sacn::error::SacnError::InvalidStartCode { value } => {
+                        record_violation(
+                            &mut compliance,
+                            "sacn",
+                            "LS-SACN-START-CODE",
+                            "error",
+                            "Invalid sACN start code; packet ignored",
+                            format!("value={}", value),
+                        );
+                    }
+                    crate::protocols::sacn::error::SacnError::InvalidPropertyValueCount {
+                        count,
+                    } => {
+                        record_violation(
+                            &mut compliance,
+                            "sacn",
+                            "LS-SACN-PROPERTY-COUNT",
+                            "error",
+                            "Invalid sACN property value count; packet ignored",
+                            format!("count={}", count),
+                        );
+                    }
+                    _ => {}
+                },
             }
             add_flow_stats(&mut flow_stats, &udp, ts);
         }
@@ -160,20 +185,31 @@ pub fn analyze_source<S: PacketSource>(
         });
         universes
     };
-    if !compliance.violations.is_empty() {
-        report.compliance.push(compliance);
+    if !compliance.is_empty() {
+        let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
+        entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
+        report.compliance = entries;
     }
     Ok(report)
 }
 
 fn record_violation(
-    compliance: &mut ComplianceSummary,
+    compliance: &mut HashMap<String, ComplianceSummary>,
+    protocol: &str,
     id: &str,
     severity: &str,
     message: &str,
     example: String,
 ) {
-    if let Some(existing) = compliance.violations.iter_mut().find(|v| v.id == id) {
+    let entry = compliance
+        .entry(protocol.to_string())
+        .or_insert_with(|| ComplianceSummary {
+            protocol: protocol.to_string(),
+            compliance_percentage: 100.0,
+            violations: Vec::new(),
+        });
+
+    if let Some(existing) = entry.violations.iter_mut().find(|v| v.id == id) {
         existing.count += 1;
         if existing.examples.len() < 3 {
             existing.examples.push(example);
@@ -181,7 +217,7 @@ fn record_violation(
         return;
     }
 
-    compliance.violations.push(Violation {
+    entry.violations.push(Violation {
         id: id.to_string(),
         severity: severity.to_string(),
         message: message.to_string(),
@@ -193,17 +229,15 @@ fn record_violation(
 #[cfg(test)]
 mod tests {
     use super::{ComplianceSummary, record_violation};
+    use std::collections::HashMap;
 
     #[test]
-    fn compliance_aggregates_by_id() {
-        let mut compliance = ComplianceSummary {
-            protocol: "artnet".to_string(),
-            compliance_percentage: 100.0,
-            violations: Vec::new(),
-        };
+    fn compliance_aggregates_by_protocol_and_id() {
+        let mut compliance: HashMap<String, ComplianceSummary> = HashMap::new();
 
         record_violation(
             &mut compliance,
+            "artnet",
             "LS-ARTNET-UNIVERSE-ID",
             "error",
             "Invalid Art-Net universe id; packet ignored",
@@ -211,16 +245,30 @@ mod tests {
         );
         record_violation(
             &mut compliance,
+            "artnet",
             "LS-ARTNET-UNIVERSE-ID",
             "error",
             "Invalid Art-Net universe id; packet ignored",
             "value=40000".to_string(),
         );
+        record_violation(
+            &mut compliance,
+            "sacn",
+            "LS-SACN-START-CODE",
+            "error",
+            "Invalid sACN start code; packet ignored",
+            "value=1".to_string(),
+        );
 
-        assert_eq!(compliance.violations.len(), 1);
-        let violation = &compliance.violations[0];
+        let artnet = compliance.get("artnet").expect("artnet compliance");
+        assert_eq!(artnet.violations.len(), 1);
+        let violation = &artnet.violations[0];
         assert_eq!(violation.count, 2);
         assert_eq!(violation.examples.len(), 2);
+
+        let sacn = compliance.get("sacn").expect("sacn compliance");
+        assert_eq!(sacn.violations.len(), 1);
+        assert_eq!(sacn.violations[0].count, 1);
     }
 }
 

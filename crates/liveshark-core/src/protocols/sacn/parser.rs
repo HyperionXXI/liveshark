@@ -43,7 +43,7 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
 
     let start_code = reader.read_u8(layout::START_CODE_OFFSET)?;
     if start_code != 0x00 {
-        return Ok(None);
+        return Err(SacnError::InvalidStartCode { value: start_code });
     }
 
     let universe = reader.read_u16_be(layout::UNIVERSE_RANGE.clone())?;

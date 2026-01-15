@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum SacnError {
     #[error("payload too short: need {needed} bytes, got {actual}")]
     TooShort { needed: usize, actual: usize },
+    #[error("invalid start code: {value}")]
+    InvalidStartCode { value: u8 },
     #[error("invalid property value count: {count}")]
     InvalidPropertyValueCount { count: u16 },
     #[error("invalid DMX data length: {length}")]
