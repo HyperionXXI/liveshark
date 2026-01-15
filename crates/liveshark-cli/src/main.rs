@@ -39,8 +39,24 @@ enum PcapCommands {
         input: PathBuf,
 
         /// Output report path (JSON)
-        #[arg(short = 'o', long)]
-        report: PathBuf,
+        #[arg(short = 'o', long, required_unless_present = "stdout")]
+        report: Option<PathBuf>,
+
+        /// Write JSON report to stdout
+        #[arg(long, conflicts_with = "report")]
+        stdout: bool,
+
+        /// Pretty-print JSON output
+        #[arg(long, conflicts_with = "compact")]
+        pretty: bool,
+
+        /// Compact JSON output (default)
+        #[arg(long)]
+        compact: bool,
+
+        /// Suppress non-error output
+        #[arg(long)]
+        quiet: bool,
     },
 }
 
@@ -49,7 +65,14 @@ fn main() -> ExitCode {
 
     let result = match cli.command {
         Commands::Pcap { command } => match command {
-            PcapCommands::Analyse { input, report } => cmd_pcap_analyse(input, report)
+            PcapCommands::Analyse {
+                input,
+                report,
+                stdout,
+                pretty,
+                compact,
+                quiet,
+            } => cmd_pcap_analyse(input, report, stdout, pretty, compact, quiet)
                 .map_err(|err| err.with_context("PCAP/PCAPNG analysis failed")),
         },
     };
@@ -102,32 +125,55 @@ impl From<anyhow::Error> for CliError {
     }
 }
 
-fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<(), CliError> {
+fn cmd_pcap_analyse(
+    input: PathBuf,
+    report: Option<PathBuf>,
+    stdout: bool,
+    pretty: bool,
+    compact: bool,
+    quiet: bool,
+) -> Result<(), CliError> {
     validate_input_file(&input)?;
     let input_abs = fs::canonicalize(&input)
         .with_context(|| format!("Failed to resolve input path: {}", input.display()))?;
-    let report_abs = report
-        .parent()
-        .map(|parent| {
-            if parent.as_os_str().is_empty() {
-                fs::canonicalize(".")
-            } else {
-                fs::canonicalize(parent)
+    let report = if stdout {
+        None
+    } else {
+        Some(report.ok_or_else(|| {
+            CliError::new(
+                "missing output path",
+                Some("use -o/--report or --stdout".to_string()),
+            )
+        })?)
+    };
+
+    if let Some(report_path) = report.as_ref() {
+        let report_abs = report_path
+            .parent()
+            .map(|parent| {
+                if parent.as_os_str().is_empty() {
+                    fs::canonicalize(".")
+                } else {
+                    fs::canonicalize(parent)
+                }
+            })
+            .transpose()
+            .with_context(|| format!("Failed to resolve output path: {}", report_path.display()))?;
+        if let Some(report_dir) = report_abs {
+            let report_target = report_dir.join(
+                report_path
+                    .file_name()
+                    .ok_or_else(|| anyhow::anyhow!("Invalid report path"))?,
+            );
+            if report_target == input_abs {
+                return Err(CliError::new(
+                    format!(
+                        "report path must differ from input: {}",
+                        report_path.display()
+                    ),
+                    Some("choose a different output path".to_string()),
+                ));
             }
-        })
-        .transpose()
-        .with_context(|| format!("Failed to resolve output path: {}", report.display()))?;
-    if let Some(report_dir) = report_abs {
-        let report_target = report_dir.join(
-            report
-                .file_name()
-                .ok_or_else(|| anyhow::anyhow!("Invalid report path"))?,
-        );
-        if report_target == input_abs {
-            return Err(CliError::new(
-                format!("report path must differ from input: {}", report.display()),
-                Some("choose a different output path".to_string()),
-            ));
         }
     }
 
@@ -142,8 +188,14 @@ fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<(), CliError> {
     }
 
     let rep = liveshark_core::analyze_pcap_file(&input).context("PCAP/PCAPNG analysis failed")?;
-    let json = serde_json::to_string_pretty(&rep).context("JSON serialization failed")?;
+    let json = serialize_report(&rep, pretty, compact)?;
 
+    if stdout {
+        print!("{}", json);
+        return Ok(());
+    }
+
+    let report = report.expect("report required when not using stdout");
     if let Some(parent) = report.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent).with_context(|| {
@@ -155,8 +207,32 @@ fn cmd_pcap_analyse(input: PathBuf, report: PathBuf) -> Result<(), CliError> {
     fs::write(&report, json)
         .with_context(|| format!("Failed to write report: {}", report.display()))?;
 
-    eprintln!("OK: report written -> {}", report.display());
+    if !quiet {
+        eprintln!("OK: report written -> {}", report.display());
+    }
     Ok(())
+}
+
+fn serialize_report(
+    rep: &liveshark_core::Report,
+    pretty: bool,
+    compact: bool,
+) -> Result<String, CliError> {
+    if pretty && compact {
+        return Err(CliError::new(
+            "cannot use --pretty and --compact together",
+            Some("choose one output format".to_string()),
+        ));
+    }
+    if pretty {
+        serde_json::to_string_pretty(rep)
+            .context("JSON serialization failed")
+            .map_err(Into::into)
+    } else {
+        serde_json::to_string(rep)
+            .context("JSON serialization failed")
+            .map_err(Into::into)
+    }
 }
 
 fn validate_input_file(input: &PathBuf) -> Result<(), CliError> {
