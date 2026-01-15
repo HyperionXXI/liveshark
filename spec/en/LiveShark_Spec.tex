@@ -411,9 +411,10 @@ means identical numeric values across protocols.
 
 \subsubsection{Minimal reconstruction rules}
 \begin{itemize}
-  \item Frames are reconstructed per universe and per source, using validated protocol payloads.
-\item Before the first observed frame for a source and universe, slot values default to 0.
-\item If a payload provides fewer than 512 slots, missing slots retain the last known value for that source and universe.
+  \item Frames are reconstructed per universe, per source, and per protocol, using validated protocol payloads.
+  \item Before the first observed frame for a given (universe, source, protocol), slot values default to 0.
+  \item If a payload provides fewer than 512 slots, missing slots retain the last known value for that (universe, source, protocol).
+  \item Reconstructed frames always expose 512 slots.
   \item Out-of-order frames are accepted; reconstruction and metrics are heuristic, without panic.
   \item FPS counts frames that pass protocol validation and are assigned to a universe.
 \end{itemize}

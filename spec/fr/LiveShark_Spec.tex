@@ -412,9 +412,10 @@ Une trame DMX reconstruite est définie par :
 
 \subsubsection{Règles minimales de reconstruction}
 \begin{itemize}
-  \item Les trames sont reconstruites par univers et par source, à partir de charges utiles valides.
-  \item Avant la première trame observée pour une source et un univers, les valeurs de slots sont à 0 par défaut.
-  \item Si une charge utile fournit moins de 512 slots, les slots manquants conservent la dernière valeur connue pour cette source et cet univers.
+  \item Les trames sont reconstruites par univers, par source et par protocole,  à partir de charges utiles valides.
+  \item Avant la première trame observ?e pour un (univers, source, protocole), les valeurs de slots sont à 0 par d?faut.
+  \item Si une charge utile fournit moins de 512 slots, les slots manquants conservent la dernière valeur connue pour cet (univers, source, protocole).
+  \item Les trames reconstruites exposent toujours 512 slots.
   \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont heuristiques.
   \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
