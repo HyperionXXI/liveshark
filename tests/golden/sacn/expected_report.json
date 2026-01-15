@@ -14,21 +14,7 @@
     "time_start": "1970-01-01T00:00:01Z",
     "time_end": "1970-01-01T00:00:01Z"
   },
-  "universes": [
-    {
-      "universe": 1,
-      "proto": "sacn",
-      "sources": [
-        {
-          "source_ip": "10.0.0.1",
-          "cid": "0102030405060708090a0b0c0d0e0f10",
-          "source_name": "Test Source"
-        }
-      ],
-      "fps": null,
-      "frames_count": 1
-    }
-  ],
+  "universes": [],
   "flows": [
     {
       "app_proto": "udp",
