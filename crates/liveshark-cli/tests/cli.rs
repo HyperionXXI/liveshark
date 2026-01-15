@@ -162,3 +162,80 @@ fn strict_fails_when_violations_present() {
         .failure()
         .stderr(contains("compliance violations detected"));
 }
+
+#[test]
+fn glob_no_match_errors() {
+    let temp = TempDir::new().expect("tempdir");
+    let pattern = temp.path().join("*.pcapng");
+    let report = temp.path().join("report.json");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(pattern.to_string_lossy().to_string())
+        .arg("-o")
+        .arg(report)
+        .assert()
+        .failure()
+        .stderr(contains("error: no files match pattern").and(contains("hint:")));
+}
+
+#[test]
+fn glob_multiple_matches_errors() {
+    let temp = TempDir::new().expect("tempdir");
+    let file_a = temp.path().join("a.pcapng");
+    let file_b = temp.path().join("b.pcapng");
+    std::fs::write(&file_a, []).expect("write file");
+    std::fs::write(&file_b, []).expect("write file");
+
+    let report = temp.path().join("report.json");
+    let pattern = temp.path().join("*.pcapng");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(pattern.to_string_lossy().to_string())
+        .arg("-o")
+        .arg(report)
+        .assert()
+        .failure()
+        .stderr(contains("error: multiple files match pattern").and(contains("hint:")));
+}
+
+#[test]
+fn invalid_extension_is_rejected() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = temp.path().join("capture.txt");
+    std::fs::write(&input, "dummy").expect("write file");
+    let report = temp.path().join("report.json");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(input)
+        .arg("-o")
+        .arg(report)
+        .assert()
+        .failure()
+        .stderr(contains("error: unsupported input format").and(contains("hint: expected")));
+}
+
+#[test]
+fn glob_single_match_is_used() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = sample_capture();
+    let target = temp.path().join("capture.pcapng");
+    std::fs::copy(&input, &target).expect("copy capture");
+
+    let report = temp.path().join("report.json");
+    let pattern = temp.path().join("*.pcapng");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(pattern.to_string_lossy().to_string())
+        .arg("-o")
+        .arg(report)
+        .assert()
+        .success();
+}

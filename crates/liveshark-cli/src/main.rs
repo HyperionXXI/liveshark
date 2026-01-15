@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use glob::glob;
 
 #[derive(Parser, Debug)]
 #[command(name = "liveshark")]
@@ -91,8 +92,7 @@ fn main() -> ExitCode {
                 quiet,
                 strict,
                 list_violations,
-            )
-            .map_err(|err| err.with_context("PCAP/PCAPNG analysis failed")),
+            ),
         },
     };
 
@@ -121,13 +121,6 @@ impl CliError {
             hint,
         }
     }
-
-    fn with_context(self, context: &str) -> Self {
-        Self {
-            message: format!("{}: {}", context, self.message),
-            hint: self.hint,
-        }
-    }
 }
 
 impl std::fmt::Display for CliError {
@@ -154,9 +147,10 @@ fn cmd_pcap_analyse(
     strict: bool,
     list_violations: bool,
 ) -> Result<(), CliError> {
-    validate_input_file(&input)?;
-    let input_abs = fs::canonicalize(&input)
-        .with_context(|| format!("Failed to resolve input path: {}", input.display()))?;
+    let resolved_input = resolve_input_path(&input)?;
+    validate_input_file(&resolved_input)?;
+    let input_abs = fs::canonicalize(&resolved_input)
+        .with_context(|| format!("Failed to resolve input path: {}", resolved_input.display()))?;
     let report = if stdout {
         None
     } else {
@@ -198,8 +192,8 @@ fn cmd_pcap_analyse(
         }
     }
 
-    let meta = fs::metadata(&input)
-        .with_context(|| format!("Failed to read input file: {}", input.display()))?;
+    let meta = fs::metadata(&resolved_input)
+        .with_context(|| format!("Failed to read input file: {}", resolved_input.display()))?;
 
     if !meta.is_file() {
         return Err(CliError::new(
@@ -208,7 +202,8 @@ fn cmd_pcap_analyse(
         ));
     }
 
-    let rep = liveshark_core::analyze_pcap_file(&input).context("PCAP/PCAPNG analysis failed")?;
+    let rep = liveshark_core::analyze_pcap_file(&resolved_input)
+        .context("PCAP/PCAPNG analysis failed")?;
     let json = serialize_report(&rep, pretty, compact)?;
 
     if stdout {
@@ -310,9 +305,73 @@ fn validate_input_file(input: &PathBuf) -> Result<(), CliError> {
         .to_ascii_lowercase();
     if ext != "pcap" && ext != "pcapng" {
         return Err(CliError::new(
-            format!("unsupported input extension: {}", input.display()),
-            Some("use a .pcap or .pcapng file".to_string()),
+            format!("unsupported input format '{}'", input.display()),
+            Some("expected a .pcap or .pcapng file".to_string()),
         ));
     }
     Ok(())
+}
+
+fn resolve_input_path(input: &PathBuf) -> Result<PathBuf, CliError> {
+    let pattern = input.to_string_lossy();
+    if !is_glob_pattern(&pattern) {
+        return Ok(input.clone());
+    }
+
+    let mut matches = Vec::new();
+    let paths = glob(&pattern).map_err(|err| {
+        CliError::new(
+            format!("invalid input pattern '{}'", pattern),
+            Some(format!("pattern error: {}", err.msg)),
+        )
+    })?;
+    for entry in paths {
+        let path = entry.map_err(|err| {
+            CliError::new(
+                format!("invalid input pattern '{}'", pattern),
+                Some(format!("pattern error: {}", err)),
+            )
+        })?;
+        if path.is_file() {
+            matches.push(path);
+        }
+    }
+
+    if matches.is_empty() {
+        return Err(CliError::new(
+            format!("no files match pattern '{}'", pattern),
+            Some("check the path or quote the pattern; expected .pcap or .pcapng".to_string()),
+        ));
+    }
+    if matches.len() > 1 {
+        let hint = "pass a single capture file, or run once per file".to_string();
+        let mut message = format!(
+            "multiple files match pattern '{}' ({} matches)",
+            pattern,
+            matches.len()
+        );
+        let listed = matches.iter().take(3).collect::<Vec<_>>();
+        if !listed.is_empty() {
+            let mut details = String::new();
+            details.push_str("; matches: ");
+            details.push_str(
+                &listed
+                    .into_iter()
+                    .map(|p| p.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            if matches.len() > 3 {
+                details.push_str(", ...");
+            }
+            message.push_str(&details);
+        }
+        return Err(CliError::new(message, Some(hint)));
+    }
+
+    Ok(matches.remove(0))
+}
+
+fn is_glob_pattern(input: &str) -> bool {
+    input.contains('*') || input.contains('?') || input.contains('[')
 }
