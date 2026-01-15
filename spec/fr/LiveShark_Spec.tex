@@ -331,6 +331,9 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
   et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} optionnels (omis si indisponibles).
   \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
+  \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne), \texttt{compliance\_percentage} (flottant ; v0.1 utilise 100.0),
+  et \texttt{violations[]} (tableau d'objets avec \texttt{id}, \texttt{severity}, \texttt{message}, \texttt{count}, et \texttt{examples[]} optionnel,
+  limité à 3 chaînes).
 \end{itemize}
 
 \subsubsection{Règles de déterminisme}
