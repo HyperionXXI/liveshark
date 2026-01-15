@@ -57,6 +57,14 @@ enum PcapCommands {
         /// Suppress non-error output
         #[arg(long)]
         quiet: bool,
+
+        /// Exit with a non-zero code if compliance violations are present
+        #[arg(long)]
+        strict: bool,
+
+        /// List compliance violations after analysis
+        #[arg(long)]
+        list_violations: bool,
     },
 }
 
@@ -72,8 +80,19 @@ fn main() -> ExitCode {
                 pretty,
                 compact,
                 quiet,
-            } => cmd_pcap_analyse(input, report, stdout, pretty, compact, quiet)
-                .map_err(|err| err.with_context("PCAP/PCAPNG analysis failed")),
+                strict,
+                list_violations,
+            } => cmd_pcap_analyse(
+                input,
+                report,
+                stdout,
+                pretty,
+                compact,
+                quiet,
+                strict,
+                list_violations,
+            )
+            .map_err(|err| err.with_context("PCAP/PCAPNG analysis failed")),
         },
     };
 
@@ -132,6 +151,8 @@ fn cmd_pcap_analyse(
     pretty: bool,
     compact: bool,
     quiet: bool,
+    strict: bool,
+    list_violations: bool,
 ) -> Result<(), CliError> {
     validate_input_file(&input)?;
     let input_abs = fs::canonicalize(&input)
@@ -192,6 +213,15 @@ fn cmd_pcap_analyse(
 
     if stdout {
         print!("{}", json);
+        if list_violations && !quiet {
+            print_violations(&rep);
+        }
+        if strict && has_violations(&rep) {
+            return Err(CliError::new(
+                "compliance violations detected",
+                Some("use --list-violations to inspect".to_string()),
+            ));
+        }
         return Ok(());
     }
 
@@ -207,8 +237,17 @@ fn cmd_pcap_analyse(
     fs::write(&report, json)
         .with_context(|| format!("Failed to write report: {}", report.display()))?;
 
+    if list_violations && !quiet {
+        print_violations(&rep);
+    }
     if !quiet {
         eprintln!("OK: report written -> {}", report.display());
+    }
+    if strict && has_violations(&rep) {
+        return Err(CliError::new(
+            "compliance violations detected",
+            Some("use --list-violations to inspect".to_string()),
+        ));
     }
     Ok(())
 }
@@ -232,6 +271,28 @@ fn serialize_report(
         serde_json::to_string(rep)
             .context("JSON serialization failed")
             .map_err(Into::into)
+    }
+}
+
+fn has_violations(rep: &liveshark_core::Report) -> bool {
+    rep.compliance
+        .iter()
+        .any(|entry| !entry.violations.is_empty())
+}
+
+fn print_violations(rep: &liveshark_core::Report) {
+    let mut entries: Vec<_> = rep.compliance.iter().collect();
+    entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
+    eprintln!("Compliance violations:");
+    for entry in entries {
+        let mut violations = entry.violations.clone();
+        violations.sort_by(|a, b| a.id.cmp(&b.id));
+        for violation in violations {
+            eprintln!(
+                "  {} {} ({})",
+                entry.protocol, violation.id, violation.count
+            );
+        }
     }
 }
 

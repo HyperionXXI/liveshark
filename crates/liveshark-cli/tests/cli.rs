@@ -126,3 +126,39 @@ fn quiet_suppresses_ok_message() {
         .success()
         .stderr(predicates::str::contains("OK:").not());
 }
+
+#[test]
+fn list_violations_outputs_ids() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = sample_capture();
+    let report = temp.path().join("report.json");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(input)
+        .arg("-o")
+        .arg(report)
+        .arg("--list-violations")
+        .assert()
+        .success()
+        .stderr(contains("Compliance violations:").and(contains("LS-SACN-TOO-SHORT")));
+}
+
+#[test]
+fn strict_fails_when_violations_present() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = sample_capture();
+    let report = temp.path().join("report.json");
+
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(input)
+        .arg("-o")
+        .arg(report)
+        .arg("--strict")
+        .assert()
+        .failure()
+        .stderr(contains("compliance violations detected"));
+}
