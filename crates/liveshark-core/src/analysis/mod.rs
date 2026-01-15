@@ -90,14 +90,13 @@ pub fn analyze_source<S: PacketSource>(
                         value,
                     } = err
                     {
-                        compliance.violations.push(Violation {
-                            id: "LS-ARTNET-UNIVERSE-ID".to_string(),
-                            severity: "error".to_string(),
-                            message: format!(
-                                "Invalid Art-Net universe id (value={}); packet ignored",
-                                value
-                            ),
-                        });
+                        record_violation(
+                            &mut compliance,
+                            "LS-ARTNET-UNIVERSE-ID",
+                            "error",
+                            "Invalid Art-Net universe id; packet ignored",
+                            format!("value={}", value),
+                        );
                     }
                 }
             }
@@ -165,6 +164,64 @@ pub fn analyze_source<S: PacketSource>(
         report.compliance.push(compliance);
     }
     Ok(report)
+}
+
+fn record_violation(
+    compliance: &mut ComplianceSummary,
+    id: &str,
+    severity: &str,
+    message: &str,
+    example: String,
+) {
+    if let Some(existing) = compliance.violations.iter_mut().find(|v| v.id == id) {
+        existing.count += 1;
+        if existing.examples.len() < 3 {
+            existing.examples.push(example);
+        }
+        return;
+    }
+
+    compliance.violations.push(Violation {
+        id: id.to_string(),
+        severity: severity.to_string(),
+        message: message.to_string(),
+        count: 1,
+        examples: vec![example],
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ComplianceSummary, record_violation};
+
+    #[test]
+    fn compliance_aggregates_by_id() {
+        let mut compliance = ComplianceSummary {
+            protocol: "artnet".to_string(),
+            compliance_percentage: 100.0,
+            violations: Vec::new(),
+        };
+
+        record_violation(
+            &mut compliance,
+            "LS-ARTNET-UNIVERSE-ID",
+            "error",
+            "Invalid Art-Net universe id; packet ignored",
+            "value=32768".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "LS-ARTNET-UNIVERSE-ID",
+            "error",
+            "Invalid Art-Net universe id; packet ignored",
+            "value=40000".to_string(),
+        );
+
+        assert_eq!(compliance.violations.len(), 1);
+        let violation = &compliance.violations[0];
+        assert_eq!(violation.count, 2);
+        assert_eq!(violation.examples.len(), 2);
+    }
 }
 
 fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {

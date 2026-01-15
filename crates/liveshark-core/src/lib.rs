@@ -105,6 +105,9 @@ pub struct Violation {
     pub id: String,
     pub severity: String,
     pub message: String,
+    pub count: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub examples: Vec<String>,
 }
 
 /// Fabrique un report stub (M0) avec les champs de base remplis.
