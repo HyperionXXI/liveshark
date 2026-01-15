@@ -330,6 +330,13 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
   \texttt{examples[]} with at most 3 strings).
 \end{itemize}
 
+\subsubsection{Compliance violation IDs (v0.1, non-exhaustive)}
+\begin{itemize}
+  \item \texttt{LS-ARTNET-UNIVERSE-ID}: Art-Net universe id out of range (value $> 0x7FFF$); packet ignored.
+  \item \texttt{LS-SACN-START-CODE}: sACN start code is not 0x00; packet ignored.
+  \item \texttt{LS-SACN-PROPERTY-COUNT}: sACN property value count is 0 or exceeds 512; packet ignored.
+\end{itemize}
+
 \subsubsection{Determinism rules}
 \begin{itemize}
   \item \textbf{Stable ordering:}
