@@ -126,8 +126,13 @@ fn build_universe_summaries(
         .into_iter()
         .map(|(universe, stats)| {
             let fps = fps_from_dmx(dmx_store, universe, protocol, stats.frames);
-            let mut sources: Vec<SourceSummary> = stats.sources.into_values().collect();
-            sources.sort_by(|a, b| a.source_ip.cmp(&b.source_ip));
+            let mut sources_with_ids: Vec<(String, SourceSummary)> =
+                stats.sources.into_iter().collect();
+            sources_with_ids.sort_by(|a, b| a.0.cmp(&b.0));
+            let sources = sources_with_ids
+                .into_iter()
+                .map(|(_, summary)| summary)
+                .collect();
             let metrics = compute_metrics(&stats.per_source);
 
             UniverseSummary {
@@ -548,10 +553,13 @@ fn source_label(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        UniverseSourceStats, add_artnet_frame, build_artnet_universe_summaries, build_conflicts,
-        compute_metrics, update_source_stats,
+        UniverseSourceStats, UniverseStats, add_artnet_frame, build_artnet_universe_summaries,
+        build_conflicts, compute_metrics, update_source_stats,
     };
-    use crate::analysis::dmx::{DmxFrame, DmxProtocol, DmxStore};
+    use crate::{
+        SourceSummary,
+        analysis::dmx::{DmxFrame, DmxProtocol, DmxStore},
+    };
     use std::collections::{HashMap, VecDeque};
     use std::net::IpAddr;
 
@@ -614,6 +622,36 @@ mod tests {
         let summaries = build_artnet_universe_summaries(stats, &dmx_store);
         let universes: Vec<u16> = summaries.into_iter().map(|s| s.universe).collect();
         assert_eq!(universes, vec![1, 2]);
+    }
+
+    #[test]
+    fn universe_sources_are_sorted_by_source_id() {
+        let mut stats = HashMap::new();
+        let mut universe = UniverseStats::default();
+        universe.sources.insert(
+            "b-source".to_string(),
+            SourceSummary {
+                source_ip: "10.0.0.1".to_string(),
+                cid: Some("cid-2".to_string()),
+                source_name: None,
+            },
+        );
+        universe.sources.insert(
+            "a-source".to_string(),
+            SourceSummary {
+                source_ip: "10.0.0.1".to_string(),
+                cid: Some("cid-1".to_string()),
+                source_name: None,
+            },
+        );
+        stats.insert(1, universe);
+
+        let dmx_store = DmxStore::new();
+        let summaries = build_artnet_universe_summaries(stats, &dmx_store);
+        let sources = &summaries[0].sources;
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].cid.as_deref(), Some("cid-1"));
+        assert_eq!(sources[1].cid.as_deref(), Some("cid-2"));
     }
 
     #[test]
