@@ -72,6 +72,7 @@ pub(crate) fn add_artnet_frame(
     source_id
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn add_sacn_frame(
     stats: &mut HashMap<u16, UniverseStats>,
     universe: u16,
@@ -525,11 +526,11 @@ fn compute_affected_channels(
     affected
 }
 
-fn last_frame_in_window<'a>(
-    frames: &'a [super::dmx::DmxFrame],
+fn last_frame_in_window(
+    frames: &[super::dmx::DmxFrame],
     start: f64,
     end: f64,
-) -> Option<&'a super::dmx::DmxFrame> {
+) -> Option<&super::dmx::DmxFrame> {
     frames
         .iter()
         .filter_map(|frame| frame.timestamp.map(|ts| (ts, frame)))

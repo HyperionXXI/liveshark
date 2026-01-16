@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result};
@@ -172,6 +172,7 @@ impl From<anyhow::Error> for CliError {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn cmd_pcap_analyse(
     input: PathBuf,
     report: Option<PathBuf>,
@@ -331,7 +332,7 @@ fn print_violations(rep: &liveshark_core::Report) {
     }
 }
 
-fn validate_input_file(input: &PathBuf) -> Result<(), CliError> {
+fn validate_input_file(input: &Path) -> Result<(), CliError> {
     if !input.exists() {
         return Err(CliError::new(
             format!("input file not found: {}", input.display()),
@@ -395,7 +396,7 @@ struct PcapInfo {
     linktype: Option<String>,
 }
 
-fn collect_pcap_info(input: &PathBuf, size_bytes: u64) -> Result<PcapInfo, CliError> {
+fn collect_pcap_info(input: &Path, size_bytes: u64) -> Result<PcapInfo, CliError> {
     let capture_type = input
         .extension()
         .and_then(|ext| ext.to_str())
@@ -466,10 +467,10 @@ fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
         .and_then(|dt| dt.format(&Rfc3339).ok())
 }
 
-fn resolve_input_path(input: &PathBuf) -> Result<PathBuf, CliError> {
+fn resolve_input_path(input: &Path) -> Result<PathBuf, CliError> {
     let pattern = input.to_string_lossy();
     if !is_glob_pattern(&pattern) {
-        return Ok(input.clone());
+        return Ok(input.to_path_buf());
     }
 
     let mut matches = Vec::new();

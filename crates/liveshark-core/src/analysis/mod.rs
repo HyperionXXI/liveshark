@@ -309,6 +309,37 @@ fn record_violation(
     });
 }
 
+fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
+    let ts = match ts {
+        Some(ts) => ts,
+        None => return,
+    };
+    match first {
+        None => *first = Some(ts),
+        Some(existing) => {
+            if ts < *existing {
+                *first = Some(ts);
+            }
+        }
+    }
+    match last {
+        None => *last = Some(ts),
+        Some(existing) => {
+            if ts > *existing {
+                *last = Some(ts);
+            }
+        }
+    }
+}
+
+fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
+    let ts = ts?;
+    let nanos = (ts * 1_000_000_000.0) as i128;
+    OffsetDateTime::from_unix_timestamp_nanos(nanos)
+        .ok()
+        .and_then(|dt| dt.format(&Rfc3339).ok())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{ComplianceSummary, record_violation};
@@ -407,35 +438,4 @@ mod tests {
         assert!(violation.examples.contains(&"slice-b".to_string()));
         assert!(violation.examples.contains(&"slice-c".to_string()));
     }
-}
-
-fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
-    let ts = match ts {
-        Some(ts) => ts,
-        None => return,
-    };
-    match first {
-        None => *first = Some(ts),
-        Some(existing) => {
-            if ts < *existing {
-                *first = Some(ts);
-            }
-        }
-    }
-    match last {
-        None => *last = Some(ts),
-        Some(existing) => {
-            if ts > *existing {
-                *last = Some(ts);
-            }
-        }
-    }
-}
-
-fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
-    let ts = ts?;
-    let nanos = (ts * 1_000_000_000.0) as i128;
-    OffsetDateTime::from_unix_timestamp_nanos(nanos)
-        .ok()
-        .and_then(|dt| dt.format(&Rfc3339).ok())
 }

@@ -68,7 +68,12 @@ impl<'a> SacnReader<'a> {
 
     pub fn read_cid_hex(&self) -> Result<String, SacnError> {
         let bytes = self.read_slice(layout::CID_RANGE.clone())?;
-        Ok(bytes.iter().map(|b| format!("{:02x}", b)).collect())
+        let mut out = String::with_capacity(bytes.len() * 2);
+        for byte in bytes {
+            out.push(hex_char(byte >> 4));
+            out.push(hex_char(byte & 0x0f));
+        }
+        Ok(out)
     }
 
     pub fn read_start_code(&self) -> Result<u8, SacnError> {
@@ -111,6 +116,14 @@ impl<'a> SacnReader<'a> {
         } else {
             Ok(Some(value))
         }
+    }
+}
+
+fn hex_char(value: u8) -> char {
+    match value {
+        0..=9 => (b'0' + value) as char,
+        10..=15 => (b'a' + (value - 10)) as char,
+        _ => '0',
     }
 }
 
