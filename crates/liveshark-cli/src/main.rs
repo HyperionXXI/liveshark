@@ -11,7 +11,16 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 #[derive(Parser, Debug)]
 #[command(name = "liveshark")]
-#[command(version = concat!(env!("CARGO_PKG_VERSION"), " (commit ", env!("LIVESHARK_BUILD_COMMIT"), ")"))]
+#[command(
+    version = concat!(
+        env!("CARGO_PKG_VERSION"),
+        " (commit ",
+        env!("LIVESHARK_BUILD_COMMIT"),
+        ", built ",
+        env!("LIVESHARK_BUILD_DATE"),
+        ")"
+    )
+)]
 #[command(
     about = "Offline-first analyzer for show-control network captures (Art-Net / sACN).",
     long_about = None,
@@ -352,20 +361,19 @@ fn cmd_pcap_info(input: PathBuf, json: bool, pretty: bool, compact: bool) -> Res
         return Ok(());
     }
 
-    println!("path: {}", info.path);
-    println!("size_bytes: {}", info.size_bytes);
-    println!("type: {}", info.capture_type);
+    println!("file: {}", info.path);
+    println!("format: {}", info.capture_type);
+    println!("bytes: {}", info.size_bytes);
     println!("packets: {}", info.packets);
     println!(
-        "first_ts: {}",
+        "time_start: {}",
         info.first_ts.as_deref().unwrap_or("unknown")
     );
-    println!("last_ts: {}", info.last_ts.as_deref().unwrap_or("unknown"));
+    println!("time_end: {}", info.last_ts.as_deref().unwrap_or("unknown"));
+    println!("duration_s: {}", info.duration_s.unwrap_or(0.0));
     println!(
-        "duration_s: {}",
-        info.duration_s
-            .map(|d| d.to_string())
-            .unwrap_or_else(|| "unknown".to_string())
+        "linktype: {}",
+        info.linktype.as_deref().unwrap_or("unknown")
     );
     Ok(())
 }
@@ -379,6 +387,7 @@ struct PcapInfo {
     first_ts: Option<String>,
     last_ts: Option<String>,
     duration_s: Option<f64>,
+    linktype: Option<String>,
 }
 
 fn collect_pcap_info(input: &PathBuf, size_bytes: u64) -> Result<PcapInfo, CliError> {
@@ -392,11 +401,15 @@ fn collect_pcap_info(input: &PathBuf, size_bytes: u64) -> Result<PcapInfo, CliEr
     let mut packets = 0u64;
     let mut first_ts = None;
     let mut last_ts = None;
+    let mut linktype = None;
     while let Some(event) = source
         .next_packet()
         .map_err(|err| CliError::new(err.to_string(), None))?
     {
         packets += 1;
+        if linktype.is_none() {
+            linktype = Some(format!("{:?}", event.linktype));
+        }
         update_ts_bounds(&mut first_ts, &mut last_ts, event.ts);
     }
 
@@ -413,6 +426,7 @@ fn collect_pcap_info(input: &PathBuf, size_bytes: u64) -> Result<PcapInfo, CliEr
         first_ts: ts_to_rfc3339(first_ts),
         last_ts: ts_to_rfc3339(last_ts),
         duration_s,
+        linktype,
     })
 }
 

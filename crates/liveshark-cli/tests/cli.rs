@@ -44,11 +44,11 @@ fn help_supports_analyse_and_analyze() {
 
 #[test]
 fn version_includes_commit() {
-    cmd()
-        .arg("--version")
-        .assert()
-        .success()
-        .stdout(contains("commit").and(is_match(r"commit\s+\w+").expect("regex")));
+    cmd().arg("--version").assert().success().stdout(
+        contains("commit")
+            .and(contains("built"))
+            .and(is_match(r"commit\s+\w+").expect("regex")),
+    );
 }
 
 #[test]
@@ -253,17 +253,24 @@ fn glob_single_match_is_used() {
 #[test]
 fn pcap_info_outputs_path_and_packets() {
     let input = sample_capture();
-    cmd()
+    let assert = cmd()
         .arg("pcap")
         .arg("info")
         .arg(input.clone())
         .assert()
-        .success()
-        .stdout(
-            contains("path:")
-                .and(contains("packets:"))
-                .and(contains(input.to_string_lossy().to_string())),
-        );
+        .success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert!(lines.len() >= 7);
+    assert!(lines[0].starts_with("file: "));
+    assert!(lines[1].starts_with("format: "));
+    assert!(lines[2].starts_with("bytes: "));
+    assert!(lines[3].starts_with("packets: "));
+    assert!(lines[4].starts_with("time_start: "));
+    assert!(lines[5].starts_with("time_end: "));
+    assert!(lines[6].starts_with("duration_s: "));
+    let input_str = input.to_string_lossy();
+    assert!(stdout.contains(input_str.as_ref()));
 }
 
 #[test]
