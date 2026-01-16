@@ -61,8 +61,8 @@ Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont à i
 
 \subsection{Note sur le langage d'implémentation}
 LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire} et \textbf{performances}.
-Il privilégie aussi la \textbf{portabilité} (Windows, macOS, Linux) et un outillage moderne. Il s'agit d'un choix
-d'ingénierie pour v0.1 et cela n'exclut pas l'usage d'autres langages pour des composants futurs si cela se justifie.
+Il privilégie aussi la \textbf{portabilité} (Windows, macOS, Linux) et un outillage moderne.
+Il s'agit d'un choix d'ingénierie pour v0.1. Cela n'exclut pas l'usage d'autres langages pour des composants futurs.
 Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rust-lang.org/style-guide/}.
 
 \subsection{Note sur le terme \enquote{Live}}
@@ -71,6 +71,7 @@ garantie de capture en temps réel. La capture en temps réel est optionnelle et
 Le diagnostic en quasi temps réel peut être atteint via le mode suivi, sans capture native immédiate.
 
 \subsection{Termes de base}
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Terme} & \textbf{Signification} \\
@@ -79,12 +80,15 @@ Paquet & Paquet réseau capturé dans un fichier PCAP/PCAPNG. \\
 Message protocolaire & Unité décodée au niveau applicatif (ex. ArtDMX, sACN). \\
 Trame DMX & État DMX512 (512 slots) reconstruit pour un univers, à un instant donné. \\
 Univers & Groupe logique de jusqu'à 512 slots DMX. \\
-Source & Émetteur identifié par IP et, si applicable, par identifiant protocolaire (ex. CID sACN). \\
-Flux & Tuple unidirectionnel (proto, src ip:port, dst ip:port). \\
+Source & Émetteur identifié par IP et, si applicable, par identifiant protocolaire\\
+(ex. CID sACN). \\
+Flux & Tuple unidirectionnel (proto,\\ src ip:port, dst ip:port). \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \subsection{Acronymes}
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Acronyme} & \textbf{Développement} \\
@@ -96,23 +100,24 @@ CC-BY-4.0 & Creative Commons Attribution 4.0 International \\
 CID & Component Identifier (identifiant de source sACN) \\
 CI & Intégration continue \\
 CLI & Interface en ligne de commande \\
-DMX & Digital Multiplex (DMX512 / DMX512-A) \\
+DMX & Digital Multiplex (DMX512) \\
 DMX512 & Digital Multiplex 512 \\
 DoD & Definition of Done (critère de fin) \\
 FPS / PPS / BPS & Trames / Paquets / Octets\\ par seconde \\
 GUI & Interface graphique \\
 IP & Internet Protocol (Protocole Internet) \\
-JSON & JavaScript Object Notation \\
+JSON & JavaScript Object\\ Notation \\
 MIT & Licence MIT \\
 MVP & Minimum Viable Product (produit minimum viable) \\
 PCAP & Packet Capture \\
-PCAPNG & PCAP Next Generation \\
+PCAPNG & PCAP Next\\ Generation \\
 QA & Assurance qualité \\
 RFC & Request for Comments \\
 sACN & Streaming ACN (ANSI E1.31) \\
 UDP & User Datagram Protocol \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \section{Ce que LiveShark est (et n'est pas)}
 
@@ -323,17 +328,22 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent être vides en v0.1).
   \item \texttt{compliance[]} : tableau (peut être vide en v0.1).
   \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),\\
-  \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel et \texttt{source\_name} optionnel ;\\
+  \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel,\\
+  et \texttt{source\_name} optionnel ;\\
   \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),\\
   \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels\\
-  \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms}
+  \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count},\\
+  \texttt{max\_burst\_len}, \texttt{jitter\_ms}
   (omis si indisponibles).
   \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
   et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} optionnels (omis si indisponibles).
   \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
-  \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne), \texttt{compliance\_percentage} (flottant ; v0.1 utilise 100.0 comme valeur de remplacement),
-  et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable), \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),
-  \texttt{message} (explication lisible), \texttt{count} (entier, nombre d'occurrences), et \texttt{examples[]} optionnel
+  \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne),\\
+  \texttt{compliance\_percentage}\\
+  (flottant ; v0.1 utilise 100.0 comme valeur de remplacement),\\
+  et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable),\\
+  \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),\\
+  \texttt{message} (explication lisible), \texttt{count} (entier, nombre d'occurrences), et \texttt{examples[]} optionnel\\
   (tableau d'au plus 3 chaînes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"}).
   S'ils sont présents, les exemples \DOIT{} être dédupliqués, triés de façon stable et limités à 3 pour garder des rapports compacts et déterministes).
 \end{itemize}
@@ -386,7 +396,10 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
 \begin{verbatim}
 {
   "universe": 1,
-  "sources": ["sacn:cid:11223344556677889900aabbccddeeff", "artnet:192.168.0.2:6454"],
+  "sources": [
+    "sacn:cid:11223344556677889900aabbccddeeff",
+    "artnet:192.168.0.2:6454"
+  ],
   "overlap_duration_s": 3.5,
   "affected_channels": [],
   "severity": "medium",
@@ -456,8 +469,9 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
   \item \textbf{pps/bps :} paquets/octets par seconde, moyennés sur la durée de capture quand elle est disponible ; unités paquets/s et octets/s. Si la durée est inconnue, les valeurs sont omises.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
   \item \textbf{gigue (IAT) :} écart-type (population) des différences de temps d'arrivée sur une fenêtre glissante de 10.0 s (RFC 3550 \S6.4.1). Unité en secondes (rapportée en ms si applicable). Formule : $\sigma = \sqrt{\frac{1}{n}\sum(\Delta_i - \mu)^2}$ avec $\Delta_i = t_i - t_{i-1}$. 
-  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;
-  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
+  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;\\
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence.\\
+  Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
   \item \textbf{rafales :} \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
   longueur maximale de rafale observée dans la même fenêtre.
 \end{itemize}
@@ -467,17 +481,19 @@ Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les sp�
 Les fichiers PDF sont des artefacts de compilation générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être versionnés} dans le dépôt.
 
 \section{Références normatives}
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabularx}{\linewidth}{@{}l X@{}}
 \toprule
 \textbf{Référence} & \textbf{Titre} \\
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
-RFC 8174 & Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words \\
-RFC 3550 & RTP: A Transport Protocol for Real-Time Applications \\
+RFC 8174 & Ambiguity of Uppercase vs Lowercase\\ in RFC 2119 Key Words \\
+RFC 3550 & RTP: A Transport Protocol for\\ Real-Time Applications \\
 ANSI E1.31-2018 & Streaming ACN (sACN) \\
-Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
+Art-Net 4 & Art-Net 4 Specification\\ (Protocol Release) \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
 \printbibliography
