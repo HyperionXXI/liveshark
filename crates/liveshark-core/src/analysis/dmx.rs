@@ -120,26 +120,52 @@ mod tests {
     }
 
     #[test]
-    fn stateful_reconstruction_retains_last_known_values() {
+    fn stateful_reconstruction_retains_last_known_values_artnet() {
         let mut state = DmxStateStore::new();
         let slots = state.apply_partial(
             1,
             "artnet:10.0.0.1:6454".to_string(),
             DmxProtocol::ArtNet,
-            &[1, 2, 3],
+            &[10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
         );
-        assert_eq!(&slots[..3], &[1, 2, 3]);
-        assert_eq!(slots[3], 0);
+        assert_eq!(&slots[..10], &[10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+        assert_eq!(slots[10], 0);
+        assert_eq!(slots[511], 0);
 
         let slots = state.apply_partial(
             1,
             "artnet:10.0.0.1:6454".to_string(),
             DmxProtocol::ArtNet,
-            &[9],
+            &[42, 43, 44, 45, 46],
         );
-        assert_eq!(slots[0], 9);
-        assert_eq!(slots[1], 2);
-        assert_eq!(slots[2], 3);
-        assert_eq!(slots[3], 0);
+        assert_eq!(&slots[..5], &[42, 43, 44, 45, 46]);
+        assert_eq!(&slots[5..10], &[15, 16, 17, 18, 19]);
+        assert_eq!(slots[10], 0);
+        assert_eq!(slots[511], 0);
+    }
+
+    #[test]
+    fn stateful_reconstruction_retains_last_known_values_sacn() {
+        let mut state = DmxStateStore::new();
+        let slots = state.apply_partial(
+            1,
+            "sacn:cid:00112233445566778899aabbccddeeff".to_string(),
+            DmxProtocol::Sacn,
+            &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        );
+        assert_eq!(&slots[..10], &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        assert_eq!(slots[10], 0);
+        assert_eq!(slots[511], 0);
+
+        let slots = state.apply_partial(
+            1,
+            "sacn:cid:00112233445566778899aabbccddeeff".to_string(),
+            DmxProtocol::Sacn,
+            &[200, 201, 202, 203, 204],
+        );
+        assert_eq!(&slots[..5], &[200, 201, 202, 203, 204]);
+        assert_eq!(&slots[5..10], &[6, 7, 8, 9, 10]);
+        assert_eq!(slots[10], 0);
+        assert_eq!(slots[511], 0);
     }
 }
