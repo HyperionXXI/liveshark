@@ -1,3 +1,14 @@
+//! Analysis entry points and report aggregation.
+//!
+//! This module drives the end-to-end analysis pipeline: packets are decoded,
+//! protocol-specific frames are reconstructed, and summaries are aggregated
+//! into a deterministic report.
+//!
+//! Invariants:
+//! - Output lists are sorted deterministically (universes, flows, conflicts, compliance).
+//! - Metrics use fixed sliding windows (see `flows` and `universes`).
+//! - DMX reconstruction is stateful per (universe, source, protocol).
+
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;
@@ -30,6 +41,7 @@ use crate::protocols::artnet::parse_artdmx;
 use crate::protocols::sacn::parse_sacn_dmx;
 
 #[derive(Debug, Error)]
+/// Errors returned by analysis entry points.
 pub enum AnalysisError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
@@ -37,11 +49,20 @@ pub enum AnalysisError {
     Source(#[from] SourceError),
 }
 
+/// Analyze a PCAP/PCAPNG file from disk.
+///
+/// # Errors
+/// Returns `AnalysisError` when the file cannot be opened or parsed.
 pub fn analyze_pcap_file(path: &Path) -> Result<Report, AnalysisError> {
     let source = PcapFileSource::open(path)?;
     analyze_source(path, source)
 }
 
+/// Analyze a packet source and produce a report.
+///
+/// # Errors
+/// Returns `AnalysisError` for I/O or parsing failures originating from the
+/// packet source.
 pub fn analyze_source<S: PacketSource>(
     path: &Path,
     mut source: S,

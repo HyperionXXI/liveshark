@@ -13,6 +13,17 @@ use super::reader::{
     is_pcapng_magic, linktype_for_interface, pcapng_ts_to_seconds, read_magic_and_rewind,
 };
 
+/// Packet source backed by a PCAP or PCAPNG file.
+///
+/// # Examples
+/// ```no_run
+/// use liveshark_core::{PacketSource, PcapFileSource};
+/// use std::path::Path;
+///
+/// let mut source = PcapFileSource::open(Path::new("capture.pcapng"))?;
+/// # let _ = source.next_packet();
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub struct PcapFileSource {
     inner: PcapReader,
 }
