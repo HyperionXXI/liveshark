@@ -161,7 +161,7 @@ et n'est rapportée que lorsque les éléments disponibles le permettent.
 \end{itemize}
 
 \subsection{Extensions optionnelles (registre non normatif)}
-LiveShark est conçu pour le diagnostic. Les extensions DOIVENT améliorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et DOIVENT rester reproductibles (mêmes entrées $\rightarrow$ mêmes sorties).
+Chaque extension \DOIT{} améliorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et \DOIT{} rester reproductible (mêmes entrées $\rightarrow$ mêmes sorties).
 Ces candidats sont non normatifs et hors périmètre v0.1.
 
 Chaque extension déclare son niveau de support :
@@ -170,7 +170,7 @@ Chaque extension déclare son niveau de support :
   \item \textbf{Niveau messages/trames :} décodage structuré avec un modèle métier stable.
 \end{itemize}
 
-LiveShark PEUT fournir des \emph{pistes de causes probables} uniquement sous forme d’heuristiques. Ces pistes DOIVENT être justifiées par des motifs observables et NE DOIVENT PAS être présentées comme des causes certaines.
+LiveShark \PEUT{} fournir des \emph{pistes de causes probables} uniquement sous forme d'heuristiques. Ces pistes \DOIT{} être justifiées par des motifs observables et \NEDOITPAS{} être présentées comme des causes certaines.
 
 \begin{itemize}
   \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec\\
@@ -310,7 +310,10 @@ Le MVP est considéré livré si :
 \end{enumerate}
 
 \subsection{Tests golden}
-Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
+Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ metadata.toml\}}.
+\texttt{metadata.toml} décrit l'intention du test, les assertions (ex. \texttt{fps\_min},
+\texttt{compliance\_percentage}) et les
+  règles de tolérance. Voir \texttt{AGENTS.md} \S9.4 pour le schéma.
 
 \appendix
 \section{Appendices (normatifs)}

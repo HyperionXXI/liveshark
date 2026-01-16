@@ -301,7 +301,9 @@ The MVP is considered delivered if:
 \end{enumerate}
 
 \subsection{Golden tests}
-Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
+Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json,\\ metadata.toml\}}.
+\texttt{metadata.toml} documents test intent, assertions (e.g., \texttt{fps\_min}, \texttt{compliance\_percentage}), and tolerance
+rules. See \texttt{AGENTS.md} \S9.4 for the schema.
 
 \appendix
 \section{Appendices (Normative)}
