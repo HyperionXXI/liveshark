@@ -194,10 +194,10 @@ Par défaut :
 \end{itemize}
 \subsection{Définitions des métriques (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s.
+  \item \textbf{pps/bps :} paquets/octets par seconde, moyennés sur la durée de capture quand elle est disponible ; unités paquets/s et octets/s. Si la durée est inconnue, les valeurs sont omises.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s.
   \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arrivée consécutifs sur une fenêtre glissante de 10.0 s (heuristique, sans interpolation).
-  \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture ; sinon, elle est estimée par une heuristique fondée sur les ruptures de cadence. Cela ne prouve pas une perte côté récepteur.
+  \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
 Voir l'Appendice D pour les définitions opérationnelles et les unités.
 
@@ -454,12 +454,12 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
 
 \subsection{Appendice D --- Définitions des métriques (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s.
+  \item \textbf{pps/bps :} paquets/octets par seconde, moyennés sur la durée de capture quand elle est disponible ; unités paquets/s et octets/s. Si la durée est inconnue, les valeurs sont omises.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
   \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arrivée consécutifs sur une fenêtre glissante de 10.0 s ; unité en secondes (rapportée en ms si applicable).
-  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés dans la fenêtre glissante ;
-  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence.
-  \item \textbf{rafales :} \texttt{burst\_count} est le nombre de rafales de pertes dans la fenêtre glissante ; \texttt{max\_burst\_len} est la
+  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
+  \item \textbf{rafales :} \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
   longueur maximale de rafale observée dans la même fenêtre.
 \end{itemize}
 
