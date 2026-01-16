@@ -305,6 +305,9 @@ fn finalize_compliance(compliance: HashMap<String, ComplianceSummary>) -> Vec<Co
     let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
     for entry in &mut entries {
         entry.violations.sort_by(|a, b| a.id.cmp(&b.id));
+        for violation in &mut entry.violations {
+            violation.examples.sort();
+        }
     }
     entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
     entries
@@ -318,10 +321,16 @@ fn record_violation(
     message: &str,
     example: String,
 ) {
+    let protocol = protocol.trim().to_ascii_lowercase();
+    let id = id.trim();
+    let severity = severity.trim();
+    let message = message.trim();
+    let example = example.trim().to_string();
+    let protocol_key = protocol.clone();
     let entry = compliance
-        .entry(protocol.to_string())
+        .entry(protocol_key)
         .or_insert_with(|| ComplianceSummary {
-            protocol: protocol.to_string(),
+            protocol: protocol.clone(),
             compliance_percentage: 100.0,
             violations: Vec::new(),
         });
@@ -446,7 +455,7 @@ mod tests {
             "LS-UDP-SLICE",
             "error",
             "UDP slice error; packet ignored",
-            "slice-a".to_string(),
+            "slice-c".to_string(),
         );
         record_violation(
             &mut compliance,
@@ -470,7 +479,7 @@ mod tests {
             "LS-UDP-SLICE",
             "error",
             "UDP slice error; packet ignored",
-            "slice-c".to_string(),
+            "slice-a".to_string(),
         );
         record_violation(
             &mut compliance,
@@ -481,13 +490,19 @@ mod tests {
             "slice-d".to_string(),
         );
 
-        let udp = compliance.get("udp").expect("udp compliance");
+        let entries = finalize_compliance(compliance);
+        let udp = &entries[0];
         let violation = &udp.violations[0];
         assert_eq!(violation.count, 5);
         assert_eq!(violation.examples.len(), 3);
-        assert!(violation.examples.contains(&"slice-a".to_string()));
-        assert!(violation.examples.contains(&"slice-b".to_string()));
-        assert!(violation.examples.contains(&"slice-c".to_string()));
+        assert_eq!(
+            violation.examples,
+            vec![
+                "slice-a".to_string(),
+                "slice-b".to_string(),
+                "slice-c".to_string()
+            ]
+        );
     }
 
     #[test]
