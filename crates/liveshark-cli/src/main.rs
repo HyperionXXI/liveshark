@@ -191,10 +191,10 @@ fn cmd_pcap_analyse(
         None
     } else {
         Some(report.ok_or_else(|| {
-            CliError::new(
-                "missing output path",
-                Some("use -o/--report or --stdout".to_string()),
-            )
+                CliError::new(
+                    "missing report output",
+                    Some("pass --report <FILE> or use --stdout".to_string()),
+                )
         })?)
     };
 
