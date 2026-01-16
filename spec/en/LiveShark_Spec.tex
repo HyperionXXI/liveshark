@@ -183,7 +183,7 @@ Unless otherwise stated:
   \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window.
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window.
   \item \textbf{jitter (IAT):} inter-arrival time jitter computed as the average variation between consecutive inter-arrival times over a 10.0 s sliding window (heuristic, no interpolation).
-  \item \textbf{loss (observed):} when protocol sequence numbers exist (e.g., sACN), loss is reported as observed sequence gaps at the capture point; otherwise it is a heuristic based on cadence gaps. This does not guarantee loss at the receiver.
+  \item \textbf{loss (observed):} when protocol sequence numbers exist (e.g., sACN), loss is reported as observed sequence gaps at the capture point. In v0.1, loss \MUST{} be reported only when sequence numbers exist; otherwise loss fields are omitted. This does not guarantee loss at the receiver.
 \end{itemize}
 See Appendix D for operational definitions and units.
 
@@ -447,12 +447,12 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
 
 \subsection{Appendix D --- Metric definitions (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window; units are packets/s and bytes/s.
+  \item \textbf{pps/bps:} packets/bytes per second averaged over the capture duration when available; units are packets/s and bytes/s. If duration is unknown, values are omitted.
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
   \item \textbf{jitter (IAT):} average variation between consecutive inter-arrival times over a 10.0 s sliding window; unit is seconds (reported as ms where applicable).
-  \item \textbf{loss (observed):} for sources with sequence numbers, loss is the sum of observed sequence gaps in the sliding window;
-  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + frames\_count)} for sequence-tracked frames.
-  \item \textbf{bursts:} \texttt{burst\_count} is the number of loss bursts in the sliding window; \texttt{max\_burst\_len} is the
+  \item \textbf{loss (observed):} for sources with sequence numbers, loss is the sum of observed sequence gaps over a 10.0 s sliding window;
+  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + frames\_count)} for sequence-tracked frames. If sequence numbers are unavailable, loss fields \MUST{} be omitted.
+  \item \textbf{bursts:} \texttt{burst\_count} is the number of loss bursts over a 10.0 s sliding window; \texttt{max\_burst\_len} is the
   maximum burst length observed in the same window.
 \end{itemize}
 
