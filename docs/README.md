@@ -16,6 +16,8 @@ Note: this does not require Perl; `latexmk` does.
 
 CI builds
 - GitHub Actions builds the PDFs and injects the git commit hash into the footer.
+Local builds
+- Local builds may display a "local" marker in the footer if no CI commit hash is available.
 
 Option B -- Make (if available)
 ```bash
