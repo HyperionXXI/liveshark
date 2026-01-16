@@ -337,7 +337,7 @@ fn record_violation(
     let id = id.trim();
     let severity = severity.trim();
     let message = message.trim();
-    let example = example.trim().to_string();
+    let example = normalize_example(example.trim());
     let protocol_key = protocol.clone();
     let entry = compliance
         .entry(protocol_key)
@@ -379,6 +379,16 @@ fn format_violation_example(
     } else {
         format!("source {}:{} @ {}; {}", ip, port, ts, base)
     }
+}
+
+fn normalize_example(example: &str) -> String {
+    if example.is_empty() {
+        return "source unknown @ unknown".to_string();
+    }
+    if example.starts_with("source ") {
+        return example.to_string();
+    }
+    format!("source unknown @ unknown; {}", example)
 }
 
 fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
@@ -510,9 +520,9 @@ mod tests {
         assert_eq!(
             violation.examples,
             vec![
-                "slice-a".to_string(),
-                "slice-b".to_string(),
-                "slice-c".to_string()
+                "source unknown @ unknown; slice-a".to_string(),
+                "source unknown @ unknown; slice-b".to_string(),
+                "source unknown @ unknown; slice-c".to_string()
             ]
         );
     }
