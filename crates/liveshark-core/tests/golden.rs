@@ -80,8 +80,26 @@ fn golden_sacn_burst() {
 }
 
 #[test]
+fn golden_sacn_burst_has_burst_metrics() {
+    let report = load_expected_report("tests/golden/sacn_burst");
+    let summary = &report.universes[0];
+    assert_eq!(summary.burst_count, Some(2));
+    assert_eq!(summary.max_burst_len, Some(3));
+    assert_eq!(summary.loss_packets, Some(5));
+}
+
+#[test]
 fn golden_sacn_gap() {
     run_golden("tests/golden/sacn_gap");
+}
+
+#[test]
+fn golden_sacn_gap_has_gap_metrics() {
+    let report = load_expected_report("tests/golden/sacn_gap");
+    let summary = &report.universes[0];
+    assert_eq!(summary.burst_count, Some(1));
+    assert_eq!(summary.max_burst_len, Some(7));
+    assert_eq!(summary.loss_packets, Some(7));
 }
 
 #[test]
