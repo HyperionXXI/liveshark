@@ -9,7 +9,9 @@ use crate::source::{PacketEvent, PacketSource, SourceError};
 
 use super::error::PcapSourceError;
 use super::layout;
-use super::reader::{is_pcapng_magic, linktype_for_interface, read_magic_and_rewind};
+use super::reader::{
+    is_pcapng_magic, linktype_for_interface, pcapng_ts_to_seconds, read_magic_and_rewind,
+};
 
 pub struct PcapFileSource {
     inner: PcapReader,
@@ -148,9 +150,4 @@ fn next_packet(reader: &mut PcapReader) -> Result<Option<PacketEvent>, PcapSourc
             },
         }
     }
-}
-
-fn pcapng_ts_to_seconds(ts_high: u32, ts_low: u32) -> f64 {
-    let ts = ((ts_high as u64) << 32) | (ts_low as u64);
-    ts as f64 * 1e-6
 }

@@ -22,6 +22,11 @@ pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
         .unwrap_or(Linktype::ETHERNET)
 }
 
+pub fn pcapng_ts_to_seconds(ts_high: u32, ts_low: u32) -> f64 {
+    let ts = ((ts_high as u64) << 32) | (ts_low as u64);
+    ts as f64 * 1e-6
+}
+
 #[cfg(test)]
 mod tests {
     use super::{is_pcapng_magic, linktype_for_interface, read_magic_and_rewind};
@@ -60,5 +65,11 @@ mod tests {
         let linktypes = [Linktype::RAW];
         assert_eq!(linktype_for_interface(&linktypes, 0), Linktype::RAW);
         assert_eq!(linktype_for_interface(&linktypes, 1), Linktype::ETHERNET);
+    }
+
+    #[test]
+    fn pcapng_ts_to_seconds_converts_microseconds() {
+        let seconds = super::pcapng_ts_to_seconds(0, 1_500_000);
+        assert!((seconds - 1.5).abs() < f64::EPSILON);
     }
 }
