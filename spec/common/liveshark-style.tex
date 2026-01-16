@@ -36,8 +36,10 @@
 \titleformat{\section}{\sffamily\bfseries\Large\color{LSBlue}}{\thesection}{0.8em}{}
 \titleformat{\subsection}{\sffamily\bfseries\large\color{LSBlue}}{\thesubsection}{0.8em}{}
 \titleformat{\subsubsection}{\sffamily\bfseries\normalsize\color{LSBlue}}{\thesubsubsection}{0.8em}{}
+\titleformat{\paragraph}{\sffamily\bfseries\normalsize\color{LSMid}}{\theparagraph}{0.6em}{}
 \titlespacing*{\section}{0pt}{2.0ex}{1.1ex}
 \titlespacing*{\subsection}{0pt}{1.6ex}{0.9ex}
+\titlespacing*{\paragraph}{0pt}{1.1ex}{0.5ex}
 
 % Lists
 \usepackage{enumitem}
@@ -93,5 +95,8 @@
   colframe=LSBlue!35,
   arc=2mm,
   boxrule=0.4pt,
-  left=1.4mm,right=1.4mm,top=1.0mm,bottom=1.0mm
+  left=1.6mm,right=1.6mm,top=1.2mm,bottom=1.2mm,
+  boxsep=0.8mm,
+  before skip=0.6em,
+  after skip=0.6em
 }
