@@ -23,3 +23,11 @@ Test fixture notes
 - UDP missing network layer/payload violations are now `warning` severity; changes affect only
   `compliance[].violations[].severity` fields in:
   - tests/golden/flow_only/expected_report.json
+
+- compliance violation messages now follow a consistent “Invalid …; packet ignored” pattern; changes affect only
+  `compliance[].violations[].message` fields in:
+  - tests/golden/artnet/expected_report.json
+  - tests/golden/artnet_burst/expected_report.json
+  - tests/golden/artnet_conflict/expected_report.json
+  - tests/golden/artnet_gap/expected_report.json
+  - tests/golden/artnet_invalid_length/expected_report.json

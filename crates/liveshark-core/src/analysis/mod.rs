@@ -123,7 +123,7 @@ pub fn analyze_source<S: PacketSource>(
                                 "artnet",
                                 "LS-ARTNET-TOO-SHORT",
                                 "error",
-                                "Art-Net payload too short; packet ignored",
+                                "Invalid Art-Net payload length; packet ignored",
                                 format_violation_example(
                                     format!("needed={}, actual={}", needed, actual),
                                     Some((&udp.src_ip, udp.src_port)),
@@ -211,7 +211,7 @@ pub fn analyze_source<S: PacketSource>(
                                 "sacn",
                                 "LS-SACN-TOO-SHORT",
                                 "error",
-                                "sACN payload too short; packet ignored",
+                                "Invalid sACN payload length; packet ignored",
                                 format_violation_example(
                                     format!("needed={}, actual={}", needed, actual),
                                     Some((&udp.src_ip, udp.src_port)),
@@ -230,7 +230,7 @@ pub fn analyze_source<S: PacketSource>(
                     "udp",
                     "LS-UDP-SLICE",
                     "error",
-                    "UDP slice error; packet ignored",
+                    "Invalid UDP slice; packet ignored",
                     message,
                 ),
                 crate::analysis::udp::error::UdpError::MissingNetworkLayer => record_violation(
@@ -238,7 +238,7 @@ pub fn analyze_source<S: PacketSource>(
                     "udp",
                     "LS-UDP-MISSING-NETWORK",
                     "warning",
-                    "UDP missing network layer; packet ignored",
+                    "Invalid UDP packet: missing network layer; packet ignored",
                     "missing network layer".to_string(),
                 ),
                 crate::analysis::udp::error::UdpError::MissingIpPayload => record_violation(
@@ -246,7 +246,7 @@ pub fn analyze_source<S: PacketSource>(
                     "udp",
                     "LS-UDP-MISSING-PAYLOAD",
                     "warning",
-                    "UDP missing IP payload; packet ignored",
+                    "Invalid UDP packet: missing IP payload; packet ignored",
                     "missing IP payload".to_string(),
                 ),
                 crate::analysis::udp::error::UdpError::TooShort { needed, actual } => {
@@ -255,7 +255,7 @@ pub fn analyze_source<S: PacketSource>(
                         "udp",
                         "LS-UDP-TOO-SHORT",
                         "error",
-                        "UDP payload too short; packet ignored",
+                        "Invalid UDP payload length; packet ignored",
                         format!("needed={}, actual={}", needed, actual),
                     )
                 }
@@ -476,7 +476,7 @@ mod tests {
             "udp",
             "LS-UDP-SLICE",
             "error",
-            "UDP slice error; packet ignored",
+            "Invalid UDP slice; packet ignored",
             "slice-c".to_string(),
         );
         record_violation(
@@ -484,7 +484,7 @@ mod tests {
             "udp",
             "LS-UDP-SLICE",
             "error",
-            "UDP slice error; packet ignored",
+            "Invalid UDP slice; packet ignored",
             "slice-a".to_string(),
         );
         record_violation(
@@ -492,7 +492,7 @@ mod tests {
             "udp",
             "LS-UDP-SLICE",
             "error",
-            "UDP slice error; packet ignored",
+            "Invalid UDP slice; packet ignored",
             "slice-b".to_string(),
         );
         record_violation(
@@ -500,7 +500,7 @@ mod tests {
             "udp",
             "LS-UDP-SLICE",
             "error",
-            "UDP slice error; packet ignored",
+            "Invalid UDP slice; packet ignored",
             "slice-a".to_string(),
         );
         record_violation(
@@ -508,7 +508,7 @@ mod tests {
             "udp",
             "LS-UDP-SLICE",
             "error",
-            "UDP slice error; packet ignored",
+            "Invalid UDP slice; packet ignored",
             "slice-d".to_string(),
         );
 
