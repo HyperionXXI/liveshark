@@ -1,5 +1,6 @@
 use std::env;
 use std::process::Command;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -15,8 +16,13 @@ fn main() {
         run_git(&["rev-parse", "--short", "HEAD"]).unwrap_or_else(|| "unknown".to_string())
     };
 
-    let build_date =
-        run_git(&["log", "-1", "--format=%cI"]).unwrap_or_else(|| "unknown".to_string());
+    let build_date = env::var("SOURCE_DATE_EPOCH")
+        .ok()
+        .and_then(|value| value.parse::<i64>().ok())
+        .and_then(|epoch| OffsetDateTime::from_unix_timestamp(epoch).ok())
+        .and_then(|dt| dt.format(&Rfc3339).ok())
+        .or_else(|| run_git(&["log", "-1", "--format=%cI"]))
+        .unwrap_or_else(|| "unknown".to_string());
 
     println!("cargo:rustc-env=LIVESHARK_BUILD_COMMIT={}", commit_short);
     println!(

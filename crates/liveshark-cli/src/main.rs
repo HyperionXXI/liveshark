@@ -255,7 +255,12 @@ fn cmd_pcap_analyse(
         return Ok(());
     }
 
-    let report = report.expect("report required when not using stdout");
+    let report = report.ok_or_else(|| {
+        CliError::new(
+            "missing report output",
+            Some("pass --report <FILE> or use --stdout".to_string()),
+        )
+    })?;
     if let Some(parent) = report.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent).with_context(|| {
@@ -523,4 +528,36 @@ fn resolve_input_path(input: &PathBuf) -> Result<PathBuf, CliError> {
 
 fn is_glob_pattern(input: &str) -> bool {
     input.contains('*') || input.contains('?') || input.contains('[')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cmd_pcap_analyse;
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    #[test]
+    fn missing_report_output_is_an_error() {
+        let temp = TempDir::new().expect("tempdir");
+        let input = temp.path().join("capture.pcapng");
+        std::fs::write(&input, []).expect("write capture");
+
+        let err = cmd_pcap_analyse(
+            PathBuf::from(&input),
+            None,
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+        )
+        .expect_err("missing report should error");
+
+        assert_eq!(err.message, "missing report output");
+        assert_eq!(
+            err.hint.as_deref(),
+            Some("pass --report <FILE> or use --stdout")
+        );
+    }
 }
