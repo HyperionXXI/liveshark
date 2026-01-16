@@ -238,7 +238,7 @@ pub fn analyze_source<S: PacketSource>(
                     "udp",
                     "LS-UDP-MISSING-NETWORK",
                     "warning",
-                    "Missing network layer; packet ignored",
+                    "UDP missing network layer; packet ignored",
                     "missing network layer".to_string(),
                 ),
                 crate::analysis::udp::error::UdpError::MissingIpPayload => record_violation(
@@ -246,7 +246,7 @@ pub fn analyze_source<S: PacketSource>(
                     "udp",
                     "LS-UDP-MISSING-PAYLOAD",
                     "warning",
-                    "Missing IP payload; packet ignored",
+                    "UDP missing IP payload; packet ignored",
                     "missing IP payload".to_string(),
                 ),
                 crate::analysis::udp::error::UdpError::TooShort { needed, actual } => {
