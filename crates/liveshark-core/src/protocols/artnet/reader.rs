@@ -32,6 +32,14 @@ impl<'a> ArtNetReader<'a> {
         Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
     }
 
+    pub fn read_dmx_length(&self, range: std::ops::Range<usize>) -> Result<usize, ArtNetError> {
+        let value = self.read_u16_be(range)?;
+        if value == 0 || value as usize > layout::DMX_MAX_SLOTS {
+            return Err(ArtNetError::InvalidLength { length: value });
+        }
+        Ok(value as usize)
+    }
+
     pub fn read_universe_id(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
         let value = self.read_u16_le(range)?;
         if value > 0x7fff {
@@ -84,6 +92,7 @@ impl<'a> ArtNetReader<'a> {
 mod tests {
     use super::ArtNetReader;
     use crate::protocols::artnet::error::ArtNetError;
+    use crate::protocols::artnet::layout;
 
     #[test]
     fn read_optional_nonzero_u8() {
@@ -110,5 +119,41 @@ mod tests {
             err,
             ArtNetError::InvalidUniverseId { value: 0x8000 }
         ));
+    }
+
+    #[test]
+    fn read_dmx_length_accepts_valid_range() {
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&2u16.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        assert_eq!(
+            reader
+                .read_dmx_length(layout::LENGTH_RANGE.clone())
+                .unwrap(),
+            2
+        );
+    }
+
+    #[test]
+    fn read_dmx_length_rejects_zero() {
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&0u16.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        let err = reader
+            .read_dmx_length(layout::LENGTH_RANGE.clone())
+            .unwrap_err();
+        assert!(matches!(err, ArtNetError::InvalidLength { length: 0 }));
+    }
+
+    #[test]
+    fn read_dmx_length_rejects_too_large() {
+        let value = (layout::DMX_MAX_SLOTS as u16) + 1;
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&value.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        let err = reader
+            .read_dmx_length(layout::LENGTH_RANGE.clone())
+            .unwrap_err();
+        assert!(matches!(err, ArtNetError::InvalidLength { length } if length == value));
     }
 }

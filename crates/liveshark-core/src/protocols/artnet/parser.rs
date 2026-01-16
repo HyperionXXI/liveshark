@@ -25,15 +25,13 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
 
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
     let universe = reader.read_universe_id(layout::UNIVERSE_RANGE.clone())?;
-    let length = reader.read_u16_be(layout::LENGTH_RANGE.clone())?;
-    if length == 0 || length as usize > layout::DMX_MAX_SLOTS {
-        return Err(ArtNetError::InvalidLength { length });
-    }
-
-    let data_len = length as usize;
-    let needed = layout::DMX_DATA_OFFSET
-        .checked_add(data_len)
-        .ok_or(ArtNetError::InvalidLength { length })?;
+    let data_len = reader.read_dmx_length(layout::LENGTH_RANGE.clone())?;
+    let needed =
+        layout::DMX_DATA_OFFSET
+            .checked_add(data_len)
+            .ok_or(ArtNetError::InvalidLength {
+                length: data_len as u16,
+            })?;
     reader.require_len(needed)?;
     let data = reader.read_slice(layout::DMX_DATA_OFFSET..needed)?;
     let slots = data.to_vec();
