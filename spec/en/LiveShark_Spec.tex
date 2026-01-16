@@ -9,11 +9,11 @@
 
 \title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Specification (Printable PDF) v0.1}
 \author{\sffamily Florian Keller}
-\date{\sffamily Draft - \today}
+\date{\sffamily Draft - \today\\\small\textsf{Authoritative language: EN}}
 
 \begin{document}
 \maketitle
-\vspace{0.4em}
+\vspace{0.6em}
 
 \begin{tcolorbox}
 \textbf{Scope.} LiveShark is a \textbf{passive} analyzer for show-control networking (Art-Net, sACN). It focuses on
@@ -159,7 +159,8 @@ Each extension declares its support level:
 LiveShark may emit \emph{probable-cause hints} only as heuristics. Such hints must be justified by observable patterns and must never be presented as certain causes.
 
 \begin{itemize}
-  \item \textbf{OSC (Message):} control-message timeline; correlation with DMX/network anomalies.
+  \item \textbf{OSC (Message):} control-message timeline; correlation with DMX/network\\
+  anomalies.
   \item \textbf{RTP (generic) (Message):} sequence gaps, jitter, reordering; basis for AES67-style health checks.
   \item \textbf{RTP-MIDI (Message):} MIDI message timing; correlation with cues/timecode over the network.
   \item \textbf{Network infrastructure (Flow):} IGMP/mDNS/DHCP/ARP/DNS patterns; multicast/discovery/addressing issues.

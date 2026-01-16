@@ -25,11 +25,11 @@
 
 \title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Spécification (PDF imprimable) v0.1}
 \author{\sffamily Florian Keller}
-\date{\sffamily Brouillon - \today}
+\date{\sffamily Brouillon - \today\\\small\textsf{Langue de référence : EN}}
 
 \begin{document}
 \maketitle
-\vspace{0.4em}
+\vspace{0.6em}
 \noindent\textbf{Note de langue.} Cette version française est une traduction destinée à faciliter la relecture. En cas de divergence, la version anglaise (EN) est la référence pour les IDs d’exigences et les contrats, sauf décision explicite contraire.
 \par\medskip
 
@@ -59,7 +59,7 @@ Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont à i
 (RFC 2119 et RFC 8174). Seule l'écriture en \textbf{MAJUSCULES} est normative.
 
 \subsection{Note sur le langage d'implémentation}
-LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire} et \textbf{performances}.
+LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire} \\ \textbf{et performances}.
 Il privilégie aussi la \textbf{portabilité} (Windows, macOS, Linux) et un outillage moderne.
 Il s'agit d'un choix d'ingénierie pour v0.1. Cela n'exclut pas l'usage d'autres langages pour des composants futurs.
 Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rust-lang.org/style-guide/}.
@@ -123,7 +123,8 @@ UDP & User Datagram Protocol \\
 \subsection{Objectifs}
 \begin{itemize}
   \item Analyse hors-ligne de captures PCAP/PCAPNG pour Art-Net et sACN.
-  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps, gigue, pertes, rafales).
+  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps,
+  gigue, \\ pertes, rafales).
   \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
   \item Rapports JSON versionnés et reproductibles pour tickets, a posteriori, QA et CI.
 \end{itemize}
@@ -172,7 +173,8 @@ Chaque extension déclare son niveau de support :
 LiveShark PEUT fournir des \emph{pistes de causes probables} uniquement sous forme d’heuristiques. Ces pistes DOIVENT être justifiées par des motifs observables et NE DOIVENT PAS être présentées comme des causes certaines.
 
 \begin{itemize}
-  \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec anomalies DMX/réseau.
+  \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec\\
+  anomalies DMX/réseau.
   \item \textbf{RTP (générique) (Messages) :} trous de séquence, gigue, désordre ; base pour bilans de santé de type AES67.
   \item \textbf{RTP-MIDI (Messages) :} timing des messages MIDI ; corrélation avec signaux de conduite/codes temporels sur le réseau.
   \item \textbf{Infrastructure réseau (Flux) :} motifs IGMP/mDNS/DHCP/ARP/DNS ; problèmes de multicast/découverte/adressage.

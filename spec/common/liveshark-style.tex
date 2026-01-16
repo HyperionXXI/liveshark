@@ -1,19 +1,11 @@
 % LiveShark - minimal "premium product" style (printable, sober)
 
-\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage[a4paper,margin=2.35cm,top=2.1cm,bottom=2.4cm]{geometry}
 
 % Fonts: modern, readable, widely available in TeX Live
 \usepackage{fontspec}
-\IfFontExistsTF{TeX Gyre Termes}{
-  \setmainfont{TeX Gyre Termes}
-}{
-  \setmainfont{DejaVu Serif}
-}
-\IfFontExistsTF{TeX Gyre Heros}{
-  \setsansfont{TeX Gyre Heros}
-}{
-  \setsansfont{DejaVu Sans}
-}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
 
 % Fallback for small caps (DejaVu has no native small caps)
 \DeclareFontShape{TU}{DejaVuSerif(0)}{m}{sc}{<-> ssub * DejaVuSerif(0)/m/n}{}
@@ -21,9 +13,9 @@
 \DeclareFontShape{TU}{DejaVuSans(0)}{b}{sc}{<-> ssub * DejaVuSans(0)/b/n}{}
 
 \usepackage{microtype}
-\linespread{1.03}
+\linespread{1.05}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.35em}
+\setlength{\parskip}{0.4em}
 
 % Color palette (subtle)
 \usepackage{xcolor}
@@ -38,8 +30,8 @@
 \titleformat{\subsubsection}{\sffamily\bfseries\normalsize\color{LSBlue}}{\thesubsubsection}{0.8em}{}
 \titleformat{\paragraph}{\sffamily\bfseries\normalsize\color{LSMid}}{\theparagraph}{0.6em}{}
 \titlespacing*{\section}{0pt}{2.0ex}{1.1ex}
-\titlespacing*{\subsection}{0pt}{1.6ex}{0.9ex}
-\titlespacing*{\paragraph}{0pt}{1.1ex}{0.5ex}
+\titlespacing*{\subsection}{0pt}{1.7ex}{1.0ex}
+\titlespacing*{\paragraph}{0pt}{1.2ex}{0.6ex}
 
 % Lists
 \usepackage{enumitem}
@@ -49,8 +41,8 @@
 % Tables
 \usepackage{booktabs}
 \usepackage{tabularx}
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.22}
 
 % Links: NO red boxes
 \usepackage[hidelinks]{hyperref}
@@ -99,6 +91,6 @@
   boxrule=0.4pt,
   left=1.6mm,right=1.6mm,top=1.2mm,bottom=1.2mm,
   boxsep=0.8mm,
-  before skip=0.6em,
-  after skip=0.6em
+  before skip=0.7em,
+  after skip=0.7em
 }
