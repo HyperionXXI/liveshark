@@ -19,3 +19,7 @@ Test fixture notes
   - tests/golden/sacn_gap/expected_report.json
   - tests/golden/sacn_invalid_start_code/expected_report.json
   Metrics (universes/flows/conflicts) are unchanged.
+
+- UDP missing network layer/payload violations are now `warning` severity; changes affect only
+  `compliance[].violations[].severity` fields in:
+  - tests/golden/flow_only/expected_report.json
