@@ -271,10 +271,6 @@ Conflict records \MUST{} include the required fields defined in Appendix C (v0.1
 \end{reqbox}
 
 \begin{reqbox}{LS-MET-001}{P1}{}
-LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Section 4.1.
-\end{reqbox}
-
-\begin{reqbox}{LS-MET-010}{P1}{}
 LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D (v0.1).
 \end{reqbox}
 \section{Known limitations (v0.1)}
@@ -451,7 +447,7 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
 
 \subsection{Appendix D --- Metric definitions (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second averaged over the capture duration when available; units are packets/s and bytes/s. If duration is unknown, values are omitted.
+  \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window; units are packets/s and bytes/s. If windowed samples are unavailable, values are omitted.
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
   \item \textbf{jitter (IAT):} population standard deviation of inter-arrival time deltas over a 10.0 s sliding window (RFC 3550 \S6.4.1). Unit is seconds (reported as ms where applicable). Formula: $\sigma = \sqrt{\frac{1}{n}\sum(\Delta_i - \mu)^2}$ with $\Delta_i = t_i - t_{i-1}$.
   \item \textbf{loss (observed):} for sources with sequence numbers, loss is the sum of observed sequence gaps over a 10.0 s sliding window;\\
