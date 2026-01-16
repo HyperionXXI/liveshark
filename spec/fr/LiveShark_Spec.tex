@@ -429,7 +429,9 @@ Une trame DMX reconstruite est définie par :
 \subsubsection{Normalisation des univers}
 L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, il est calculé à partir
 des champs ArtDMX \texttt{Net} (octet de poids fort) et \texttt{SubUni} (octet de poids faible), avec
-\texttt{universe\_id = 256 * net + subuni} (0..32767). Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche
+\texttt{universe\_id = 256 * net + subuni} (0..32767). \texttt{Net} et \texttt{SubUni} sont des champs d'un octet ;
+\texttt{universe\_id} utilise \texttt{Net} comme octet de poids fort et \texttt{SubUni} comme octet de poids faible
+(ce n'est pas un champ 16 bits en little-endian). Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche
 de framing. Le rapport utilise cette valeur canonique ; un même univers signifie des valeurs numériques identiques entre
 protocoles.
 

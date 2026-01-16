@@ -405,7 +405,9 @@ A reconstructed DMX frame is defined by:
 \subsubsection{Universe normalization}
 The canonical universe is the 16-bit integer decoded from the protocol payload. For Art-Net, it is computed from the
 ArtDMX \texttt{Net} (high byte) and \texttt{SubUni} (low byte) fields, with \texttt{universe\_id = 256 * net + subuni}
-(0..32767). For sACN, it is the big-endian \texttt{universe} field from the framing layer. The report uses this
+(0..32767). \texttt{Net} and \texttt{SubUni} are single-byte fields; \texttt{universe\_id} uses \texttt{Net} as the high byte
+and \texttt{SubUni} as the low byte (not a little-endian 16-bit field). For sACN, it is the big-endian \texttt{universe}
+field from the framing layer. The report uses this
 canonical value; the same universe means identical numeric values across protocols.
 
 \subsubsection{Minimal reconstruction rules}
