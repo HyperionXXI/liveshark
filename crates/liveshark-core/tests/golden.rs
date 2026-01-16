@@ -3,13 +3,18 @@ use std::path::Path;
 
 use liveshark_core::{Report, analyze_pcap_file};
 
-fn run_golden(dir: &str) {
+fn load_expected_report(dir: &str) -> Report {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-    let input = root.join(dir).join("input.pcapng");
     let expected_path = root.join(dir).join("expected_report.json");
 
     let expected_json = fs::read_to_string(&expected_path).expect("read expected_report.json");
-    let expected: Report = serde_json::from_str(&expected_json).expect("parse expected report");
+    serde_json::from_str(&expected_json).expect("parse expected report")
+}
+
+fn run_golden(dir: &str) {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+    let input = root.join(dir).join("input.pcapng");
+    let expected = load_expected_report(dir);
 
     let mut actual = analyze_pcap_file(&input).expect("analyze pcap");
     actual.generated_at = expected.generated_at.clone();
@@ -49,6 +54,24 @@ fn golden_artnet_burst() {
 #[test]
 fn golden_artnet_gap() {
     run_golden("tests/golden/artnet_gap");
+}
+
+#[test]
+fn golden_artnet_burst_has_burst_metrics() {
+    let report = load_expected_report("tests/golden/artnet_burst");
+    let summary = &report.universes[0];
+    assert_eq!(summary.burst_count, Some(2));
+    assert_eq!(summary.max_burst_len, Some(3));
+    assert_eq!(summary.loss_packets, Some(5));
+}
+
+#[test]
+fn golden_artnet_gap_has_gap_metrics() {
+    let report = load_expected_report("tests/golden/artnet_gap");
+    let summary = &report.universes[0];
+    assert_eq!(summary.burst_count, Some(1));
+    assert_eq!(summary.max_burst_len, Some(7));
+    assert_eq!(summary.loss_packets, Some(7));
 }
 
 #[test]
