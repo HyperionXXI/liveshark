@@ -40,6 +40,14 @@ pub const REPORT_VERSION: u32 = 1;
 pub const DEFAULT_GENERATED_AT: &str = "1970-01-01T00:00:00Z";
 
 /// Aggregated analysis report with deterministic ordering.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::make_stub_report;
+///
+/// let report = make_stub_report("capture.pcapng", 123);
+/// assert_eq!(report.report_version, liveshark_core::REPORT_VERSION);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Report {
     /// Report schema version (not the binary version).
@@ -65,6 +73,17 @@ pub struct Report {
 }
 
 /// Tool metadata embedded in reports.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::ToolInfo;
+///
+/// let tool = ToolInfo {
+///     name: "liveshark".to_string(),
+///     version: "0.1.0".to_string(),
+/// };
+/// assert_eq!(tool.name, "liveshark");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolInfo {
     /// Tool name (e.g., "liveshark").
@@ -74,6 +93,17 @@ pub struct ToolInfo {
 }
 
 /// Input capture metadata embedded in reports.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::InputInfo;
+///
+/// let input = InputInfo {
+///     path: "capture.pcapng".to_string(),
+///     bytes: 1024,
+/// };
+/// assert_eq!(input.bytes, 1024);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputInfo {
     /// Input path as provided to the analyzer.
@@ -83,6 +113,18 @@ pub struct InputInfo {
 }
 
 /// Basic capture summary (timestamps may be absent).
+///
+/// # Examples
+/// ```
+/// use liveshark_core::CaptureSummary;
+///
+/// let summary = CaptureSummary {
+///     packets_total: 10,
+///     time_start: None,
+///     time_end: None,
+/// };
+/// assert_eq!(summary.packets_total, 10);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaptureSummary {
     /// Total packet count observed in the capture.
@@ -94,6 +136,25 @@ pub struct CaptureSummary {
 }
 
 /// Per-universe metrics summary.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::UniverseSummary;
+///
+/// let summary = UniverseSummary {
+///     universe: 1,
+///     proto: "artnet".to_string(),
+///     sources: Vec::new(),
+///     fps: None,
+///     frames_count: 0,
+///     loss_packets: None,
+///     loss_rate: None,
+///     burst_count: None,
+///     max_burst_len: None,
+///     jitter_ms: None,
+/// };
+/// assert_eq!(summary.universe, 1);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UniverseSummary {
     /// Canonical universe identifier (u16).
@@ -124,6 +185,18 @@ pub struct UniverseSummary {
 }
 
 /// Source metadata for a universe.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::SourceSummary;
+///
+/// let source = SourceSummary {
+///     source_ip: "192.168.0.2".to_string(),
+///     cid: None,
+///     source_name: None,
+/// };
+/// assert_eq!(source.source_ip, "192.168.0.2");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceSummary {
     /// Source IP address as a string.
@@ -135,6 +208,21 @@ pub struct SourceSummary {
 }
 
 /// Flow-level summary for a UDP endpoint pair.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::FlowSummary;
+///
+/// let flow = FlowSummary {
+///     app_proto: "udp".to_string(),
+///     src: "192.168.0.1:6454".to_string(),
+///     dst: "192.168.0.2:6454".to_string(),
+///     pps: None,
+///     bps: None,
+///     iat_jitter_ms: None,
+/// };
+/// assert_eq!(flow.app_proto, "udp");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlowSummary {
     /// Application protocol name (e.g., "udp").
@@ -152,6 +240,21 @@ pub struct FlowSummary {
 }
 
 /// Conflict summary between multiple sources on the same universe.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::ConflictSummary;
+///
+/// let conflict = ConflictSummary {
+///     universe: 1,
+///     sources: vec!["sacn:cid:deadbeef".to_string()],
+///     overlap_duration_s: 1.2,
+///     affected_channels: Vec::new(),
+///     severity: "low".to_string(),
+///     conflict_score: 1.2,
+/// };
+/// assert_eq!(conflict.universe, 1);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConflictSummary {
     /// Universe identifier for the conflict.
@@ -169,6 +272,24 @@ pub struct ConflictSummary {
 }
 
 /// Compliance summary for a protocol.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::{ComplianceSummary, Violation};
+///
+/// let summary = ComplianceSummary {
+///     protocol: "artnet".to_string(),
+///     compliance_percentage: 100.0,
+///     violations: vec![Violation {
+///         id: "LS-ARTNET-PORT".to_string(),
+///         severity: "warning".to_string(),
+///         message: "Non-standard port".to_string(),
+///         count: 1,
+///         examples: Vec::new(),
+///     }],
+/// };
+/// assert_eq!(summary.violations.len(), 1);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceSummary {
     /// Protocol name (e.g., "artnet", "sacn", "udp").
@@ -180,6 +301,20 @@ pub struct ComplianceSummary {
 }
 
 /// Single compliance violation record.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::Violation;
+///
+/// let violation = Violation {
+///     id: "LS-UDP-TOO-SHORT".to_string(),
+///     severity: "error".to_string(),
+///     message: "Payload too short".to_string(),
+///     count: 1,
+///     examples: vec!["source 10.0.0.1:1234 @ 1970-01-01T00:00:00Z".to_string()],
+/// };
+/// assert_eq!(violation.count, 1);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Violation {
     /// Stable violation identifier (e.g., `LS-SACN-START-CODE`).

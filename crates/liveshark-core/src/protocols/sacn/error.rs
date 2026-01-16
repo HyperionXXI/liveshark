@@ -1,7 +1,18 @@
 use thiserror::Error;
 
-#[derive(Debug, Error)]
 /// Errors returned by sACN parsing and reading.
+///
+/// Note: this error type lives in an internal module; the example is
+/// illustrative and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::sacn::error::SacnError;
+///
+/// let err = SacnError::InvalidStartCode { value: 1 };
+/// assert!(err.to_string().contains("invalid start code"));
+/// ```
+#[derive(Debug, Error)]
 pub enum SacnError {
     #[error("payload too short: need {needed} bytes, got {actual}")]
     TooShort { needed: usize, actual: usize },

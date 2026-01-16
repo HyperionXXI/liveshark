@@ -40,8 +40,19 @@ use universes::{
 use crate::protocols::artnet::parse_artdmx;
 use crate::protocols::sacn::parse_sacn_dmx;
 
-#[derive(Debug, Error)]
 /// Errors returned by analysis entry points.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::AnalysisError;
+///
+/// let err = AnalysisError::Io(std::io::Error::new(
+///     std::io::ErrorKind::Other,
+///     "boom",
+/// ));
+/// assert!(err.to_string().contains("I/O error"));
+/// ```
+#[derive(Debug, Error)]
 pub enum AnalysisError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),

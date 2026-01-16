@@ -2,8 +2,25 @@ use super::error::SacnError;
 use super::layout;
 use super::reader::SacnReader;
 
-#[derive(Debug)]
 /// Parsed sACN DMX payload with raw slot data.
+///
+/// Note: this struct lives in an internal module; the example is
+/// illustrative and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::sacn::SacnDmx;
+///
+/// let frame = SacnDmx {
+///     universe: 1,
+///     cid: "deadbeef".to_string(),
+///     source_name: None,
+///     sequence: Some(1),
+///     slots: vec![1, 2, 3],
+/// };
+/// assert_eq!(frame.slots.len(), 3);
+/// ```
+#[derive(Debug)]
 pub struct SacnDmx {
     pub universe: u16,
     pub cid: String,

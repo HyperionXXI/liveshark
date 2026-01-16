@@ -2,8 +2,23 @@ use super::error::ArtNetError;
 use super::layout;
 use super::reader::ArtNetReader;
 
-#[derive(Debug)]
 /// Parsed ArtDMX payload with raw slot data.
+///
+/// Note: this struct lives in an internal module; the example is
+/// illustrative and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::artnet::ArtDmx;
+///
+/// let frame = ArtDmx {
+///     universe: 1,
+///     sequence: Some(1),
+///     slots: vec![1, 2, 3, 4],
+/// };
+/// assert_eq!(frame.slots.len(), 4);
+/// ```
+#[derive(Debug)]
 pub struct ArtDmx {
     pub universe: u16,
     pub sequence: Option<u8>,

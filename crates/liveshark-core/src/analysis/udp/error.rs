@@ -1,7 +1,18 @@
 use thiserror::Error;
 
-#[derive(Debug, Error)]
 /// Errors returned by UDP decoding.
+///
+/// Note: this error type lives in an internal module; the example is
+/// illustrative and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::analysis::udp::error::UdpError;
+///
+/// let err = UdpError::MissingNetworkLayer;
+/// assert!(err.to_string().contains("missing network layer"));
+/// ```
+#[derive(Debug, Error)]
 pub enum UdpError {
     #[error("packet slice error: {0}")]
     Slice(String),

@@ -7,6 +7,25 @@ use super::error::UdpError;
 use super::reader::UdpReader;
 
 /// Parsed UDP packet with source/destination endpoints.
+///
+/// Note: this struct lives in an internal module; the example is
+/// illustrative and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use std::net::IpAddr;
+///
+/// use liveshark_core::analysis::udp::UdpPacket;
+///
+/// let packet = UdpPacket {
+///     src_ip: IpAddr::V4("192.168.0.1".parse().unwrap()),
+///     src_port: 6454,
+///     dst_ip: IpAddr::V4("192.168.0.2".parse().unwrap()),
+///     dst_port: 6454,
+///     payload: &[1, 2, 3],
+/// };
+/// assert_eq!(packet.payload.len(), 3);
+/// ```
 pub struct UdpPacket<'a> {
     pub src_ip: IpAddr,
     pub src_port: u16,

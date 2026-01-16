@@ -11,8 +11,21 @@ pub use pcap::PcapFileSource;
 use pcap_parser::Linktype;
 use thiserror::Error;
 
-#[derive(Debug, Clone)]
 /// Raw packet event emitted by a `PacketSource`.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::PacketEvent;
+/// use pcap_parser::Linktype;
+///
+/// let event = PacketEvent {
+///     ts: Some(1.0),
+///     linktype: Linktype::ETHERNET,
+///     data: vec![0xde, 0xad, 0xbe, 0xef],
+/// };
+/// assert_eq!(event.data.len(), 4);
+/// ```
+#[derive(Debug, Clone)]
 pub struct PacketEvent {
     /// Packet timestamp in seconds (if available).
     pub ts: Option<f64>,
@@ -28,8 +41,16 @@ pub trait PacketSource {
     fn next_packet(&mut self) -> Result<Option<PacketEvent>, SourceError>;
 }
 
-#[derive(Debug, Error)]
 /// Errors produced by `PacketSource` implementations.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::SourceError;
+///
+/// let err = SourceError::Pcap("bad pcap".to_string());
+/// assert!(err.to_string().contains("PCAP"));
+/// ```
+#[derive(Debug, Error)]
 pub enum SourceError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
