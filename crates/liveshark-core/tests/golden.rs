@@ -42,6 +42,16 @@ fn golden_sacn_conflict() {
 }
 
 #[test]
+fn golden_artnet_burst() {
+    run_golden("tests/golden/artnet_burst");
+}
+
+#[test]
+fn golden_artnet_gap() {
+    run_golden("tests/golden/artnet_gap");
+}
+
+#[test]
 fn golden_sacn_burst() {
     run_golden("tests/golden/sacn_burst");
 }
