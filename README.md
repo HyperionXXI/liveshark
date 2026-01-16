@@ -4,7 +4,22 @@
 
 It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX frame reconstruction**, **automatic conflict detection** (double emitters), and **reproducible reports**.
 
-> Status: **BOOTSTRAP / not yet implemented** -- repository currently contains specification and project scaffolding.
+> Status: **v0.1 specification complete / implementation in progress**.
+
+## Quick overview
+
+**What LiveShark does:**
+- Analyze PCAP/PCAPNG captures (Art-Net, sACN)
+- Reconstruct DMX frames (512 slots per universe)
+- Detect conflicts (double emitters)
+- Generate versioned, reproducible JSON reports
+
+**What LiveShark is not:**
+- Not a Wireshark replacement (domain-specific analyzer)
+- Not a live capture tool (v0.1 is offline post-mortem)
+- Not a DMX transmitter (passive analysis only)
+
+**Next steps:** see the Roadmap section below.
 
 ## Why LiveShark?
 
