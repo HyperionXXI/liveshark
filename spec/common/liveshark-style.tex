@@ -49,7 +49,8 @@
 % Tables
 \usepackage{booktabs}
 \usepackage{tabularx}
-\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
 
 % Links: NO red boxes
 \usepackage[hidelinks]{hyperref}
@@ -93,6 +94,7 @@
 \tcbset{
   colback=LSGray,
   colframe=LSBlue!35,
+  fonttitle=\sffamily\bfseries,
   arc=2mm,
   boxrule=0.4pt,
   left=1.6mm,right=1.6mm,top=1.2mm,bottom=1.2mm,
