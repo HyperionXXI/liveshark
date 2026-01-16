@@ -33,7 +33,9 @@ pub(crate) struct UniverseSourceStats {
     pub burst_length_samples: VecDeque<(f64, u64)>,
 }
 
-const JITTER_WINDOW_S: f64 = 10.0;
+const METRICS_WINDOW_S: f64 = 10.0;
+const FPS_WINDOW_S: f64 = 5.0;
+const CONFLICT_MIN_OVERLAP_S: f64 = 1.0;
 
 fn artnet_source_id(source_ip: &IpAddr, source_port: u16) -> String {
     format!("artnet:{}:{}", source_ip, source_port)
@@ -176,7 +178,7 @@ fn fps_from_dmx(
     if last_ts <= earliest_ts || frame_count == 0 {
         return None;
     }
-    let window_start = last_ts - 5.0;
+    let window_start = last_ts - FPS_WINDOW_S;
     let mut window_count = 0u64;
     for frame in dmx_store.frames_for_universe(universe, protocol) {
         if let Some(ts) = frame.timestamp {
@@ -185,10 +187,10 @@ fn fps_from_dmx(
             }
         }
     }
-    let window_duration = if last_ts - earliest_ts < 5.0 {
+    let window_duration = if last_ts - earliest_ts < FPS_WINDOW_S {
         last_ts - earliest_ts
     } else {
-        5.0
+        FPS_WINDOW_S
     };
     match window_duration {
         duration if duration > 0.0 && window_count > 0 => Some(window_count as f64 / duration),
@@ -222,7 +224,7 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
             stats.jitter_sum += diff;
             stats.jitter_samples.push_back((ts, diff));
             while let Some((sample_ts, sample)) = stats.jitter_samples.front().copied() {
-                if ts - sample_ts <= JITTER_WINDOW_S {
+                if ts - sample_ts <= METRICS_WINDOW_S {
                     break;
                 }
                 stats.jitter_sum -= sample;
@@ -399,7 +401,7 @@ fn max_burst_len_in_window(stats: &UniverseSourceStats) -> u64 {
 
 fn prune_frame_samples(samples: &mut VecDeque<f64>, now: f64) {
     while let Some(ts) = samples.front().copied() {
-        if now - ts <= JITTER_WINDOW_S {
+        if now - ts <= METRICS_WINDOW_S {
             break;
         }
         samples.pop_front();
@@ -408,7 +410,7 @@ fn prune_frame_samples(samples: &mut VecDeque<f64>, now: f64) {
 
 fn prune_loss_samples(samples: &mut VecDeque<(f64, u64)>, sum: &mut u64, now: f64) {
     while let Some((ts, loss)) = samples.front().copied() {
-        if now - ts <= JITTER_WINDOW_S {
+        if now - ts <= METRICS_WINDOW_S {
             break;
         }
         *sum = sum.saturating_sub(loss);
@@ -418,7 +420,7 @@ fn prune_loss_samples(samples: &mut VecDeque<(f64, u64)>, sum: &mut u64, now: f6
 
 fn prune_burst_starts(samples: &mut VecDeque<f64>, now: f64) {
     while let Some(ts) = samples.front().copied() {
-        if now - ts <= JITTER_WINDOW_S {
+        if now - ts <= METRICS_WINDOW_S {
             break;
         }
         samples.pop_front();
@@ -427,7 +429,7 @@ fn prune_burst_starts(samples: &mut VecDeque<f64>, now: f64) {
 
 fn prune_burst_lengths(samples: &mut VecDeque<(f64, u64)>, now: f64) {
     while let Some((ts, _)) = samples.front().copied() {
-        if now - ts <= JITTER_WINDOW_S {
+        if now - ts <= METRICS_WINDOW_S {
             break;
         }
         samples.pop_front();
@@ -462,7 +464,7 @@ pub(crate) fn build_conflicts(
                 let overlap_start = start_a.max(start_b);
                 let overlap_end = end_a.min(end_b);
                 let overlap = (overlap_end - overlap_start).max(0.0);
-                if overlap > 1.0 {
+                if overlap > CONFLICT_MIN_OVERLAP_S {
                     let src_a_label = source_label(src_a_key);
                     let src_b_label = source_label(src_b_key);
                     let affected_channels = compute_affected_channels(
@@ -599,6 +601,45 @@ mod tests {
                 .sources
                 .contains(&"artnet:10.0.0.2:6454".to_string())
         );
+    }
+
+    #[test]
+    fn universe_summaries_are_sorted_by_universe() {
+        let mut stats = HashMap::new();
+        let ip: IpAddr = "10.0.0.1".parse().unwrap();
+        add_artnet_frame(&mut stats, 2, &ip, 6454, None, Some(1.0));
+        add_artnet_frame(&mut stats, 1, &ip, 6454, None, Some(2.0));
+
+        let dmx_store = DmxStore::new();
+        let summaries = build_artnet_universe_summaries(stats, &dmx_store);
+        let universes: Vec<u16> = summaries.into_iter().map(|s| s.universe).collect();
+        assert_eq!(universes, vec![1, 2]);
+    }
+
+    #[test]
+    fn conflicts_are_sorted_by_universe_then_sources() {
+        let mut stats = HashMap::new();
+        let ip_a: IpAddr = "10.0.0.1".parse().unwrap();
+        let ip_b: IpAddr = "10.0.0.2".parse().unwrap();
+        let ip_c: IpAddr = "10.0.0.3".parse().unwrap();
+
+        add_artnet_frame(&mut stats, 2, &ip_b, 6454, None, Some(1.0));
+        add_artnet_frame(&mut stats, 2, &ip_b, 6454, None, Some(4.0));
+        add_artnet_frame(&mut stats, 2, &ip_c, 6454, None, Some(1.5));
+        add_artnet_frame(&mut stats, 2, &ip_c, 6454, None, Some(4.5));
+        add_artnet_frame(&mut stats, 1, &ip_a, 6454, None, Some(1.0));
+        add_artnet_frame(&mut stats, 1, &ip_a, 6454, None, Some(3.5));
+        add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(1.5));
+        add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(4.0));
+
+        let dmx_store = DmxStore::new();
+        let conflicts = build_conflicts(&stats, &dmx_store);
+
+        assert_eq!(conflicts.len(), 2);
+        assert_eq!(conflicts[0].universe, 1);
+        assert_eq!(conflicts[1].universe, 2);
+        assert!(conflicts[0].sources[0] < conflicts[0].sources[1]);
+        assert!(conflicts[1].sources[0] < conflicts[1].sources[1]);
     }
 
     #[test]
