@@ -158,14 +158,11 @@ Each extension declares its support level:
 
 LiveShark may emit \emph{probable-cause hints} only as heuristics. Such hints must be justified by observable patterns and must never be presented as certain causes.
 
-\begin{itemize}
-  \item \textbf{OSC (Message):} control-message timeline; correlation with DMX/network\\
-  anomalies.
-  \item \textbf{RTP (generic) (Message):} sequence gaps, jitter, reordering; basis for AES67-style health checks.
-  \item \textbf{RTP-MIDI (Message):} MIDI message timing; correlation with cues/timecode over the network.
-  \item \textbf{Network infrastructure (Flow):} IGMP/mDNS/DHCP/ARP/DNS patterns; multicast/discovery/addressing issues.
-  \item \textbf{Laser proprietary protocols (Flow):} loss/jitter/bursts per flow; multi-source detection when applicable.
-\end{itemize}
+  \begin{itemize}
+    \item \textbf{OSC (Message):} control-message timeline; correlation with DMX/network anomalies.
+    \item \textbf{RTP-based protocols (Message):} sequence gaps, jitter, reordering; basis for health checks (e.g., AES67).
+    \item \textbf{Network infrastructure (Flow):} IGMP/mDNS/DHCP/ARP/DNS patterns; multicast/discovery/addressing issues.
+  \end{itemize}
 
 \section{Architecture (conceptual)}
 \begin{figure}[H]

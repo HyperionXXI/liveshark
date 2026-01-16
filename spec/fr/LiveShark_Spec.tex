@@ -173,12 +173,9 @@ Chaque extension déclare son niveau de support :
 LiveShark \PEUT{} fournir des \emph{pistes de causes probables} uniquement sous forme d'heuristiques. Ces pistes \DOIT{} être justifiées par des motifs observables et \NEDOITPAS{} être présentées comme des causes certaines.
 
 \begin{itemize}
-  \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec\\
-  anomalies DMX/réseau.
-  \item \textbf{RTP (générique) (Messages) :} trous de séquence, gigue, désordre ; base pour bilans de santé de type AES67.
-  \item \textbf{RTP-MIDI (Messages) :} timing des messages MIDI ; corrélation avec signaux de conduite/codes temporels sur le réseau.
+  \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec anomalies DMX/réseau.
+  \item \textbf{Protocoles de type RTP (Messages) :} trous de séquence, gigue, désordre ; base pour bilans de santé (ex. AES67).
   \item \textbf{Infrastructure réseau (Flux) :} motifs IGMP/mDNS/DHCP/ARP/DNS ; problèmes de multicast/découverte/adressage.
-  \item \textbf{Protocoles laser propriétaires (Flux) :} perte/gigue/rafales par flux ; détection multi-sources si applicable.
 \end{itemize}
 
 \section{Architecture (concept)}
