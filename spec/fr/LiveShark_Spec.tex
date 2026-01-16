@@ -334,7 +334,7 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable), \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),
   \texttt{message} (explication lisible), \texttt{count} (entier, nombre d'occurrences), et \texttt{examples[]} optionnel
   (tableau d'au plus 3 chaînes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"}).
-  S'ils sont présents, les exemples \DOIVENT{} être dédupliqués, triés de façon stable et limités à 3 pour garder des rapports compacts et déterministes).
+  S'ils sont présents, les exemples \DOIT{} être dédupliqués, triés de façon stable et limités à 3 pour garder des rapports compacts et déterministes).
 \end{itemize}
 
 \subsubsection{Identifiants de violations compliance (v0.1, non exhaustif)}
