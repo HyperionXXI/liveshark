@@ -58,7 +58,7 @@ Near-real-time diagnostic can be achieved via follow mode without requiring nati
 \textbf{Term} & \textbf{Meaning} \\
 \midrule
 Packet & Network packet as captured in PCAP/PCAPNG. \\
-Protocol message & Decoded application-layer unit (e.g., ArtDMX, sACN Data Packet). \\
+Protocol message & Decoded application-layer unit (e.g., ArtDMX,\\ sACN Data Packet). \\
 DMX frame & Reconstructed DMX512 state (512 slots) for a universe at a given time. \\
 Universe & Logical group of up to 512 DMX slots. \\
 Source & Emitter identified by IP and, if applicable, protocol identity (e.g., sACN CID). \\
@@ -108,14 +108,16 @@ UDP & User Datagram Protocol \\
 See Appendices A--D for the normative contracts (report, frames, conflicts, metrics).
 
 \paragraph{Capture input (no Wireshark required).}
-LiveShark \MUSTNOT{} require the Wireshark GUI application to operate.
-For v0.1, captures are provided as PCAP/PCAPNG files produced by standard tools (e.g., \texttt{tcpdump} on Linux, \texttt{pktmon} on Windows, or any capture tool that exports PCAP/PCAPNG).
+LiveShark \MUSTNOT{} require the Wireshark GUI\\ application to operate.
+For v0.1, captures are provided as PCAP/PCAPNG files produced by standard tools (e.g., \texttt{tcpdump} on Linux,\\
+\texttt{pktmon} on Windows, or any capture tool that exports PCAP/PCAPNG).
 Live capture is a future objective and \MAY{} be added later via libpcap/Npcap (without changing the report schema).
 
 
 
 \subsection{Offline-first strategy (product intent)}
-LiveShark is designed as an \emph{offline-first} analyzer: early releases focus on post-mortem analysis of PCAP/PCAPNG captures
+LiveShark is designed as an \emph{offline-first} analyzer:\\
+early releases focus on post-mortem analysis of PCAP/PCAPNG captures
 to maximize robustness, reproducibility, and ease of support. This is a deliberate engineering strategy, not a product limitation.
 Live capture / online analysis is an explicit future objective and \MAY{} be implemented once the offline core is validated.
 
@@ -281,7 +283,8 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D
 \subsection{Definition of Done v0.1}
 The MVP is considered delivered if:
 \begin{enumerate}
-  \item \texttt{liveshark pcap analyse --report out/report.json file.pcapng} runs successfully on 3 captures.
+  \item \texttt{liveshark pcap analyse --report out/report.json file.pcapng}\\
+  runs successfully on 3 captures.
   \item Art-Net and sACN are decoded (universes, sources, fps).
   \item The JSON report contains \texttt{conflicts[]} (automatic detection).
   \item No crash occurs on truncated/corrupted PCAPs.
@@ -289,7 +292,7 @@ The MVP is considered delivered if:
 
 \subsection{Validation checklist (report contract)}
 \begin{enumerate}
-  \item Report includes \texttt{report\_version}, \texttt{tool}, \texttt{generated\_at}, \texttt{input}, and sections
+  \item Report includes \texttt{report\_version}, \texttt{tool}, \texttt{generated\_at}, \texttt{input}, and sections\\
   \texttt{capture\_summary}, \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]}.
   \item Deterministic ordering rules are applied (Appendix A).
   \item At least 4 golden tests: \texttt{artnet}, \texttt{artnet\_conflict}, \texttt{sacn}, \texttt{sacn\_conflict}.
@@ -313,9 +316,9 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{compliance[]}: array (may be empty in v0.1).
   \item \texttt{universes[]} elements contain: \texttt{universe} (integer), \texttt{proto} (string),
   \texttt{sources[]} (array of objects with \texttt{source\_ip}, optional \texttt{cid} and \texttt{source\_name};
-  \texttt{cid} is lowercase hex, 32 characters, no separators),
-  \texttt{fps} (float or null), \texttt{frames\_count} (integer), and optional metric fields
-  \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms}
+    \texttt{cid} is lowercase hex, 32 characters, no separators),
+    \texttt{fps} (float or null), \texttt{frames\_count} (integer), and optional metric fields\\
+    \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms}
   (omitted when unavailable).
   \item \texttt{flows[]} elements contain: \texttt{app\_proto} (string), \texttt{src} (string), \texttt{dst} (string),
   and optional \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} (omitted when unavailable).
@@ -375,7 +378,10 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
 \begin{verbatim}
 {
   "universe": 1,
-  "sources": ["sacn:cid:11223344556677889900aabbccddeeff", "artnet:192.168.0.2:6454"],
+  "sources": [
+    "sacn:cid:11223344556677889900aabbccddeeff",
+    "artnet:192.168.0.2:6454"
+  ],
   "overlap_duration_s": 3.5,
   "affected_channels": [],
   "severity": "medium",
@@ -443,8 +449,9 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
   \item \textbf{pps/bps:} packets/bytes per second averaged over the capture duration when available; units are packets/s and bytes/s. If duration is unknown, values are omitted.
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
   \item \textbf{jitter (IAT):} population standard deviation of inter-arrival time deltas over a 10.0 s sliding window (RFC 3550 \S6.4.1). Unit is seconds (reported as ms where applicable). Formula: $\sigma = \sqrt{\frac{1}{n}\sum(\Delta_i - \mu)^2}$ with $\Delta_i = t_i - t_{i-1}$.
-  \item \textbf{loss (observed):} for sources with sequence numbers, loss is the sum of observed sequence gaps over a 10.0 s sliding window;
-  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + frames\_count)} for sequence-tracked frames. If sequence numbers are unavailable, loss fields \MUST{} be omitted.
+  \item \textbf{loss (observed):} for sources with sequence numbers, loss is the sum of observed sequence gaps over a 10.0 s sliding window;\\
+  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + frames\_count)}\\
+  for sequence-tracked frames. If sequence numbers are unavailable, loss fields \MUST{} be omitted.
   \item \textbf{bursts:} \texttt{burst\_count} is the number of loss bursts over a 10.0 s sliding window; \texttt{max\_burst\_len} is the
   maximum burst length observed in the same window.
 \end{itemize}
