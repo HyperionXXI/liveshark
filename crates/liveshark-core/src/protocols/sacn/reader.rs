@@ -71,6 +71,31 @@ impl<'a> SacnReader<'a> {
         Ok(bytes.iter().map(|b| format!("{:02x}", b)).collect())
     }
 
+    pub fn read_start_code(&self) -> Result<u8, SacnError> {
+        let value = self.read_u8(layout::START_CODE_OFFSET)?;
+        if value != 0x00 {
+            return Err(SacnError::InvalidStartCode { value });
+        }
+        Ok(value)
+    }
+
+    pub fn read_dmx_data_len(&self) -> Result<usize, SacnError> {
+        let available_len = self.payload.len().saturating_sub(layout::DMX_DATA_OFFSET);
+        let mut data_len = available_len.min(layout::DMX_MAX_SLOTS);
+        if self.payload.len() >= layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end {
+            let value = self.read_u16_be(layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone())?;
+            if value == 0 {
+                return Err(SacnError::InvalidPropertyValueCount { count: value });
+            }
+            let count_len = (value - 1) as usize;
+            if count_len > layout::DMX_MAX_SLOTS {
+                return Err(SacnError::InvalidPropertyValueCount { count: value });
+            }
+            data_len = count_len.min(available_len);
+        }
+        Ok(data_len)
+    }
+
     pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, SacnError> {
         let value = self.read_u8(offset)?;
         Ok(optional_nonzero_u8(value))
@@ -93,6 +118,7 @@ impl<'a> SacnReader<'a> {
 mod tests {
     use super::SacnReader;
     use crate::protocols::sacn::error::SacnError;
+    use crate::protocols::sacn::layout;
 
     #[test]
     fn read_optional_nonzero_u8() {
@@ -129,5 +155,63 @@ mod tests {
         let reader = SacnReader::new(&payload);
         let err = reader.read_optional_ascii_string(0..1).unwrap_err();
         assert!(matches!(err, SacnError::TooShort { .. }));
+    }
+
+    #[test]
+    fn read_start_code_accepts_zero() {
+        let mut payload = vec![0u8; layout::START_CODE_OFFSET + 1];
+        payload[layout::START_CODE_OFFSET] = 0x00;
+        let reader = SacnReader::new(&payload);
+        assert_eq!(reader.read_start_code().unwrap(), 0x00);
+    }
+
+    #[test]
+    fn read_start_code_rejects_nonzero() {
+        let mut payload = vec![0u8; layout::START_CODE_OFFSET + 1];
+        payload[layout::START_CODE_OFFSET] = 0x01;
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_start_code().unwrap_err();
+        assert!(matches!(err, SacnError::InvalidStartCode { value: 0x01 }));
+    }
+
+    #[test]
+    fn read_start_code_too_short() {
+        let payload = [];
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_start_code().unwrap_err();
+        assert!(matches!(err, SacnError::TooShort { .. }));
+    }
+
+    #[test]
+    fn read_dmx_data_len_uses_property_value_count() {
+        let mut payload = vec![0u8; layout::DMX_DATA_OFFSET + 4];
+        payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+            .copy_from_slice(&5u16.to_be_bytes());
+        let reader = SacnReader::new(&payload);
+        assert_eq!(reader.read_dmx_data_len().unwrap(), 4);
+    }
+
+    #[test]
+    fn read_dmx_data_len_rejects_zero_property_count() {
+        let mut payload = vec![0u8; layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end];
+        payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+            .copy_from_slice(&0u16.to_be_bytes());
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_dmx_data_len().unwrap_err();
+        assert!(matches!(
+            err,
+            SacnError::InvalidPropertyValueCount { count: 0 }
+        ));
+    }
+
+    #[test]
+    fn read_dmx_data_len_rejects_too_large_property_count() {
+        let mut payload = vec![0u8; layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end];
+        let value = (layout::DMX_MAX_SLOTS as u16) + 2;
+        payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+            .copy_from_slice(&value.to_be_bytes());
+        let reader = SacnReader::new(&payload);
+        let err = reader.read_dmx_data_len().unwrap_err();
+        assert!(matches!(err, SacnError::InvalidPropertyValueCount { count } if count == value));
     }
 }

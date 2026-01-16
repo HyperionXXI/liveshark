@@ -41,28 +41,13 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
         return Ok(None);
     }
 
-    let start_code = reader.read_u8(layout::START_CODE_OFFSET)?;
-    if start_code != 0x00 {
-        return Err(SacnError::InvalidStartCode { value: start_code });
-    }
+    reader.read_start_code()?;
 
     let universe = reader.read_u16_be(layout::UNIVERSE_RANGE.clone())?;
     let cid = reader.read_cid_hex()?;
     let source_name = reader.read_optional_ascii_string(layout::SOURCE_NAME_RANGE.clone())?;
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
-    let available_len = payload.len().saturating_sub(layout::DMX_DATA_OFFSET);
-    let mut data_len = available_len.min(layout::DMX_MAX_SLOTS);
-    if payload.len() >= layout::DMP_PROPERTY_VALUE_COUNT_RANGE.end {
-        let value = reader.read_u16_be(layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone())?;
-        if value == 0 {
-            return Err(SacnError::InvalidPropertyValueCount { count: value });
-        }
-        let count_len = (value - 1) as usize;
-        if count_len > layout::DMX_MAX_SLOTS {
-            return Err(SacnError::InvalidPropertyValueCount { count: value });
-        }
-        data_len = count_len.min(available_len);
-    }
+    let data_len = reader.read_dmx_data_len()?;
     let slots = if data_len > 0 {
         let needed = layout::DMX_DATA_OFFSET
             .checked_add(data_len)
