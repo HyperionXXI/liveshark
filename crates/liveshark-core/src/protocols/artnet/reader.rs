@@ -3,6 +3,20 @@ use super::layout;
 use crate::protocols::common::reader::optional_nonzero_u8;
 
 /// Safe byte reader for Art-Net payloads.
+///
+/// Note: this reader lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::artnet::{layout, reader::ArtNetReader};
+///
+/// let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+/// payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&2u16.to_be_bytes());
+/// let reader = ArtNetReader::new(&payload);
+/// let length = reader.read_dmx_length(layout::LENGTH_RANGE.clone()).unwrap();
+/// assert_eq!(length, 2);
+/// ```
 pub struct ArtNetReader<'a> {
     payload: &'a [u8],
 }

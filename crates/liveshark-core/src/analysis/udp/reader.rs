@@ -2,6 +2,19 @@ use super::error::UdpError;
 use super::layout;
 
 /// Safe byte reader for UDP payloads.
+///
+/// Note: this reader lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::analysis::udp::reader::UdpReader;
+///
+/// let payload = [0u8; 12];
+/// let reader = UdpReader::new(&payload);
+/// let data = reader.payload_without_header().unwrap();
+/// assert_eq!(data.len(), 4);
+/// ```
 pub struct UdpReader<'a> {
     payload: &'a [u8],
 }

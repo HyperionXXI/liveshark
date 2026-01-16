@@ -3,6 +3,19 @@ use super::layout;
 use crate::protocols::common::reader::optional_nonzero_u8;
 
 /// Safe byte reader for sACN payloads.
+///
+/// Note: this reader lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::sacn::{layout, reader::SacnReader};
+///
+/// let mut payload = vec![0u8; layout::START_CODE_OFFSET + 1];
+/// payload[layout::START_CODE_OFFSET] = 0x00;
+/// let reader = SacnReader::new(&payload);
+/// assert_eq!(reader.read_start_code().unwrap(), 0x00);
+/// ```
 pub struct SacnReader<'a> {
     payload: &'a [u8],
 }

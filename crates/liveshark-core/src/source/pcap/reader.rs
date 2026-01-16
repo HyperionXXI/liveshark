@@ -5,6 +5,19 @@ use super::layout;
 use pcap_parser::Linktype;
 
 /// Read the magic bytes and rewind the reader to the start.
+///
+/// # Examples
+/// This helper is part of an internal module, so the example is marked as
+/// `ignore` for doctests.
+/// ```ignore
+/// use liveshark_core::source::pcap::reader::read_magic_and_rewind;
+/// use std::io::Cursor;
+///
+/// let bytes = [0x0a, 0x0d, 0x0d, 0x0a, 0x01];
+/// let mut cursor = Cursor::new(bytes);
+/// let magic = read_magic_and_rewind(&mut cursor).unwrap();
+/// assert_eq!(magic, [0x0a, 0x0d, 0x0d, 0x0a]);
+/// ```
 pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], PcapSourceError> {
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic)?;
@@ -13,11 +26,33 @@ pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], 
 }
 
 /// Check whether the magic bytes match PCAPNG.
+///
+/// # Examples
+/// This helper is part of an internal module, so the example is marked as
+/// `ignore` for doctests.
+/// ```ignore
+/// use liveshark_core::source::pcap::reader::is_pcapng_magic;
+///
+/// let magic = [0x0a, 0x0d, 0x0d, 0x0a];
+/// assert!(is_pcapng_magic(&magic));
+/// ```
 pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
     magic == &layout::PCAPNG_MAGIC
 }
 
 /// Resolve the linktype for a given interface id, defaulting to Ethernet.
+///
+/// # Examples
+/// This helper is part of an internal module, so the example is marked as
+/// `ignore` for doctests.
+/// ```ignore
+/// use liveshark_core::source::pcap::reader::linktype_for_interface;
+/// use pcap_parser::Linktype;
+///
+/// let linktypes = [Linktype::RAW];
+/// assert_eq!(linktype_for_interface(&linktypes, 0), Linktype::RAW);
+/// assert_eq!(linktype_for_interface(&linktypes, 1), Linktype::ETHERNET);
+/// ```
 pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
     linktypes
         .get(if_id as usize)
@@ -26,6 +61,16 @@ pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
 }
 
 /// Convert PCAPNG high/low timestamp to seconds.
+///
+/// # Examples
+/// This helper is part of an internal module, so the example is marked as
+/// `ignore` for doctests.
+/// ```ignore
+/// use liveshark_core::source::pcap::reader::pcapng_ts_to_seconds;
+///
+/// let seconds = pcapng_ts_to_seconds(0, 1_500_000);
+/// assert!((seconds - 1.5).abs() < f64::EPSILON);
+/// ```
 pub fn pcapng_ts_to_seconds(ts_high: u32, ts_low: u32) -> f64 {
     let ts = ((ts_high as u64) << 32) | (ts_low as u64);
     ts as f64 * 1e-6
