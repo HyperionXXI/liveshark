@@ -18,6 +18,9 @@ use pcap_parser::Linktype;
 /// let magic = read_magic_and_rewind(&mut cursor).unwrap();
 /// assert_eq!(magic, [0x0a, 0x0d, 0x0d, 0x0a]);
 /// ```
+///
+/// # Errors
+/// Returns `PcapSourceError` when the reader cannot be read or rewound.
 pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], PcapSourceError> {
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic)?;

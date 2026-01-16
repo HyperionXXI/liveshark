@@ -53,6 +53,10 @@ pub struct ArtDmx {
 /// assert_eq!(parsed.slots.len(), 4);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// # Errors
+/// Returns `ArtNetError` when the payload is too short, the opcode is not
+/// supported, the universe id is out of range, or the length field is invalid.
 pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
     let reader = ArtNetReader::new(payload);
     reader.require_len(layout::DMX_DATA_OFFSET)?;

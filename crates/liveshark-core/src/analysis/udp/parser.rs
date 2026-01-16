@@ -59,6 +59,10 @@ pub struct UdpPacket<'a> {
 /// assert_eq!(parsed.payload, payload);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// # Errors
+/// Returns `UdpError` when the packet cannot be sliced or when required network
+/// layers are missing.
 pub fn parse_udp_packet(
     linktype: Linktype,
     data: &[u8],

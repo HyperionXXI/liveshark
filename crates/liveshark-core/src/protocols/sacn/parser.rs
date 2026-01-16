@@ -64,6 +64,10 @@ pub struct SacnDmx {
 /// assert_eq!(parsed.slots.len(), 2);
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
+///
+/// # Errors
+/// Returns `SacnError` when the payload is too short or any sACN framing,
+/// vector, or DMX length validation fails.
 pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let reader = SacnReader::new(payload);
     reader.require_len(layout::MIN_LEN)?;
