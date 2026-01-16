@@ -69,7 +69,7 @@ pub fn analyze_source<S: PacketSource>(
                                 "artnet",
                                 "LS-ARTNET-PORT",
                                 "warning",
-                                "Non-standard Art-Net port; packet accepted",
+                                "Non-standard Art-Net port (expected 6454); packet accepted",
                                 format_violation_example(
                                     format!(
                                         "ports={}:{}->{}:{}",
@@ -177,7 +177,7 @@ pub fn analyze_source<S: PacketSource>(
                                 "sacn",
                                 "LS-SACN-PORT",
                                 "warning",
-                                "Non-standard sACN port; packet accepted",
+                                "Non-standard sACN port (expected 5568); packet accepted",
                                 format_violation_example(
                                     format!(
                                         "ports={}:{}->{}:{}",
