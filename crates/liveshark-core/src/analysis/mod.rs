@@ -304,13 +304,25 @@ fn finalize_compliance(compliance: HashMap<String, ComplianceSummary>) -> Vec<Co
     }
     let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
     for entry in &mut entries {
-        entry.violations.sort_by(|a, b| a.id.cmp(&b.id));
+        entry.violations.sort_by(|a, b| {
+            severity_rank(&a.severity)
+                .cmp(&severity_rank(&b.severity))
+                .then_with(|| a.id.cmp(&b.id))
+        });
         for violation in &mut entry.violations {
             violation.examples.sort();
         }
     }
     entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
     entries
+}
+
+fn severity_rank(severity: &str) -> u8 {
+    match severity {
+        "error" => 0,
+        "warning" => 1,
+        _ => 2,
+    }
 }
 
 fn record_violation(
