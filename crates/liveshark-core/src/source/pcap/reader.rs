@@ -2,6 +2,7 @@ use std::io::{Read, Seek, SeekFrom};
 
 use super::error::PcapSourceError;
 use super::layout;
+use pcap_parser::Linktype;
 
 pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], PcapSourceError> {
     let mut magic = [0u8; 4];
@@ -14,10 +15,18 @@ pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
     magic == &layout::PCAPNG_MAGIC
 }
 
+pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
+    linktypes
+        .get(if_id as usize)
+        .copied()
+        .unwrap_or(Linktype::ETHERNET)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{is_pcapng_magic, read_magic_and_rewind};
+    use super::{is_pcapng_magic, linktype_for_interface, read_magic_and_rewind};
     use crate::source::pcap::error::PcapSourceError;
+    use pcap_parser::Linktype;
     use std::io::Cursor;
     use std::io::Read;
 
@@ -44,5 +53,12 @@ mod tests {
         let mut cursor = Cursor::new(bytes);
         let err = read_magic_and_rewind(&mut cursor).unwrap_err();
         assert!(matches!(err, PcapSourceError::Io(_)));
+    }
+
+    #[test]
+    fn linktype_defaults_to_ethernet_when_missing() {
+        let linktypes = [Linktype::RAW];
+        assert_eq!(linktype_for_interface(&linktypes, 0), Linktype::RAW);
+        assert_eq!(linktype_for_interface(&linktypes, 1), Linktype::ETHERNET);
     }
 }

@@ -9,7 +9,7 @@ use crate::source::{PacketEvent, PacketSource, SourceError};
 
 use super::error::PcapSourceError;
 use super::layout;
-use super::reader::{is_pcapng_magic, read_magic_and_rewind};
+use super::reader::{is_pcapng_magic, linktype_for_interface, read_magic_and_rewind};
 
 pub struct PcapFileSource {
     inner: PcapReader,
@@ -118,10 +118,7 @@ fn next_packet(reader: &mut PcapReader) -> Result<Option<PacketEvent>, PcapSourc
                         }
                         PcapBlockOwned::NG(Block::EnhancedPacket(packet)) => {
                             let ts = pcapng_ts_to_seconds(packet.ts_high, packet.ts_low);
-                            let lt = linktypes
-                                .get(packet.if_id as usize)
-                                .copied()
-                                .unwrap_or(Linktype::ETHERNET);
+                            let lt = linktype_for_interface(linktypes, packet.if_id);
                             Some(PacketEvent {
                                 ts: Some(ts),
                                 linktype: lt,
