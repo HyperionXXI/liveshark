@@ -168,4 +168,21 @@ mod tests {
         assert_eq!(slots[10], 0);
         assert_eq!(slots[511], 0);
     }
+
+    #[test]
+    fn state_isolated_by_universe_and_protocol() {
+        let mut state = DmxStateStore::new();
+        let source_id = "source:example".to_string();
+
+        let artnet_slots = state.apply_partial(1, source_id.clone(), DmxProtocol::ArtNet, &[9, 8]);
+        let sacn_slots = state.apply_partial(1, source_id.clone(), DmxProtocol::Sacn, &[1, 2]);
+        let other_universe = state.apply_partial(2, source_id.clone(), DmxProtocol::ArtNet, &[7]);
+
+        assert_eq!(&artnet_slots[..2], &[9, 8]);
+        assert_eq!(&sacn_slots[..2], &[1, 2]);
+        assert_eq!(other_universe[0], 7);
+
+        let artnet_again = state.apply_partial(1, source_id, DmxProtocol::ArtNet, &[]);
+        assert_eq!(&artnet_again[..2], &[9, 8]);
+    }
 }
