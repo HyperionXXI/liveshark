@@ -265,15 +265,20 @@ pub fn analyze_source<S: PacketSource>(
         });
         universes
     };
-    if !compliance.is_empty() {
-        let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
-        for entry in &mut entries {
-            entry.violations.sort_by(|a, b| a.id.cmp(&b.id));
-        }
-        entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
-        report.compliance = entries;
-    }
+    report.compliance = finalize_compliance(compliance);
     Ok(report)
+}
+
+fn finalize_compliance(compliance: HashMap<String, ComplianceSummary>) -> Vec<ComplianceSummary> {
+    if compliance.is_empty() {
+        return Vec::new();
+    }
+    let mut entries: Vec<ComplianceSummary> = compliance.into_values().collect();
+    for entry in &mut entries {
+        entry.violations.sort_by(|a, b| a.id.cmp(&b.id));
+    }
+    entries.sort_by(|a, b| a.protocol.cmp(&b.protocol));
+    entries
 }
 
 fn record_violation(
@@ -342,7 +347,7 @@ fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ComplianceSummary, record_violation};
+    use super::{ComplianceSummary, finalize_compliance, record_violation};
     use std::collections::HashMap;
 
     #[test]
@@ -437,5 +442,43 @@ mod tests {
         assert!(violation.examples.contains(&"slice-a".to_string()));
         assert!(violation.examples.contains(&"slice-b".to_string()));
         assert!(violation.examples.contains(&"slice-c".to_string()));
+    }
+
+    #[test]
+    fn compliance_entries_are_sorted_by_protocol_and_id() {
+        let mut compliance: HashMap<String, ComplianceSummary> = HashMap::new();
+
+        record_violation(
+            &mut compliance,
+            "sacn",
+            "LS-SACN-START-CODE",
+            "error",
+            "Invalid sACN start code; packet ignored",
+            "value=1".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "artnet",
+            "LS-ARTNET-UNIVERSE-ID",
+            "error",
+            "Invalid Art-Net universe id; packet ignored",
+            "value=32768".to_string(),
+        );
+        record_violation(
+            &mut compliance,
+            "artnet",
+            "LS-ARTNET-LENGTH",
+            "error",
+            "Invalid ArtDMX length; packet ignored",
+            "length=0".to_string(),
+        );
+
+        let entries = finalize_compliance(compliance);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].protocol, "artnet");
+        assert_eq!(entries[1].protocol, "sacn");
+        assert_eq!(entries[0].violations.len(), 2);
+        assert_eq!(entries[0].violations[0].id, "LS-ARTNET-LENGTH");
+        assert_eq!(entries[0].violations[1].id, "LS-ARTNET-UNIVERSE-ID");
     }
 }
