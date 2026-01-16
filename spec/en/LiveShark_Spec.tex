@@ -53,7 +53,8 @@ of real-time capture capability. Real-time capture is optional and may be introd
 Near-real-time diagnostic can be achieved via follow mode without requiring native live capture.
 
 \subsection{Core terms}
-\begin{tabularx}{\linewidth}{@{}l X@{}}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Term} & \textbf{Meaning} \\
 \midrule
@@ -65,9 +66,11 @@ Source & Emitter identified by IP and, if applicable, protocol identity (e.g., s
 Flow & Unidirectional tuple (proto, src ip:port, dst ip:port). \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \subsection{Acronyms}
-\begin{tabularx}{\linewidth}{@{}l X@{}}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Acronym} & \textbf{Expanded form} \\
 \midrule
@@ -95,6 +98,7 @@ sACN & Streaming ACN (ANSI E1.31) \\
 UDP & User Datagram Protocol \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \section{What LiveShark is (and is not)}
 
@@ -461,7 +465,8 @@ Code is licensed under \textbf{MIT OR Apache-2.0}. Documentation and specificati
 PDF files are build artifacts generated from the \texttt{.tex} sources and \textbf{should not be committed} to the repository.
 
 \section{Normative references}
-\begin{tabularx}{\linewidth}{@{}l X@{}}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Reference} & \textbf{Title} \\
 \midrule
@@ -472,6 +477,7 @@ ANSI E1.31-2018 & Streaming ACN (sACN) \\
 Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
 \bottomrule
 \end{tabularx}
+\end{adjustbox}
 
 \nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
 \printbibliography
