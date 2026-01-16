@@ -4,6 +4,7 @@ use super::error::PcapSourceError;
 use super::layout;
 use pcap_parser::Linktype;
 
+/// Read the magic bytes and rewind the reader to the start.
 pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], PcapSourceError> {
     let mut magic = [0u8; 4];
     reader.read_exact(&mut magic)?;
@@ -11,10 +12,12 @@ pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], 
     Ok(magic)
 }
 
+/// Check whether the magic bytes match PCAPNG.
 pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
     magic == &layout::PCAPNG_MAGIC
 }
 
+/// Resolve the linktype for a given interface id, defaulting to Ethernet.
 pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
     linktypes
         .get(if_id as usize)
@@ -22,6 +25,7 @@ pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
         .unwrap_or(Linktype::ETHERNET)
 }
 
+/// Convert PCAPNG high/low timestamp to seconds.
 pub fn pcapng_ts_to_seconds(ts_high: u32, ts_low: u32) -> f64 {
     let ts = ((ts_high as u64) << 32) | (ts_low as u64);
     ts as f64 * 1e-6

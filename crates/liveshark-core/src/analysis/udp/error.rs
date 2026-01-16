@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+/// Errors returned by UDP decoding.
 pub enum UdpError {
     #[error("packet slice error: {0}")]
     Slice(String),

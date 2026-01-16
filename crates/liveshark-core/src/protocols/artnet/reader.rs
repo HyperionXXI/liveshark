@@ -2,6 +2,7 @@ use super::error::ArtNetError;
 use super::layout;
 use crate::protocols::common::reader::optional_nonzero_u8;
 
+/// Safe byte reader for Art-Net payloads.
 pub struct ArtNetReader<'a> {
     payload: &'a [u8],
 }
@@ -11,6 +12,7 @@ impl<'a> ArtNetReader<'a> {
         Self { payload }
     }
 
+    /// Ensure the payload has at least `needed` bytes.
     pub fn require_len(&self, needed: usize) -> Result<(), ArtNetError> {
         if self.payload.len() < needed {
             return Err(ArtNetError::TooShort {
@@ -21,6 +23,7 @@ impl<'a> ArtNetReader<'a> {
         Ok(())
     }
 
+    /// Read a little-endian `u16` from the given range.
     pub fn read_u16_le(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
         let bytes = self.read_slice(range)?;
         if bytes.len() != 2 {
@@ -32,6 +35,7 @@ impl<'a> ArtNetReader<'a> {
         Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
     }
 
+    /// Read and validate the DMX data length (1..=512).
     pub fn read_dmx_length(&self, range: std::ops::Range<usize>) -> Result<usize, ArtNetError> {
         let value = self.read_u16_be(range)?;
         if value == 0 || value as usize > layout::DMX_MAX_SLOTS {
@@ -40,6 +44,7 @@ impl<'a> ArtNetReader<'a> {
         Ok(value as usize)
     }
 
+    /// Read the canonical universe identifier and validate its range.
     pub fn read_universe_id(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
         let value = self.read_u16_le(range)?;
         if value > 0x7fff {
@@ -48,6 +53,7 @@ impl<'a> ArtNetReader<'a> {
         Ok(value)
     }
 
+    /// Read a big-endian `u16` from the given range.
     pub fn read_u16_be(&self, range: std::ops::Range<usize>) -> Result<u16, ArtNetError> {
         let bytes = self.read_slice(range)?;
         if bytes.len() != 2 {
@@ -59,6 +65,7 @@ impl<'a> ArtNetReader<'a> {
         Ok(u16::from_be_bytes([bytes[0], bytes[1]]))
     }
 
+    /// Read a single byte at the given offset.
     pub fn read_u8(&self, offset: usize) -> Result<u8, ArtNetError> {
         self.payload
             .get(offset)
@@ -69,11 +76,13 @@ impl<'a> ArtNetReader<'a> {
             })
     }
 
+    /// Read a byte at the offset, returning `None` for zero.
     pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, ArtNetError> {
         let value = self.read_u8(offset)?;
         Ok(optional_nonzero_u8(value))
     }
 
+    /// Read a byte slice from the given range.
     pub fn read_slice(&self, range: std::ops::Range<usize>) -> Result<&'a [u8], ArtNetError> {
         self.payload
             .get(range.clone())
@@ -83,6 +92,7 @@ impl<'a> ArtNetReader<'a> {
             })
     }
 
+    /// Read the Art-Net signature bytes.
     pub fn read_signature(&self) -> Result<&'a [u8], ArtNetError> {
         self.read_slice(0..layout::ARTNET_ID.len())
     }

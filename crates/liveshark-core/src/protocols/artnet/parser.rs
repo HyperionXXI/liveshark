@@ -3,12 +3,17 @@ use super::layout;
 use super::reader::ArtNetReader;
 
 #[derive(Debug)]
+/// Parsed ArtDMX payload with raw slot data.
 pub struct ArtDmx {
     pub universe: u16,
     pub sequence: Option<u8>,
     pub slots: Vec<u8>,
 }
 
+/// Parse an ArtDMX payload from a UDP payload.
+///
+/// Returns `Ok(None)` when the payload is not Art-Net. Returns `Err` for
+/// malformed Art-Net packets.
 pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
     let reader = ArtNetReader::new(payload);
     reader.require_len(layout::DMX_DATA_OFFSET)?;

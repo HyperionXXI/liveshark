@@ -6,6 +6,7 @@ use pcap_parser::Linktype;
 use super::error::UdpError;
 use super::reader::UdpReader;
 
+/// Parsed UDP packet with source/destination endpoints.
 pub struct UdpPacket<'a> {
     pub src_ip: IpAddr,
     pub src_port: u16,
@@ -14,6 +15,9 @@ pub struct UdpPacket<'a> {
     pub payload: &'a [u8],
 }
 
+/// Parse a UDP packet from a link-layer frame.
+///
+/// Returns `Ok(None)` when the payload is not UDP.
 pub fn parse_udp_packet(
     linktype: Linktype,
     data: &[u8],

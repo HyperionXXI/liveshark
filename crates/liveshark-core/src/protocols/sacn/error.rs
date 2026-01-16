@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+/// Errors returned by sACN parsing and reading.
 pub enum SacnError {
     #[error("payload too short: need {needed} bytes, got {actual}")]
     TooShort { needed: usize, actual: usize },

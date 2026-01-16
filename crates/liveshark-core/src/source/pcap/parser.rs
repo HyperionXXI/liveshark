@@ -40,6 +40,7 @@ enum PcapReader {
 }
 
 impl PcapFileSource {
+    /// Open a PCAP or PCAPNG file as a packet source.
     pub fn open(path: &Path) -> Result<Self, SourceError> {
         let file = File::open(path).map_err(SourceError::from)?;
         let inner = create_reader(file).map_err(SourceError::from)?;

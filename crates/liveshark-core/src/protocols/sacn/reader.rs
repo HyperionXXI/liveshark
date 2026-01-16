@@ -2,6 +2,7 @@ use super::error::SacnError;
 use super::layout;
 use crate::protocols::common::reader::optional_nonzero_u8;
 
+/// Safe byte reader for sACN payloads.
 pub struct SacnReader<'a> {
     payload: &'a [u8],
 }
@@ -11,6 +12,7 @@ impl<'a> SacnReader<'a> {
         Self { payload }
     }
 
+    /// Ensure the payload has at least `needed` bytes.
     pub fn require_len(&self, needed: usize) -> Result<(), SacnError> {
         if self.payload.len() < needed {
             return Err(SacnError::TooShort {
@@ -21,6 +23,7 @@ impl<'a> SacnReader<'a> {
         Ok(())
     }
 
+    /// Read a single byte at the given offset.
     pub fn read_u8(&self, offset: usize) -> Result<u8, SacnError> {
         self.payload
             .get(offset)
@@ -31,6 +34,7 @@ impl<'a> SacnReader<'a> {
             })
     }
 
+    /// Read a big-endian `u16` from the given range.
     pub fn read_u16_be(&self, range: std::ops::Range<usize>) -> Result<u16, SacnError> {
         let bytes = self.read_slice(range)?;
         if bytes.len() != 2 {
@@ -42,6 +46,7 @@ impl<'a> SacnReader<'a> {
         Ok(u16::from_be_bytes([bytes[0], bytes[1]]))
     }
 
+    /// Read a big-endian `u32` from the given range.
     pub fn read_u32_be(&self, range: std::ops::Range<usize>) -> Result<u32, SacnError> {
         let bytes = self.read_slice(range)?;
         if bytes.len() != 4 {
@@ -53,6 +58,7 @@ impl<'a> SacnReader<'a> {
         Ok(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
     }
 
+    /// Read a byte slice from the given range.
     pub fn read_slice(&self, range: std::ops::Range<usize>) -> Result<&'a [u8], SacnError> {
         self.payload.get(range.clone()).ok_or(SacnError::TooShort {
             needed: range.end,
@@ -60,12 +66,14 @@ impl<'a> SacnReader<'a> {
         })
     }
 
+    /// Read a null-terminated ASCII string and trim whitespace.
     pub fn read_ascii_string(&self, range: std::ops::Range<usize>) -> Result<String, SacnError> {
         let bytes = self.read_slice(range)?;
         let raw = String::from_utf8_lossy(bytes);
         Ok(raw.trim_end_matches('\0').trim().to_string())
     }
 
+    /// Read the CID and return a canonical lowercase hex string.
     pub fn read_cid_hex(&self) -> Result<String, SacnError> {
         let bytes = self.read_slice(layout::CID_RANGE.clone())?;
         let mut out = String::with_capacity(bytes.len() * 2);
@@ -76,6 +84,7 @@ impl<'a> SacnReader<'a> {
         Ok(out)
     }
 
+    /// Read and validate the DMX start code (must be zero).
     pub fn read_start_code(&self) -> Result<u8, SacnError> {
         let value = self.read_u8(layout::START_CODE_OFFSET)?;
         if value != 0x00 {
@@ -84,6 +93,7 @@ impl<'a> SacnReader<'a> {
         Ok(value)
     }
 
+    /// Read and validate the DMX data length.
     pub fn read_dmx_data_len(&self) -> Result<usize, SacnError> {
         let available_len = self.payload.len().saturating_sub(layout::DMX_DATA_OFFSET);
         let mut data_len = available_len.min(layout::DMX_MAX_SLOTS);
@@ -101,11 +111,13 @@ impl<'a> SacnReader<'a> {
         Ok(data_len)
     }
 
+    /// Read a byte at the offset, returning `None` for zero.
     pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, SacnError> {
         let value = self.read_u8(offset)?;
         Ok(optional_nonzero_u8(value))
     }
 
+    /// Read an ASCII string, returning `None` when empty.
     pub fn read_optional_ascii_string(
         &self,
         range: std::ops::Range<usize>,

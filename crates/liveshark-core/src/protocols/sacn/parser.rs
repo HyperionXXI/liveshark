@@ -3,6 +3,7 @@ use super::layout;
 use super::reader::SacnReader;
 
 #[derive(Debug)]
+/// Parsed sACN DMX payload with raw slot data.
 pub struct SacnDmx {
     pub universe: u16,
     pub cid: String,
@@ -11,6 +12,10 @@ pub struct SacnDmx {
     pub slots: Vec<u8>,
 }
 
+/// Parse an sACN DMX payload from a UDP payload.
+///
+/// Returns `Ok(None)` when the payload is not sACN. Returns `Err` for
+/// malformed sACN packets.
 pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let reader = SacnReader::new(payload);
     reader.require_len(layout::MIN_LEN)?;

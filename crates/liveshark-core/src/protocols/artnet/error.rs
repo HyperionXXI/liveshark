@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+/// Errors returned by Art-Net parsing and reading.
 pub enum ArtNetError {
     #[error("payload too short: need {needed} bytes, got {actual}")]
     TooShort { needed: usize, actual: usize },

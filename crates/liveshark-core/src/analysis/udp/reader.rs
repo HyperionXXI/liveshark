@@ -1,6 +1,7 @@
 use super::error::UdpError;
 use super::layout;
 
+/// Safe byte reader for UDP payloads.
 pub struct UdpReader<'a> {
     payload: &'a [u8],
 }
@@ -10,6 +11,7 @@ impl<'a> UdpReader<'a> {
         Self { payload }
     }
 
+    /// Ensure the payload has at least `needed` bytes.
     pub fn require_len(&self, needed: usize) -> Result<(), UdpError> {
         if self.payload.len() < needed {
             return Err(UdpError::TooShort {
@@ -20,6 +22,7 @@ impl<'a> UdpReader<'a> {
         Ok(())
     }
 
+    /// Return the UDP payload without the header.
     pub fn payload_without_header(&self) -> Result<&'a [u8], UdpError> {
         self.require_len(layout::UDP_HEADER_LEN)?;
         self.payload
