@@ -1,11 +1,19 @@
-% LiveShark — minimal "premium product" style (printable, sober)
+% LiveShark - minimal "premium product" style (printable, sober)
 
 \usepackage[a4paper,margin=2.3cm]{geometry}
 
 % Fonts: modern, readable, widely available in TeX Live
 \usepackage{fontspec}
-\setmainfont{DejaVu Serif}
-\setsansfont{DejaVu Sans}
+\IfFontExistsTF{TeX Gyre Termes}{
+  \setmainfont{TeX Gyre Termes}
+}{
+  \setmainfont{DejaVu Serif}
+}
+\IfFontExistsTF{TeX Gyre Heros}{
+  \setsansfont{TeX Gyre Heros}
+}{
+  \setsansfont{DejaVu Sans}
+}
 
 % Fallback for small caps (DejaVu has no native small caps)
 \DeclareFontShape{TU}{DejaVuSerif(0)}{m}{sc}{<-> ssub * DejaVuSerif(0)/m/n}{}
@@ -13,6 +21,9 @@
 \DeclareFontShape{TU}{DejaVuSans(0)}{b}{sc}{<-> ssub * DejaVuSans(0)/b/n}{}
 
 \usepackage{microtype}
+\linespread{1.03}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.35em}
 
 % Color palette (subtle)
 \usepackage{xcolor}
