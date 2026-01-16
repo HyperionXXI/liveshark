@@ -16,6 +16,37 @@ pub struct SacnDmx {
 ///
 /// Returns `Ok(None)` when the payload is not sACN. Returns `Err` for
 /// malformed sACN packets.
+///
+/// Note: this parser lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::sacn::{layout, parse_sacn_dmx};
+///
+/// let count = 3u16;
+/// let mut payload = vec![0u8; layout::DMX_DATA_OFFSET + (count - 1) as usize];
+/// payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+///     .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+/// payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+///     .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+/// payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(layout::ACN_PID);
+/// payload[layout::ROOT_VECTOR_RANGE.clone()]
+///     .copy_from_slice(&layout::ROOT_VECTOR_DATA.to_be_bytes());
+/// payload[layout::FRAMING_VECTOR_RANGE.clone()]
+///     .copy_from_slice(&layout::FRAMING_VECTOR_DMX.to_be_bytes());
+/// payload[layout::DMP_VECTOR_OFFSET] = layout::DMP_VECTOR_SET_PROPERTY;
+/// payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
+/// payload[layout::START_CODE_OFFSET] = 0x00;
+/// payload[layout::DMP_PROPERTY_VALUE_COUNT_RANGE.clone()]
+///     .copy_from_slice(&count.to_be_bytes());
+/// payload[layout::DMX_DATA_OFFSET..layout::DMX_DATA_OFFSET + 2].copy_from_slice(&[1, 2]);
+///
+/// let parsed = parse_sacn_dmx(&payload)?.expect("sacn dmx");
+/// assert_eq!(parsed.universe, 1);
+/// assert_eq!(parsed.slots.len(), 2);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let reader = SacnReader::new(payload);
     reader.require_len(layout::MIN_LEN)?;

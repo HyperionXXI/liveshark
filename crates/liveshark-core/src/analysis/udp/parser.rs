@@ -18,6 +18,28 @@ pub struct UdpPacket<'a> {
 /// Parse a UDP packet from a link-layer frame.
 ///
 /// Returns `Ok(None)` when the payload is not UDP.
+///
+/// Note: this parser lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use etherparse::PacketBuilder;
+/// use liveshark_core::analysis::udp::parse_udp_packet;
+/// use pcap_parser::Linktype;
+///
+/// let builder = PacketBuilder::ethernet2([1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12])
+///     .ipv4([192, 168, 0, 1], [192, 168, 0, 2], 64)
+///     .udp(6454, 6454);
+/// let payload = [1, 2, 3, 4];
+/// let mut packet = Vec::<u8>::with_capacity(builder.size(payload.len()));
+/// builder.write(&mut packet, &payload).unwrap();
+///
+/// let parsed = parse_udp_packet(Linktype::ETHERNET, &packet)?.expect("udp");
+/// assert_eq!(parsed.src_port, 6454);
+/// assert_eq!(parsed.payload, payload);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn parse_udp_packet(
     linktype: Linktype,
     data: &[u8],

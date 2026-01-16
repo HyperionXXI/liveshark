@@ -14,6 +14,30 @@ pub struct ArtDmx {
 ///
 /// Returns `Ok(None)` when the payload is not Art-Net. Returns `Err` for
 /// malformed Art-Net packets.
+///
+/// Note: this parser lives in an internal module; the example is illustrative
+/// and not compiled as a public doctest.
+///
+/// # Examples
+/// ```ignore
+/// use liveshark_core::protocols::artnet::{layout, parse_artdmx};
+///
+/// let length = 4u16;
+/// let mut payload = vec![0u8; layout::DMX_DATA_OFFSET + length as usize];
+/// payload[..layout::ARTNET_ID.len()].copy_from_slice(layout::ARTNET_ID);
+/// payload[layout::OP_CODE_RANGE.clone()]
+///     .copy_from_slice(&layout::ARTDMX_OPCODE.to_le_bytes());
+/// payload[layout::SEQUENCE_OFFSET] = 0x01;
+/// payload[layout::UNIVERSE_RANGE.clone()].copy_from_slice(&1u16.to_le_bytes());
+/// payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&length.to_be_bytes());
+/// payload[layout::DMX_DATA_OFFSET..layout::DMX_DATA_OFFSET + 4]
+///     .copy_from_slice(&[1, 2, 3, 4]);
+///
+/// let parsed = parse_artdmx(&payload)?.expect("artdmx");
+/// assert_eq!(parsed.universe, 1);
+/// assert_eq!(parsed.slots.len(), 4);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
     let reader = ArtNetReader::new(payload);
     reader.require_len(layout::DMX_DATA_OFFSET)?;
