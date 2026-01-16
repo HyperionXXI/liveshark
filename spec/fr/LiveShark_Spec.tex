@@ -157,6 +157,7 @@ et n'est rapportée que lorsque les éléments disponibles le permettent.
 
 \subsection{Extensions optionnelles (registre non normatif)}
 LiveShark est conçu pour le diagnostic. Les extensions DOIVENT améliorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et DOIVENT rester reproductibles (mêmes entrées $\rightarrow$ mêmes sorties).
+Ces candidats sont non normatifs et hors périmètre v0.1.
 
 Chaque extension déclare son niveau de support :
 \begin{itemize}
@@ -196,7 +197,7 @@ Par défaut :
 \begin{itemize}
   \item \textbf{pps/bps :} paquets/octets par seconde, moyennés sur la durée de capture quand elle est disponible ; unités paquets/s et octets/s. Si la durée est inconnue, les valeurs sont omises.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s.
-  \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arrivée consécutifs sur une fenêtre glissante de 10.0 s (heuristique, sans interpolation).
+  \item \textbf{gigue (IAT) :} écart-type (population) des différences de temps d'arrivée sur une fenêtre glissante de 10.0 s (RFC 3550 \S6.4.1). Formule : $\sigma = \sqrt{\frac{1}{n}\sum(\Delta_i - \mu)^2}$ avec $\Delta_i = t_i - t_{i-1}$. 
   \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
 Voir l'Appendice D pour les définitions opérationnelles et les unités.
@@ -255,17 +256,8 @@ Le rapport JSON \DOIT{} inclure les champs et types minimaux définis dans l'App
 Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure définie dans l'Appendice C.
 \end{reqbox}
 
-\begin{reqbox}{LS-REP-010}{P1}{}
-Le rapport JSON \DOIT{} inclure les champs minimaux définis dans l'Appendice A (v0.1).
-\end{reqbox}
 
-\begin{reqbox}{LS-REP-011}{P1}{}
-Le rapport JSON \DOIT{} respecter les règles de déterminisme définies dans l'Appendice A (tri stable et champs volatils).
-\end{reqbox}
 
-\begin{reqbox}{LS-REP-012}{P1}{}
-Le rapport JSON \DOIT{} inclure les exemples décrits dans l'Appendice A (minimal + conflit).
-\end{reqbox}
 
 \begin{reqbox}{LS-CONF-002}{P1}{}
 LiveShark \DOIT{} utiliser la définition d'identité de source pour les conflits définie dans l'Appendice C.
@@ -299,7 +291,7 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
 \section{Limites connues (v0.1)}
 \begin{itemize}
   \item \textbf{Pourcentage de conformité} : valeur de remplacement (100.0) tant qu'un dénominateur formel n'est pas défini.
-  \item \textbf{Détection des conflits} : basée uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux différents.
+  \item \textbf{Détection des conflits} : basée uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux différents. Le taux de faux positifs n'est pas quantifié en v0.1 ; les conflits sont des signaux à investiguer.
   \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
 \end{itemize}
 
@@ -339,8 +331,10 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms} optionnels (omis si indisponibles).
   \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
   \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne), \texttt{compliance\_percentage} (flottant ; v0.1 utilise 100.0 comme valeur de remplacement),
-  et \texttt{violations[]} (tableau d'objets avec \texttt{id}, \texttt{severity}, \texttt{message}, \texttt{count}, et \texttt{examples[]} optionnel,
-  limité à 3 chaînes).
+  et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable), \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),
+  \texttt{message} (explication lisible), \texttt{count} (entier, nombre d'occurrences), et \texttt{examples[]} optionnel
+  (tableau d'au plus 3 chaînes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"}).
+  S'ils sont présents, les exemples \DOIVENT{} être dédupliqués, triés de façon stable et limités à 3 pour garder des rapports compacts et déterministes).
 \end{itemize}
 
 \subsubsection{Identifiants de violations compliance (v0.1, non exhaustif)}
@@ -368,7 +362,7 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   \texttt{sources[]} dans chaque conflit triés par ordre lexicographique des identifiants de source ;
   \texttt{compliance[]} triés par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
-  \item \textbf{Flottants :} aucune contrainte d'arrondi en v0.1 ; valeurs rapportées telles que calculées.
+  \item \textbf{Flottants :} en v0.1, les valeurs flottantes sont sérialisées avec une précision suffisante pour garantir un JSON déterministe (minimum 6 chiffres significatifs). Des règles d'arrondi explicites pourront être définies pour certains champs.
   \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
 \end{itemize}
 
@@ -421,10 +415,11 @@ Une trame DMX reconstruite est définie par :
 \end{itemize}
 
 \subsubsection{Normalisation des univers}
-L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, c'est le champ
-\texttt{universe} en little-endian d'ArtDMX, avec \texttt{universe\_id = 256 * net + subuni} (0..32767). Pour sACN, c'est le
-champ \texttt{universe} en big-endian de la couche de framing. Le rapport utilise cette valeur canonique ; un même univers
-signifie des valeurs numériques identiques entre protocoles.
+L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, il est calculé à partir
+des champs ArtDMX \texttt{Net} (octet de poids fort) et \texttt{SubUni} (octet de poids faible), avec
+\texttt{universe\_id = 256 * net + subuni} (0..32767). Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche
+de framing. Le rapport utilise cette valeur canonique ; un même univers signifie des valeurs numériques identiques entre
+protocoles.
 
 \subsection{Appendice C --- Contrat de détection de conflits (v0.1)}
 \subsubsection{Identité de source}
@@ -437,15 +432,18 @@ signifie des valeurs numériques identiques entre protocoles.
 \subsubsection{Définition du chevauchement}
 Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
 Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
-En v0.1, la détection de conflit est une approximation prudente basée sur le chevauchement temporel ; des faux positifs
-sont possibles lorsque les sources ne concurrencent pas activement les mêmes canaux au même moment.
+En v0.1, la détection de conflit est une approximation prudente basée sur le chevauchement temporel ; tout chevauchement
+$> 1.0$ s déclenche un conflit, même si les sources ne concurrencent pas activement les mêmes canaux au même moment.
+Le taux de faux positifs n'est pas quantifié en v0.1 ; les conflits sont des signaux à investiguer.
+\texttt{affected\_channels[]} est calculé au mieux et peut être vide lorsque des indices par canal ne peuvent pas être
+dérivés de la fenêtre de chevauchement.
 
 \subsubsection{Champs d'un conflit}
 \begin{itemize}
   \item \texttt{universe} (entier)
   \item \texttt{sources[]} (liste d'identifiants de source)
   \item \texttt{overlap\_duration\_s} (secondes, flottant)
-  \item \texttt{affected\_channels[]} (liste d'entiers ; vide en v0.1)
+    \item \texttt{affected\_channels[]} (liste d'entiers ; calcul au mieux sur la fenêtre de chevauchement, peut être vide en v0.1)
   \item \texttt{severity} (chaîne)
   \item \texttt{conflict\_score} (flottant)
 \end{itemize}
@@ -456,7 +454,7 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
 \begin{itemize}
   \item \textbf{pps/bps :} paquets/octets par seconde, moyennés sur la durée de capture quand elle est disponible ; unités paquets/s et octets/s. Si la durée est inconnue, les valeurs sont omises.
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
-  \item \textbf{gigue (IAT) :} variation moyenne entre temps d'arrivée consécutifs sur une fenêtre glissante de 10.0 s ; unité en secondes (rapportée en ms si applicable).
+  \item \textbf{gigue (IAT) :} écart-type (population) des différences de temps d'arrivée sur une fenêtre glissante de 10.0 s (RFC 3550 \S6.4.1). Unité en secondes (rapportée en ms si applicable). Formule : $\sigma = \sqrt{\frac{1}{n}\sum(\Delta_i - \mu)^2}$ avec $\Delta_i = t_i - t_{i-1}$. 
   \item \textbf{perte (observée) :} pour les sources avec numéros de séquence, la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;
   \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
   \item \textbf{rafales :} \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
