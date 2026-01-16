@@ -10,6 +10,9 @@ use crate::{
     CaptureSummary, ComplianceSummary, DEFAULT_GENERATED_AT, Report, Violation, make_stub_report,
 };
 
+const ARTNET_PORT: u16 = 6454;
+const SACN_PORT: u16 = 5568;
+
 mod dmx;
 mod flows;
 mod udp;
@@ -60,6 +63,23 @@ pub fn analyze_source<S: PacketSource>(
             Ok(Some(udp)) => {
                 match parse_artdmx(udp.payload) {
                     Ok(Some(art)) => {
+                        if udp.src_port != ARTNET_PORT && udp.dst_port != ARTNET_PORT {
+                            record_violation(
+                                &mut compliance,
+                                "artnet",
+                                "LS-ARTNET-PORT",
+                                "warning",
+                                "Non-standard Art-Net port; packet accepted",
+                                format_violation_example(
+                                    format!(
+                                        "ports={}:{}->{}:{}",
+                                        udp.src_ip, udp.src_port, udp.dst_ip, udp.dst_port
+                                    ),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
                         let source_id = add_artnet_frame(
                             &mut artnet_stats,
                             art.universe,
@@ -131,10 +151,43 @@ pub fn analyze_source<S: PacketSource>(
                                 ),
                             );
                         }
+                        crate::protocols::artnet::error::ArtNetError::UnsupportedOpCode {
+                            opcode,
+                        } => {
+                            record_violation(
+                                &mut compliance,
+                                "artnet",
+                                "LS-ARTNET-OPCODE",
+                                "error",
+                                "Unsupported Art-Net opcode; packet ignored",
+                                format_violation_example(
+                                    format!("opcode=0x{:04x}", opcode),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
                     },
                 }
                 match parse_sacn_dmx(udp.payload) {
                     Ok(Some(sacn)) => {
+                        if udp.src_port != SACN_PORT && udp.dst_port != SACN_PORT {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-PORT",
+                                "warning",
+                                "Non-standard sACN port; packet accepted",
+                                format_violation_example(
+                                    format!(
+                                        "ports={}:{}->{}:{}",
+                                        udp.src_ip, udp.src_port, udp.dst_ip, udp.dst_port
+                                    ),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
                         let source_id = add_sacn_frame(
                             &mut sacn_stats,
                             sacn.universe,
@@ -214,6 +267,64 @@ pub fn analyze_source<S: PacketSource>(
                                 "Invalid sACN payload length; packet ignored",
                                 format_violation_example(
                                     format!("needed={}, actual={}", needed, actual),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidAcnPid => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-ACN-PID",
+                                "error",
+                                "Invalid sACN ACN PID; packet ignored",
+                                format_violation_example(
+                                    "acn_pid=invalid".to_string(),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidRootVector { value } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-ROOT-VECTOR",
+                                "error",
+                                "Invalid sACN root vector; packet ignored",
+                                format_violation_example(
+                                    format!("value=0x{:08x}", value),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidFramingVector {
+                            value,
+                        } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-FRAMING-VECTOR",
+                                "error",
+                                "Invalid sACN framing vector; packet ignored",
+                                format_violation_example(
+                                    format!("value=0x{:08x}", value),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidDmpVector { value } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-DMP-VECTOR",
+                                "error",
+                                "Invalid sACN DMP vector; packet ignored",
+                                format_violation_example(
+                                    format!("value=0x{:02x}", value),
                                     Some((&udp.src_ip, udp.src_port)),
                                     ts,
                                 ),

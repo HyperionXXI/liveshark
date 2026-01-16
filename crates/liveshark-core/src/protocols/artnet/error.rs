@@ -8,4 +8,6 @@ pub enum ArtNetError {
     InvalidLength { length: u16 },
     #[error("invalid Art-Net universe id: {value}")]
     InvalidUniverseId { value: u16 },
+    #[error("unsupported Art-Net opcode: {opcode}")]
+    UnsupportedOpCode { opcode: u16 },
 }

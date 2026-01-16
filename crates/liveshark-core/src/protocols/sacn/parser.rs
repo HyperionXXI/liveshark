@@ -23,22 +23,24 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
 
     let acn_pid = reader.read_slice(layout::ACN_PID_RANGE.clone())?;
     if acn_pid != layout::ACN_PID {
-        return Ok(None);
+        return Err(SacnError::InvalidAcnPid);
     }
 
     let root_vector = reader.read_u32_be(layout::ROOT_VECTOR_RANGE.clone())?;
     if root_vector != layout::ROOT_VECTOR_DATA {
-        return Ok(None);
+        return Err(SacnError::InvalidRootVector { value: root_vector });
     }
 
     let framing_vector = reader.read_u32_be(layout::FRAMING_VECTOR_RANGE.clone())?;
     if framing_vector != layout::FRAMING_VECTOR_DMX {
-        return Ok(None);
+        return Err(SacnError::InvalidFramingVector {
+            value: framing_vector,
+        });
     }
 
     let dmp_vector = reader.read_u8(layout::DMP_VECTOR_OFFSET)?;
     if dmp_vector != layout::DMP_VECTOR_SET_PROPERTY {
-        return Ok(None);
+        return Err(SacnError::InvalidDmpVector { value: dmp_vector });
     }
 
     reader.read_start_code()?;
@@ -164,6 +166,68 @@ mod tests {
 
         let err = parse_sacn_dmx(&payload).unwrap_err();
         assert!(matches!(err, SacnError::InvalidStartCode { value: 0x01 }));
+    }
+
+    #[test]
+    fn parse_invalid_acn_pid() {
+        let mut payload = vec![0u8; layout::MIN_LEN];
+        payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+        payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+        payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(b"ASC-E1.17\x01\x02\x03");
+
+        let err = parse_sacn_dmx(&payload).unwrap_err();
+        assert!(matches!(err, SacnError::InvalidAcnPid));
+    }
+
+    #[test]
+    fn parse_invalid_root_vector() {
+        let mut payload = vec![0u8; layout::MIN_LEN];
+        payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+        payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+        payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(layout::ACN_PID);
+        payload[layout::ROOT_VECTOR_RANGE.clone()].copy_from_slice(&0x0000_0001u32.to_be_bytes());
+
+        let err = parse_sacn_dmx(&payload).unwrap_err();
+        assert!(matches!(err, SacnError::InvalidRootVector { value: 1 }));
+    }
+
+    #[test]
+    fn parse_invalid_framing_vector() {
+        let mut payload = vec![0u8; layout::MIN_LEN];
+        payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+        payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+        payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(layout::ACN_PID);
+        payload[layout::ROOT_VECTOR_RANGE.clone()]
+            .copy_from_slice(&layout::ROOT_VECTOR_DATA.to_be_bytes());
+        payload[layout::FRAMING_VECTOR_RANGE.clone()]
+            .copy_from_slice(&0x0000_0001u32.to_be_bytes());
+
+        let err = parse_sacn_dmx(&payload).unwrap_err();
+        assert!(matches!(err, SacnError::InvalidFramingVector { value: 1 }));
+    }
+
+    #[test]
+    fn parse_invalid_dmp_vector() {
+        let mut payload = vec![0u8; layout::MIN_LEN];
+        payload[layout::PREAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::PREAMBLE_SIZE.to_be_bytes());
+        payload[layout::POSTAMBLE_SIZE_RANGE.clone()]
+            .copy_from_slice(&layout::POSTAMBLE_SIZE.to_be_bytes());
+        payload[layout::ACN_PID_RANGE.clone()].copy_from_slice(layout::ACN_PID);
+        payload[layout::ROOT_VECTOR_RANGE.clone()]
+            .copy_from_slice(&layout::ROOT_VECTOR_DATA.to_be_bytes());
+        payload[layout::FRAMING_VECTOR_RANGE.clone()]
+            .copy_from_slice(&layout::FRAMING_VECTOR_DMX.to_be_bytes());
+        payload[layout::DMP_VECTOR_OFFSET] = 0x00;
+
+        let err = parse_sacn_dmx(&payload).unwrap_err();
+        assert!(matches!(err, SacnError::InvalidDmpVector { value: 0 }));
     }
 
     #[test]

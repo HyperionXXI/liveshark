@@ -20,7 +20,7 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
 
     let opcode = reader.read_u16_le(layout::OP_CODE_RANGE.clone())?;
     if opcode != layout::ARTDMX_OPCODE {
-        return Ok(None);
+        return Err(ArtNetError::UnsupportedOpCode { opcode });
     }
 
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
@@ -113,6 +113,19 @@ mod tests {
         assert!(matches!(
             err,
             ArtNetError::InvalidUniverseId { value: 0x8000 }
+        ));
+    }
+
+    #[test]
+    fn parse_unsupported_opcode() {
+        let mut payload = vec![0u8; layout::DMX_DATA_OFFSET];
+        payload[..layout::ARTNET_ID.len()].copy_from_slice(layout::ARTNET_ID);
+        payload[layout::OP_CODE_RANGE.clone()].copy_from_slice(&0x1234u16.to_le_bytes());
+
+        let err = parse_artdmx(&payload).unwrap_err();
+        assert!(matches!(
+            err,
+            ArtNetError::UnsupportedOpCode { opcode: 0x1234 }
         ));
     }
 }
