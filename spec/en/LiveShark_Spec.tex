@@ -326,9 +326,10 @@ Format: \texttt{tests/golden/<name>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{conflicts[]} elements are defined in Appendix C.
   \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 uses 100.0 as a placeholder),
   and \texttt{violations[]} (array of objects with: \texttt{id} (stable identifier), \texttt{severity} (string; v0.1 uses \texttt{warning} or \texttt{error}),
-  \texttt{message} (human-readable explanation), \texttt{count} (integer, number of occurrences), and optional
-  \texttt{examples[]} (array of at most 3 strings, each containing concise context such as \texttt{"source IP:port @ timestamp"}).
-  When present, examples \MUST{} be deduplicated, sorted stably, and limited to 3 to keep reports compact and deterministic).
+  \texttt{message} (human-readable explanation), \texttt{count} (integer, total number of occurrences across the capture), and optional
+  \texttt{examples[]} (array of at most 3 strings, each containing concise context such as \texttt{"source IP:port @ timestamp"};\\
+  payload bytes are not required).
+  When present, examples \MUST{} be deduplicated, sorted stably, and limited to 3 to keep reports compact and deterministic. Examples are illustrative only and do not affect \texttt{count}.
 \end{itemize}
 
 \subsubsection{Compliance violation IDs (v0.1, non-exhaustive)}
