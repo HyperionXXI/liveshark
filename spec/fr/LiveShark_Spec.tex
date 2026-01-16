@@ -60,9 +60,9 @@ Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont à i
 (RFC 2119 et RFC 8174). Seule l'écriture en \textbf{MAJUSCULES} est normative.
 
 \subsection{Note sur le langage d'implémentation}
-LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire}, \textbf{performances} et
-\textbf{portabilité} (Windows, macOS, Linux) avec un outillage moderne. Il s'agit d'un choix d'ingénierie pour v0.1
-et cela n'exclut pas l'usage d'autres langages pour des composants futurs si cela se justifie.
+LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire} et \textbf{performances}.
+Il privilégie aussi la \textbf{portabilité} (Windows, macOS, Linux) et un outillage moderne. Il s'agit d'un choix
+d'ingénierie pour v0.1 et cela n'exclut pas l'usage d'autres langages pour des composants futurs si cela se justifie.
 Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rust-lang.org/style-guide/}.
 
 \subsection{Note sur le terme \enquote{Live}}
@@ -76,8 +76,8 @@ Le diagnostic en quasi temps réel peut être atteint via le mode suivi, sans ca
 \textbf{Terme} & \textbf{Signification} \\
 \midrule
 Paquet & Paquet réseau capturé dans un fichier PCAP/PCAPNG. \\
-Message protocolaire & Unité décodée au niveau applicatif (ex. ArtDMX, sACN Data Packet). \\
-Trame DMX & État DMX512 (512 slots) reconstruit pour un univers à un instant donné. \\
+Message protocolaire & Unité décodée au niveau applicatif (ex. ArtDMX, sACN). \\
+Trame DMX & État DMX512 (512 slots) reconstruit pour un univers, à un instant donné. \\
 Univers & Groupe logique de jusqu'à 512 slots DMX. \\
 Source & Émetteur identifié par IP et, si applicable, par identifiant protocolaire (ex. CID sACN). \\
 Flux & Tuple unidirectionnel (proto, src ip:port, dst ip:port). \\
@@ -99,7 +99,7 @@ CLI & Interface en ligne de commande \\
 DMX & Digital Multiplex (DMX512 / DMX512-A) \\
 DMX512 & Digital Multiplex 512 \\
 DoD & Definition of Done (critère de fin) \\
-FPS / PPS / BPS & Trames / Paquets / Octets par seconde \\
+FPS / PPS / BPS & Trames / Paquets / Octets\\ par seconde \\
 GUI & Interface graphique \\
 IP & Internet Protocol (Protocole Internet) \\
 JSON & JavaScript Object Notation \\
@@ -300,7 +300,8 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
 \subsection{Définition de fin v0.1}
 Le MVP est considéré livré si :
 \begin{enumerate}
-  \item \texttt{liveshark pcap analyse --report out/report.json file.pcapng} fonctionne sur 3 captures.
+  \item \texttt{liveshark pcap analyse --report out/report.json}\\
+  \texttt{file.pcapng} fonctionne sur 3 captures.
   \item Art-Net et sACN sont décodés (univers, sources, fps).
   \item Le rapport JSON contient \texttt{conflicts[]} (détection auto).
   \item Aucun crash sur PCAP tronqué/corrompu.
@@ -321,10 +322,10 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json\}}.
   \item \texttt{capture\_summary} : objet ou null (si indisponible).
   \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent être vides en v0.1).
   \item \texttt{compliance[]} : tableau (peut être vide en v0.1).
-  \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),
-  \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel et \texttt{source\_name} optionnel ;
-  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),
-  \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels
+  \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),\\
+  \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel et \texttt{source\_name} optionnel ;\\
+  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),\\
+  \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels\\
   \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms}
   (omis si indisponibles).
   \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
