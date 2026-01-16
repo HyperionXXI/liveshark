@@ -5,10 +5,13 @@ use std::process::ExitCode;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use glob::glob;
+use liveshark_core::PacketSource;
+use serde::Serialize;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 #[derive(Parser, Debug)]
 #[command(name = "liveshark")]
-#[command(version)]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " (commit ", env!("LIVESHARK_BUILD_COMMIT"), ")"))]
 #[command(
     about = "Offline-first analyzer for show-control network captures (Art-Net / sACN).",
     long_about = None,
@@ -67,6 +70,23 @@ enum PcapCommands {
         #[arg(long)]
         list_violations: bool,
     },
+    /// Show capture metadata (no protocol analysis).
+    Info {
+        /// Path to a .pcap or .pcapng file
+        input: PathBuf,
+
+        /// Output JSON metadata to stdout
+        #[arg(long)]
+        json: bool,
+
+        /// Pretty-print JSON output
+        #[arg(long, conflicts_with = "compact")]
+        pretty: bool,
+
+        /// Compact JSON output (default)
+        #[arg(long)]
+        compact: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -93,6 +113,12 @@ fn main() -> ExitCode {
                 strict,
                 list_violations,
             ),
+            PcapCommands::Info {
+                input,
+                json,
+                pretty,
+                compact,
+            } => cmd_pcap_info(input, json, pretty, compact),
         },
     };
 
@@ -204,7 +230,7 @@ fn cmd_pcap_analyse(
 
     let rep = liveshark_core::analyze_pcap_file(&resolved_input)
         .context("PCAP/PCAPNG analysis failed")?;
-    let json = serialize_report(&rep, pretty, compact)?;
+    let json = serialize_json(&rep, pretty, compact)?;
 
     if stdout {
         print!("{}", json);
@@ -247,8 +273,8 @@ fn cmd_pcap_analyse(
     Ok(())
 }
 
-fn serialize_report(
-    rep: &liveshark_core::Report,
+fn serialize_json<T: Serialize>(
+    value: &T,
     pretty: bool,
     compact: bool,
 ) -> Result<String, CliError> {
@@ -259,11 +285,11 @@ fn serialize_report(
         ));
     }
     if pretty {
-        serde_json::to_string_pretty(rep)
+        serde_json::to_string_pretty(value)
             .context("JSON serialization failed")
             .map_err(Into::into)
     } else {
-        serde_json::to_string(rep)
+        serde_json::to_string(value)
             .context("JSON serialization failed")
             .map_err(Into::into)
     }
@@ -310,6 +336,115 @@ fn validate_input_file(input: &PathBuf) -> Result<(), CliError> {
         ));
     }
     Ok(())
+}
+
+fn cmd_pcap_info(input: PathBuf, json: bool, pretty: bool, compact: bool) -> Result<(), CliError> {
+    let resolved_input = resolve_input_path(&input)?;
+    validate_input_file(&resolved_input)?;
+    let meta = fs::metadata(&resolved_input)
+        .with_context(|| format!("Failed to read input file: {}", resolved_input.display()))?;
+
+    let info = collect_pcap_info(&resolved_input, meta.len())?;
+    let json_output = json || pretty || compact;
+    if json_output {
+        let json = serialize_json(&info, pretty, compact)?;
+        print!("{}", json);
+        return Ok(());
+    }
+
+    println!("path: {}", info.path);
+    println!("size_bytes: {}", info.size_bytes);
+    println!("type: {}", info.capture_type);
+    println!("packets: {}", info.packets);
+    println!(
+        "first_ts: {}",
+        info.first_ts.as_deref().unwrap_or("unknown")
+    );
+    println!("last_ts: {}", info.last_ts.as_deref().unwrap_or("unknown"));
+    println!(
+        "duration_s: {}",
+        info.duration_s
+            .map(|d| d.to_string())
+            .unwrap_or_else(|| "unknown".to_string())
+    );
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+struct PcapInfo {
+    path: String,
+    size_bytes: u64,
+    capture_type: String,
+    packets: u64,
+    first_ts: Option<String>,
+    last_ts: Option<String>,
+    duration_s: Option<f64>,
+}
+
+fn collect_pcap_info(input: &PathBuf, size_bytes: u64) -> Result<PcapInfo, CliError> {
+    let capture_type = input
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("unknown")
+        .to_ascii_lowercase();
+    let mut source = liveshark_core::PcapFileSource::open(input)
+        .map_err(|err| CliError::new(err.to_string(), None))?;
+    let mut packets = 0u64;
+    let mut first_ts = None;
+    let mut last_ts = None;
+    while let Some(event) = source
+        .next_packet()
+        .map_err(|err| CliError::new(err.to_string(), None))?
+    {
+        packets += 1;
+        update_ts_bounds(&mut first_ts, &mut last_ts, event.ts);
+    }
+
+    let duration_s = match (first_ts, last_ts) {
+        (Some(start), Some(end)) if end >= start => Some(end - start),
+        _ => None,
+    };
+
+    Ok(PcapInfo {
+        path: input.display().to_string(),
+        size_bytes,
+        capture_type,
+        packets,
+        first_ts: ts_to_rfc3339(first_ts),
+        last_ts: ts_to_rfc3339(last_ts),
+        duration_s,
+    })
+}
+
+fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
+    let ts = match ts {
+        Some(ts) => ts,
+        None => return,
+    };
+    match first {
+        None => *first = Some(ts),
+        Some(existing) => {
+            if ts < *existing {
+                *first = Some(ts);
+            }
+        }
+    }
+    match last {
+        None => *last = Some(ts),
+        Some(existing) => {
+            if ts > *existing {
+                *last = Some(ts);
+            }
+        }
+    }
+}
+
+fn ts_to_rfc3339(ts: Option<f64>) -> Option<String> {
+    let ts = ts?;
+    let nanos = (ts * 1_000_000_000.0) as i128;
+    OffsetDateTime::from_unix_timestamp_nanos(nanos)
+        .ok()
+        .and_then(|dt| dt.format(&Rfc3339).ok())
 }
 
 fn resolve_input_path(input: &PathBuf) -> Result<PathBuf, CliError> {

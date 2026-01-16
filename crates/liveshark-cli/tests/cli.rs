@@ -1,6 +1,7 @@
 use assert_cmd::Command;
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
+use predicates::str::is_match;
 use serde_json::Value;
 use tempfile::TempDir;
 
@@ -39,6 +40,15 @@ fn help_supports_analyse_and_analyze() {
         .arg("--help")
         .assert()
         .success();
+}
+
+#[test]
+fn version_includes_commit() {
+    cmd()
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(contains("commit").and(is_match(r"commit\s+\w+").expect("regex")));
 }
 
 #[test]
@@ -238,4 +248,35 @@ fn glob_single_match_is_used() {
         .arg(report)
         .assert()
         .success();
+}
+
+#[test]
+fn pcap_info_outputs_path_and_packets() {
+    let input = sample_capture();
+    cmd()
+        .arg("pcap")
+        .arg("info")
+        .arg(input.clone())
+        .assert()
+        .success()
+        .stdout(
+            contains("path:")
+                .and(contains("packets:"))
+                .and(contains(input.to_string_lossy().to_string())),
+        );
+}
+
+#[test]
+fn pcap_info_rejects_invalid_extension() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = temp.path().join("capture.txt");
+    std::fs::write(&input, "dummy").expect("write file");
+
+    cmd()
+        .arg("pcap")
+        .arg("info")
+        .arg(input)
+        .assert()
+        .failure()
+        .stderr(contains("error: unsupported input format").and(contains("hint: expected")));
 }
