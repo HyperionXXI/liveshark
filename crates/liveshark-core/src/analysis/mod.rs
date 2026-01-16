@@ -59,133 +59,138 @@ pub fn analyze_source<S: PacketSource>(
             Ok(Some(udp)) => {
                 match parse_artdmx(udp.payload) {
                     Ok(Some(art)) => {
-                    let source_id = add_artnet_frame(
-                        &mut artnet_stats,
-                        art.universe,
-                        &udp.src_ip,
-                        udp.src_port,
-                        art.sequence,
-                        ts,
-                    );
-                    let slots = dmx_state.apply_partial(
-                        art.universe,
-                        source_id.clone(),
-                        DmxProtocol::ArtNet,
-                        &art.slots,
-                    );
-                    dmx_store.push(DmxFrame {
-                        universe: art.universe,
-                        timestamp: ts,
-                        source_id,
-                        protocol: DmxProtocol::ArtNet,
-                        slots,
-                    });
-                }
-                Ok(None) => {}
-                Err(err) => match err {
-                    crate::protocols::artnet::error::ArtNetError::InvalidUniverseId { value } => {
-                        record_violation(
-                            &mut compliance,
-                            "artnet",
-                            "LS-ARTNET-UNIVERSE-ID",
-                            "error",
-                            "Invalid Art-Net universe id; packet ignored",
-                            format!("value={}", value),
+                        let source_id = add_artnet_frame(
+                            &mut artnet_stats,
+                            art.universe,
+                            &udp.src_ip,
+                            udp.src_port,
+                            art.sequence,
+                            ts,
                         );
-                    }
-                    crate::protocols::artnet::error::ArtNetError::InvalidLength { length } => {
-                        record_violation(
-                            &mut compliance,
-                            "artnet",
-                            "LS-ARTNET-LENGTH",
-                            "error",
-                            "Invalid ArtDMX length; packet ignored",
-                            format!("length={}", length),
+                        let slots = dmx_state.apply_partial(
+                            art.universe,
+                            source_id.clone(),
+                            DmxProtocol::ArtNet,
+                            &art.slots,
                         );
+                        dmx_store.push(DmxFrame {
+                            universe: art.universe,
+                            timestamp: ts,
+                            source_id,
+                            protocol: DmxProtocol::ArtNet,
+                            slots,
+                        });
                     }
-                    crate::protocols::artnet::error::ArtNetError::TooShort { needed, actual } => {
-                        record_violation(
-                            &mut compliance,
-                            "artnet",
-                            "LS-ARTNET-TOO-SHORT",
-                            "error",
-                            "Art-Net payload too short; packet ignored",
-                            format!("needed={}, actual={}", needed, actual),
-                        );
-                    }
-                },
+                    Ok(None) => {}
+                    Err(err) => match err {
+                        crate::protocols::artnet::error::ArtNetError::InvalidUniverseId {
+                            value,
+                        } => {
+                            record_violation(
+                                &mut compliance,
+                                "artnet",
+                                "LS-ARTNET-UNIVERSE-ID",
+                                "error",
+                                "Invalid Art-Net universe id; packet ignored",
+                                format!("value={}", value),
+                            );
+                        }
+                        crate::protocols::artnet::error::ArtNetError::InvalidLength { length } => {
+                            record_violation(
+                                &mut compliance,
+                                "artnet",
+                                "LS-ARTNET-LENGTH",
+                                "error",
+                                "Invalid ArtDMX length; packet ignored",
+                                format!("length={}", length),
+                            );
+                        }
+                        crate::protocols::artnet::error::ArtNetError::TooShort {
+                            needed,
+                            actual,
+                        } => {
+                            record_violation(
+                                &mut compliance,
+                                "artnet",
+                                "LS-ARTNET-TOO-SHORT",
+                                "error",
+                                "Art-Net payload too short; packet ignored",
+                                format!("needed={}, actual={}", needed, actual),
+                            );
+                        }
+                    },
                 }
                 match parse_sacn_dmx(udp.payload) {
                     Ok(Some(sacn)) => {
-                    let source_id = add_sacn_frame(
-                        &mut sacn_stats,
-                        sacn.universe,
-                        &udp.src_ip,
-                        udp.src_port,
-                        sacn.cid,
-                        sacn.source_name,
-                        sacn.sequence,
-                        ts,
-                    );
-                    let slots = dmx_state.apply_partial(
-                        sacn.universe,
-                        source_id.clone(),
-                        DmxProtocol::Sacn,
-                        &sacn.slots,
-                    );
-                    dmx_store.push(DmxFrame {
-                        universe: sacn.universe,
-                        timestamp: ts,
-                        source_id,
-                        protocol: DmxProtocol::Sacn,
-                        slots,
-                    });
-                }
-                Ok(None) => {}
-                Err(err) => match err {
-                    crate::protocols::sacn::error::SacnError::InvalidStartCode { value } => {
-                        record_violation(
-                            &mut compliance,
-                            "sacn",
-                            "LS-SACN-START-CODE",
-                            "error",
-                            "Invalid sACN start code; packet ignored",
-                            format!("value={}", value),
+                        let source_id = add_sacn_frame(
+                            &mut sacn_stats,
+                            sacn.universe,
+                            &udp.src_ip,
+                            udp.src_port,
+                            sacn.cid,
+                            sacn.source_name,
+                            sacn.sequence,
+                            ts,
                         );
-                    }
-                    crate::protocols::sacn::error::SacnError::InvalidPropertyValueCount {
-                        count,
-                    } => {
-                        record_violation(
-                            &mut compliance,
-                            "sacn",
-                            "LS-SACN-PROPERTY-COUNT",
-                            "error",
-                            "Invalid sACN property value count; packet ignored",
-                            format!("count={}", count),
+                        let slots = dmx_state.apply_partial(
+                            sacn.universe,
+                            source_id.clone(),
+                            DmxProtocol::Sacn,
+                            &sacn.slots,
                         );
+                        dmx_store.push(DmxFrame {
+                            universe: sacn.universe,
+                            timestamp: ts,
+                            source_id,
+                            protocol: DmxProtocol::Sacn,
+                            slots,
+                        });
                     }
-                    crate::protocols::sacn::error::SacnError::InvalidDmxLength { length } => {
-                        record_violation(
-                            &mut compliance,
-                            "sacn",
-                            "LS-SACN-DMX-LENGTH",
-                            "error",
-                            "Invalid sACN DMX data length; packet ignored",
-                            format!("length={}", length),
-                        );
-                    }
-                    crate::protocols::sacn::error::SacnError::TooShort { needed, actual } => {
-                        record_violation(
-                            &mut compliance,
-                            "sacn",
-                            "LS-SACN-TOO-SHORT",
-                            "error",
-                            "sACN payload too short; packet ignored",
-                            format!("needed={}, actual={}", needed, actual),
-                        );
-                    }
-                },
+                    Ok(None) => {}
+                    Err(err) => match err {
+                        crate::protocols::sacn::error::SacnError::InvalidStartCode { value } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-START-CODE",
+                                "error",
+                                "Invalid sACN start code; packet ignored",
+                                format!("value={}", value),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidPropertyValueCount {
+                            count,
+                        } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-PROPERTY-COUNT",
+                                "error",
+                                "Invalid sACN property value count; packet ignored",
+                                format!("count={}", count),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::InvalidDmxLength { length } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-DMX-LENGTH",
+                                "error",
+                                "Invalid sACN DMX data length; packet ignored",
+                                format!("length={}", length),
+                            );
+                        }
+                        crate::protocols::sacn::error::SacnError::TooShort { needed, actual } => {
+                            record_violation(
+                                &mut compliance,
+                                "sacn",
+                                "LS-SACN-TOO-SHORT",
+                                "error",
+                                "sACN payload too short; packet ignored",
+                                format!("needed={}, actual={}", needed, actual),
+                            );
+                        }
+                    },
                 }
                 add_flow_stats(&mut flow_stats, &udp, ts);
             }
