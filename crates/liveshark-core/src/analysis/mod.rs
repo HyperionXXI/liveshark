@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::path::Path;
 
 use thiserror::Error;
@@ -92,7 +93,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-ARTNET-UNIVERSE-ID",
                                 "error",
                                 "Invalid Art-Net universe id; packet ignored",
-                                format!("value={}", value),
+                                format_violation_example(
+                                    format!("value={}", value),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                         crate::protocols::artnet::error::ArtNetError::InvalidLength { length } => {
@@ -102,7 +107,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-ARTNET-LENGTH",
                                 "error",
                                 "Invalid ArtDMX length; packet ignored",
-                                format!("length={}", length),
+                                format_violation_example(
+                                    format!("length={}", length),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                         crate::protocols::artnet::error::ArtNetError::TooShort {
@@ -115,7 +124,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-ARTNET-TOO-SHORT",
                                 "error",
                                 "Art-Net payload too short; packet ignored",
-                                format!("needed={}, actual={}", needed, actual),
+                                format_violation_example(
+                                    format!("needed={}, actual={}", needed, actual),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                     },
@@ -155,7 +168,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-SACN-START-CODE",
                                 "error",
                                 "Invalid sACN start code; packet ignored",
-                                format!("value={}", value),
+                                format_violation_example(
+                                    format!("value={}", value),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                         crate::protocols::sacn::error::SacnError::InvalidPropertyValueCount {
@@ -167,7 +184,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-SACN-PROPERTY-COUNT",
                                 "error",
                                 "Invalid sACN property value count; packet ignored",
-                                format!("count={}", count),
+                                format_violation_example(
+                                    format!("count={}", count),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                         crate::protocols::sacn::error::SacnError::InvalidDmxLength { length } => {
@@ -177,7 +198,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-SACN-DMX-LENGTH",
                                 "error",
                                 "Invalid sACN DMX data length; packet ignored",
-                                format!("length={}", length),
+                                format_violation_example(
+                                    format!("length={}", length),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                         crate::protocols::sacn::error::SacnError::TooShort { needed, actual } => {
@@ -187,7 +212,11 @@ pub fn analyze_source<S: PacketSource>(
                                 "LS-SACN-TOO-SHORT",
                                 "error",
                                 "sACN payload too short; packet ignored",
-                                format!("needed={}, actual={}", needed, actual),
+                                format_violation_example(
+                                    format!("needed={}, actual={}", needed, actual),
+                                    Some((&udp.src_ip, udp.src_port)),
+                                    ts,
+                                ),
                             );
                         }
                     },
@@ -312,6 +341,23 @@ fn record_violation(
         count: 1,
         examples: vec![example],
     });
+}
+
+fn format_violation_example(
+    base: String,
+    source: Option<(&IpAddr, u16)>,
+    ts: Option<f64>,
+) -> String {
+    let base = base.trim().to_string();
+    let Some((ip, port)) = source else {
+        return base;
+    };
+    let ts = ts_to_rfc3339(ts).unwrap_or_else(|| "unknown".to_string());
+    if base.is_empty() {
+        format!("source {}:{} @ {}", ip, port, ts)
+    } else {
+        format!("source {}:{} @ {}; {}", ip, port, ts, base)
+    }
 }
 
 fn update_ts_bounds(first: &mut Option<f64>, last: &mut Option<f64>, ts: Option<f64>) {
