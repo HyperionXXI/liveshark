@@ -3,10 +3,31 @@ use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use predicates::str::is_match;
 use serde_json::Value;
+use std::process::{Command as StdCommand, Stdio};
+use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 fn cmd() -> Command {
     Command::new(assert_cmd::cargo::cargo_bin!("liveshark"))
+}
+
+fn cmd_process() -> StdCommand {
+    StdCommand::new(assert_cmd::cargo::cargo_bin!("liveshark"))
+}
+
+fn wait_for_file(path: &std::path::Path, timeout: Duration) {
+    let start = Instant::now();
+    loop {
+        if let Ok(meta) = std::fs::metadata(path) {
+            if meta.len() > 0 {
+                return;
+            }
+        }
+        if start.elapsed() > timeout {
+            panic!("timed out waiting for {}", path.display());
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn repo_root() -> std::path::PathBuf {
@@ -378,6 +399,95 @@ fn follow_list_violations_is_silent_when_empty() {
 
     let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf8 stderr");
     assert!(!stderr.contains("Compliance violations"));
+}
+
+#[test]
+fn follow_rotation_truncation_triggers_reanalysis() {
+    let temp = TempDir::new().expect("tempdir");
+    let big = repo_root()
+        .join("tests")
+        .join("golden")
+        .join("sacn_burst")
+        .join("input.pcapng");
+    let small = repo_root()
+        .join("tests")
+        .join("golden")
+        .join("artnet")
+        .join("input.pcapng");
+    let target = temp.path().join("capture.pcapng");
+    std::fs::copy(&big, &target).expect("copy capture");
+
+    let target_clone = target.clone();
+    let small_clone = small.clone();
+    let report = temp.path().join("report.json");
+    let report_clone = report.clone();
+    std::thread::spawn(move || {
+        wait_for_file(&report_clone, Duration::from_secs(2));
+        std::fs::copy(&small_clone, &target_clone).expect("overwrite capture");
+    });
+
+    let child = cmd_process()
+        .arg("pcap")
+        .arg("follow")
+        .arg(&target)
+        .arg("--report")
+        .arg(&report)
+        .arg("--interval-ms")
+        .arg("100")
+        .arg("--max-iterations")
+        .arg("3")
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn follow");
+
+    let output = child.wait_with_output().expect("wait follow");
+    assert!(output.status.success());
+
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("follow: rotated"));
+    assert!(stderr.matches("follow: analyzing").count() >= 2);
+}
+
+#[test]
+fn follow_missing_file_recovers_after_recreate() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = sample_capture();
+    let target = temp.path().join("capture.pcapng");
+    std::fs::copy(&input, &target).expect("copy capture");
+
+    let target_clone = target.clone();
+    let input_clone = input.clone();
+    let report = temp.path().join("report.json");
+    let report_clone = report.clone();
+    std::thread::spawn(move || {
+        wait_for_file(&report_clone, Duration::from_secs(2));
+        std::fs::remove_file(&target_clone).expect("remove capture");
+        std::thread::sleep(Duration::from_millis(150));
+        std::fs::copy(&input_clone, &target_clone).expect("recreate capture");
+    });
+
+    let child = cmd_process()
+        .arg("pcap")
+        .arg("follow")
+        .arg(&target)
+        .arg("--report")
+        .arg(&report)
+        .arg("--interval-ms")
+        .arg("100")
+        .arg("--max-iterations")
+        .arg("3")
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn follow");
+
+    let output = child.wait_with_output().expect("wait follow");
+    assert!(output.status.success());
+
+    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("warning: follow transient: input missing:"));
+    assert!(stderr.matches("follow: analyzing").count() >= 2);
 }
 
 #[test]

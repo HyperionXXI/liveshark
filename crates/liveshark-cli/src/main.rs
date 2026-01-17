@@ -450,8 +450,26 @@ fn cmd_pcap_follow(
         }
         iterations += 1;
 
-        let meta = fs::metadata(&resolved_input)
-            .with_context(|| format!("Failed to read input file: {}", resolved_input.display()))?;
+        let meta = match fs::metadata(&resolved_input) {
+            Ok(meta) => meta,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                force_retry = true;
+                if !quiet && should_warn(&mut last_warning) {
+                    eprintln!(
+                        "warning: follow transient: input missing: {}",
+                        resolved_input.display()
+                    );
+                }
+                sleep_interval(interval);
+                continue;
+            }
+            Err(err) => {
+                return Err(CliError::new(
+                    format!("Failed to read input file: {}", err),
+                    Some("check capture path or permissions".to_string()),
+                ));
+            }
+        };
         if !meta.is_file() {
             return Err(CliError::new(
                 format!("input is not a file: {}", input.display()),
@@ -466,6 +484,9 @@ fn cmd_pcap_follow(
         let (changed, rotated) = follow_should_analyze(current, last_seen);
         if rotated {
             last_violations = None;
+            if !quiet {
+                eprintln!("follow: rotated {}", resolved_input.display());
+            }
         }
         let do_analyze = changed || force_retry;
 
