@@ -251,6 +251,90 @@ fn glob_single_match_is_used() {
 }
 
 #[test]
+fn follow_writes_report_in_two_iterations() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = sample_capture();
+    let target = temp.path().join("capture.pcapng");
+    std::fs::copy(&input, &target).expect("copy capture");
+    let report = temp.path().join("out.json");
+
+    cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(&target)
+        .arg("--report")
+        .arg(&report)
+        .arg("--interval-ms")
+        .arg("0")
+        .arg("--max-iterations")
+        .arg("2")
+        .assert()
+        .success();
+
+    let content = std::fs::read_to_string(&report).expect("read report");
+    assert!(!content.is_empty());
+    let json: Value = serde_json::from_str(&content).expect("valid json");
+    assert!(json.get("report_version").is_some());
+    assert!(json.get("flows").is_some() || json.get("universes").is_some());
+}
+
+#[test]
+fn follow_glob_errors_match_analyze_semantics() {
+    let temp = TempDir::new().expect("tempdir");
+    let report = temp.path().join("report.json");
+    let pattern = temp.path().join("*.pcapng");
+
+    cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(pattern.to_string_lossy().to_string())
+        .arg("--report")
+        .arg(&report)
+        .arg("--max-iterations")
+        .arg("1")
+        .assert()
+        .failure()
+        .stderr(contains("error: no files match pattern").and(contains("hint:")));
+
+    let file_a = temp.path().join("a.pcapng");
+    let file_b = temp.path().join("b.pcapng");
+    std::fs::write(&file_a, []).expect("write file");
+    std::fs::write(&file_b, []).expect("write file");
+
+    cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(pattern.to_string_lossy().to_string())
+        .arg("--report")
+        .arg(&report)
+        .arg("--max-iterations")
+        .arg("1")
+        .assert()
+        .failure()
+        .stderr(contains("error: multiple files match pattern").and(contains("hint:")));
+}
+
+#[test]
+fn follow_list_violations_is_not_repeated() {
+    let input = sample_capture();
+    let assert = cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(input)
+        .arg("--stdout")
+        .arg("--list-violations")
+        .arg("--interval-ms")
+        .arg("0")
+        .arg("--max-iterations")
+        .arg("2")
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf8 stderr");
+    assert_eq!(stderr.matches("Compliance violations:").count(), 1);
+}
+
+#[test]
 fn pcap_info_outputs_path_and_packets() {
     let input = sample_capture();
     let assert = cmd()
