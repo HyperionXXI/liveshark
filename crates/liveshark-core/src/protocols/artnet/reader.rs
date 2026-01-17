@@ -52,10 +52,11 @@ impl<'a> ArtNetReader<'a> {
     /// Read and validate the DMX data length (1..=512).
     pub fn read_dmx_length(&self, range: std::ops::Range<usize>) -> Result<usize, ArtNetError> {
         let value = self.read_u16_be(range)?;
-        if value == 0 || value as usize > layout::DMX_MAX_SLOTS {
-            return Err(ArtNetError::InvalidLength { length: value });
+        let len = value as usize;
+        if !(2..=layout::DMX_MAX_SLOTS).contains(&len) || len % 2 != 0 {
+            return Err(ArtNetError::InvalidDmxLength { len });
         }
-        Ok(value as usize)
+        Ok(len)
     }
 
     /// Read the canonical universe identifier and validate its range.
@@ -159,6 +160,20 @@ mod tests {
     }
 
     #[test]
+    fn read_dmx_length_accepts_max() {
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()]
+            .copy_from_slice(&(layout::DMX_MAX_SLOTS as u16).to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        assert_eq!(
+            reader
+                .read_dmx_length(layout::LENGTH_RANGE.clone())
+                .unwrap(),
+            layout::DMX_MAX_SLOTS
+        );
+    }
+
+    #[test]
     fn read_dmx_length_rejects_zero() {
         let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
         payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&0u16.to_be_bytes());
@@ -166,7 +181,41 @@ mod tests {
         let err = reader
             .read_dmx_length(layout::LENGTH_RANGE.clone())
             .unwrap_err();
-        assert!(matches!(err, ArtNetError::InvalidLength { length: 0 }));
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { len: 0 }));
+    }
+
+    #[test]
+    fn read_dmx_length_rejects_one() {
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&1u16.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        let err = reader
+            .read_dmx_length(layout::LENGTH_RANGE.clone())
+            .unwrap_err();
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { len: 1 }));
+    }
+
+    #[test]
+    fn read_dmx_length_rejects_odd_length() {
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&3u16.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        let err = reader
+            .read_dmx_length(layout::LENGTH_RANGE.clone())
+            .unwrap_err();
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { len: 3 }));
+    }
+
+    #[test]
+    fn read_dmx_length_rejects_odd_max_minus_one() {
+        let value = (layout::DMX_MAX_SLOTS as u16) - 1;
+        let mut payload = vec![0u8; layout::LENGTH_RANGE.end];
+        payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&value.to_be_bytes());
+        let reader = ArtNetReader::new(&payload);
+        let err = reader
+            .read_dmx_length(layout::LENGTH_RANGE.clone())
+            .unwrap_err();
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { len } if len == value as usize));
     }
 
     #[test]
@@ -178,6 +227,6 @@ mod tests {
         let err = reader
             .read_dmx_length(layout::LENGTH_RANGE.clone())
             .unwrap_err();
-        assert!(matches!(err, ArtNetError::InvalidLength { length } if length == value));
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { len } if len == value as usize));
     }
 }

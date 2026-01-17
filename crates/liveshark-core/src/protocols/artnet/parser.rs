@@ -74,12 +74,9 @@ pub fn parse_artdmx(payload: &[u8]) -> Result<Option<ArtDmx>, ArtNetError> {
     let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
     let universe = reader.read_universe_id(layout::UNIVERSE_RANGE.clone())?;
     let data_len = reader.read_dmx_length(layout::LENGTH_RANGE.clone())?;
-    let needed =
-        layout::DMX_DATA_OFFSET
-            .checked_add(data_len)
-            .ok_or(ArtNetError::InvalidLength {
-                length: data_len as u16,
-            })?;
+    let needed = layout::DMX_DATA_OFFSET
+        .checked_add(data_len)
+        .ok_or(ArtNetError::InvalidDmxLength { len: data_len })?;
     reader.require_len(needed)?;
     let data = reader.read_slice(layout::DMX_DATA_OFFSET..needed)?;
     let slots = data.to_vec();
@@ -144,8 +141,7 @@ mod tests {
         payload[layout::LENGTH_RANGE.clone()].copy_from_slice(&length.to_be_bytes());
 
         let err = parse_artdmx(&payload).unwrap_err();
-        let msg = err.to_string();
-        assert!(msg.contains("invalid ArtDMX length"));
+        assert!(matches!(err, ArtNetError::InvalidDmxLength { .. }));
     }
 
     #[test]

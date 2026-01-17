@@ -152,7 +152,7 @@ pub fn analyze_source<S: PacketSource>(
                                 ),
                             );
                         }
-                        crate::protocols::artnet::error::ArtNetError::InvalidLength { length } => {
+                        crate::protocols::artnet::error::ArtNetError::InvalidDmxLength { len } => {
                             record_violation(
                                 &mut compliance,
                                 "artnet",
@@ -160,7 +160,7 @@ pub fn analyze_source<S: PacketSource>(
                                 "error",
                                 "Invalid ArtDMX length; packet ignored",
                                 format_violation_example(
-                                    format!("length={}", length),
+                                    format!("length={}", len),
                                     Some((&udp.src_ip, udp.src_port)),
                                     ts,
                                 ),
