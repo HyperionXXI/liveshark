@@ -1,4 +1,4 @@
-﻿\documentclass[11pt]{article}
+\documentclass[11pt]{article}
 
 \input{../common/liveshark-style.tex}
 \input{../common/liveshark-macros.tex}
@@ -7,14 +7,14 @@
 \usepackage{polyglossia}
 \setdefaultlanguage{french}
 
-% --- Mots-clÃ©s normatifs en franÃ§ais (intention BCP 14 / RFC 2119 & RFC 8174) ---
+% --- Mots-clés normatifs en français (intention BCP 14 / RFC 2119 & RFC 8174) ---
 \newcommand{\DOIT}{\textbf{DOIT}}
 \newcommand{\NEDOITPAS}{\textbf{NE DOIT PAS}}
 \newcommand{\DEVRAIT}{\textbf{DEVRAIT}}
 \newcommand{\NEDEVRAITPAS}{\textbf{NE DEVRAIT PAS}}
 \newcommand{\PEUT}{\textbf{PEUT}}
 
-% Titres standards en franÃ§ais
+% Titres standards en français
 \addto\captionsfrench{
   \renewcommand{\contentsname}{Sommaire}
 }
@@ -23,23 +23,23 @@
 \usepackage{biblatex}
 \addbibresource{../common/references.bib}
 
-\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large SpÃ©cification (PDF imprimable) v0.1}
+\title{\sffamily\bfseries\color{LSBlue}LiveShark\\\large Spécification (PDF imprimable) v0.1}
 \author{\sffamily Florian Keller}
-\date{\sffamily Brouillon - \today\\\small\textsf{Langue de rÃ©fÃ©rence : EN}}
+\date{\sffamily Brouillon - \today\\\small\textsf{Langue de référence : EN}}
 
 \begin{document}
 \maketitle
 \vspace{0.6em}
-\noindent\textbf{Note de langue.} Cette version franÃ§aise est une traduction destinÃ©e Ã  faciliter la relecture. En cas de divergence, la version anglaise (EN) est la rÃ©fÃ©rence pour les IDs dâ€™exigences et les contrats, sauf dÃ©cision explicite contraire.
+\noindent\textbf{Note de langue.} Cette version française est une traduction destinée à faciliter la relecture. En cas de divergence, la version anglaise (EN) est la référence pour les IDs d’exigences et les contrats, sauf décision explicite contraire.
 \par\medskip
 
 \begin{tcolorbox}
-\textbf{PÃ©rimÃ¨tre.} LiveShark est un analyseur \textbf{passif} pour les rÃ©seaux de contrÃ´le de spectacle (Art-Net, sACN).
+\textbf{Périmètre.} LiveShark est un analyseur \textbf{passif} pour les réseaux de contrôle de spectacle (Art-Net, sACN).
 Il se concentre sur l'\textbf{analyse hors-ligne de captures PCAP}, la \textbf{reconstruction de trames DMX},
-la \textbf{dÃ©tection automatique de conflits} et des \textbf{rapports reproductibles}.\\
-\textbf{Public.} Le texte vise aussi des \textbf{non-spÃ©cialistes du dÃ©veloppement logiciel} (techniciens lumiÃ¨re, intÃ©grateurs, QA).
-Un \textbf{mode suivi} est prÃ©vu pour une analyse en quasi temps rÃ©el d'un fichier de capture en cours d'Ã©criture (outil externe).\\
-L'interface idÃ©ale pour l'utilisateur final est une \textbf{interface graphique (GUI)} bien conÃ§ue ; l'\textbf{interface en ligne de commande (CLI)} reste scriptable et produit les mÃªmes donnÃ©es.
+la \textbf{détection automatique de conflits} et des \textbf{rapports reproductibles}.\\
+\textbf{Public.} Le texte vise aussi des \textbf{non-spécialistes du développement logiciel} (techniciens lumière, intégrateurs, QA).
+Un \textbf{mode suivi} est prévu pour une analyse en quasi temps réel d'un fichier de capture en cours d'écriture (outil externe).\\
+L'interface idéale pour l'utilisateur final est une \textbf{interface graphique (GUI)} bien conçue ; l'\textbf{interface en ligne de commande (CLI)} reste scriptable et produit les mêmes données.
 \end{tcolorbox}
 
 \newpage
@@ -48,26 +48,26 @@ L'interface idÃ©ale pour l'utilisateur final est une \textbf{interface graphiq
 
 \section{Terminologie et conventions}
 
-\subsection{Version de rÃ©fÃ©rence et politique de traduction}
-\textbf{Version de rÃ©fÃ©rence (fait foi).} La spÃ©cification anglaise dans \texttt{spec/en} est la \emph{version de rÃ©fÃ©rence} :
-en cas de divergence ou de traduction incomplÃ¨te, \textbf{la version anglaise fait foi}.\\
-\textbf{Traduction indicative (non normative).} La version franÃ§aise dans \texttt{spec/fr} est une aide Ã  la relecture et peut Ãªtre
-\textbf{en retard}. En cas de diffÃ©rence, la version de rÃ©fÃ©rence prÃ©vaut.
+\subsection{Version de référence et politique de traduction}
+\textbf{Version de référence (fait foi).} La spécification anglaise dans \texttt{spec/en} est la \emph{version de référence} :
+en cas de divergence ou de traduction incomplète, \textbf{la version anglaise fait foi}.\\
+\textbf{Traduction indicative (non normative).} La version française dans \texttt{spec/fr} est une aide à la relecture et peut être
+\textbf{en retard}. En cas de différence, la version de référence prévaut.
 
-\subsection{Mots-clÃ©s normatifs}
-Les mots-clÃ©s \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont Ã  interprÃ©ter au sens de la BCP 14
-(RFC 2119 et RFC 8174). Seule l'Ã©criture en \textbf{MAJUSCULES} est normative.
+\subsection{Mots-clés normatifs}
+Les mots-clés \DOIT, \NEDOITPAS, \DEVRAIT, \NEDEVRAITPAS{} et \PEUT{} sont à interpréter au sens de la BCP 14
+(RFC 2119 et RFC 8174). Seule l'écriture en \textbf{MAJUSCULES} est normative.
 
-\subsection{Note sur le langage d'implÃ©mentation}
-LiveShark est dÃ©veloppÃ© en \textbf{Rust} pour concilier \textbf{sÃ©curitÃ© mÃ©moire} \\ \textbf{et performances}.
-Il privilÃ©gie aussi la \textbf{portabilitÃ©} (Windows, macOS, Linux) et un outillage moderne.
-Il s'agit d'un choix d'ingÃ©nierie pour v0.1. Cela n'exclut pas l'usage d'autres langages pour des composants futurs.
+\subsection{Note sur le langage d'implémentation}
+LiveShark est développé en \textbf{Rust} pour concilier \textbf{sécurité mémoire} \\ \textbf{et performances}.
+Il privilégie aussi la \textbf{portabilité} (Windows, macOS, Linux) et un outillage moderne.
+Il s'agit d'un choix d'ingénierie pour v0.1. Cela n'exclut pas l'usage d'autres langages pour des composants futurs.
 Le code Rust DEVRAIT suivre le guide de style officiel : \texttt{https://doc.rust-lang.org/style-guide/}.
 
 \subsection{Note sur le terme \enquote{Live}}
-Dans le nom du projet, \enquote{Live} fait rÃ©fÃ©rence au \textbf{spectacle vivant / contrÃ´le de spectacle} (rÃ©seaux lumiÃ¨re), et non Ã  une
-garantie de capture en temps rÃ©el. La capture en temps rÃ©el est optionnelle et pourra Ãªtre introduite dans des versions ultÃ©rieures.
-Le diagnostic en quasi temps rÃ©el peut Ãªtre atteint via le mode suivi, sans capture native immÃ©diate.
+Dans le nom du projet, \enquote{Live} fait référence au \textbf{spectacle vivant / contrôle de spectacle} (réseaux lumière), et non à une
+garantie de capture en temps réel. La capture en temps réel est optionnelle et pourra être introduite dans des versions ultérieures.
+Le diagnostic en quasi temps réel peut être atteint via le mode suivi, sans capture native immédiate.
 
 \subsection{Termes de base}
 \begin{adjustbox}{max width=\linewidth}
@@ -75,11 +75,11 @@ Le diagnostic en quasi temps rÃ©el peut Ãªtre atteint via le mode suivi, san
 \toprule
 \textbf{Terme} & \textbf{Signification} \\
 \midrule
-Paquet & Paquet rÃ©seau capturÃ© dans un fichier PCAP/PCAPNG. \\
-Message protocolaire & UnitÃ© dÃ©codÃ©e au niveau applicatif (ex. ArtDMX, sACN). \\
-Trame DMX & Ã‰tat DMX512 (512 slots) reconstruit pour un univers, Ã  un instant donnÃ©. \\
-Univers & Groupe logique de jusqu'Ã  512 slots DMX. \\
-Source & Ã‰metteur identifiÃ© par IP et, si applicable, par identifiant protocolaire\\
+Paquet & Paquet réseau capturé dans un fichier PCAP/PCAPNG. \\
+Message protocolaire & Unité décodée au niveau applicatif (ex. ArtDMX, sACN). \\
+Trame DMX & État DMX512 (512 slots) reconstruit pour un univers, à un instant donné. \\
+Univers & Groupe logique de jusqu'à 512 slots DMX. \\
+Source & Émetteur identifié par IP et, si applicable, par identifiant protocolaire\\
 (ex. CID sACN). \\
 Flux & Tuple unidirectionnel (proto,\\ src ip:port, dst ip:port). \\
 \bottomrule
@@ -90,18 +90,18 @@ Flux & Tuple unidirectionnel (proto,\\ src ip:port, dst ip:port). \\
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Acronyme} & \textbf{DÃ©veloppement} \\
+\textbf{Acronyme} & \textbf{Développement} \\
 \midrule
-ArtDMX & Paquet de donnÃ©es DMX Art-Net \\
+ArtDMX & Paquet de données DMX Art-Net \\
 Art-Net & Protocole Art-Net \\
 BCP & Best Current Practice (bonnes pratiques actuelles) \\
 CC-BY-4.0 & Creative Commons Attribution 4.0 International \\
 CID & Component Identifier (identifiant de source sACN) \\
-CI & IntÃ©gration continue \\
+CI & Intégration continue \\
 CLI & Interface en ligne de commande \\
 DMX & Digital Multiplex (DMX512) \\
 DMX512 & Digital Multiplex 512 \\
-DoD & Definition of Done (critÃ¨re de fin) \\
+DoD & Definition of Done (critère de fin) \\
 FPS / PPS / BPS & Trames / Paquets / Octets\\ par seconde \\
 GUI & Interface graphique \\
 IP & Internet Protocol (Protocole Internet) \\
@@ -110,7 +110,7 @@ MIT & Licence MIT \\
 MVP & Minimum Viable Product (produit minimum viable) \\
 PCAP & Packet Capture \\
 PCAPNG & PCAP Next\\ Generation \\
-QA & Assurance qualitÃ© \\
+QA & Assurance qualité \\
 RFC & Request for Comments \\
 sACN & Streaming ACN (ANSI E1.31) \\
 UDP & User Datagram Protocol \\
@@ -123,59 +123,59 @@ UDP & User Datagram Protocol \\
 \subsection{Objectifs}
 \begin{itemize}
   \item Analyse hors-ligne de captures PCAP/PCAPNG pour Art-Net et sACN.
-  \item Reconstruction de trames DMX (512 slots) et mÃ©triques (fps, pps/bps,
+  \item Reconstruction de trames DMX (512 slots) et métriques (fps, pps/bps,
   gigue, \\ pertes, rafales).
-  \item DÃ©tection automatique de \textbf{conflits} (sources multiples sur un mÃªme univers avec chevauchement).
-  \item Rapports JSON versionnÃ©s et reproductibles pour tickets, a posteriori, QA et CI.
+  \item Détection automatique de \textbf{conflits} (sources multiples sur un même univers avec chevauchement).
+  \item Rapports JSON versionnés et reproductibles pour tickets, a posteriori, QA et CI.
 \end{itemize}
-Voir les Appendices A--D pour les contrats normatifs. Ils couvrent le rapport, les trames, les conflits et les mÃ©triques.
+Voir les Appendices A--D pour les contrats normatifs. Ils couvrent le rapport, les trames, les conflits et les métriques.
 
-\paragraph{EntrÃ©e capture (Wireshark non requis).}
-LiveShark \NEDOITPAS{} exiger lâ€™application Wireshark (interface graphique) pour fonctionner.
-En v0.1, lâ€™entrÃ©e est un fichier PCAP/PCAPNG produit par des outils standards (p.\,ex. \texttt{tcpdump} sous Linux, \texttt{pktmon} sous Windows, ou tout outil de capture exportant PCAP/PCAPNG).
-La capture en direct est un objectif futur et \PEUT{} Ãªtre ajoutÃ©e plus tard via libpcap/Npcap (sans changer le schÃ©ma de rapport).
+\paragraph{Entrée capture (Wireshark non requis).}
+LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique) pour fonctionner.
+En v0.1, l’entrée est un fichier PCAP/PCAPNG produit par des outils standards (p.\,ex. \texttt{tcpdump} sous Linux, \texttt{pktmon} sous Windows, ou tout outil de capture exportant PCAP/PCAPNG).
+La capture en direct est un objectif futur et \PEUT{} être ajoutée plus tard via libpcap/Npcap (sans changer le schéma de rapport).
 
-\subsection{StratÃ©gie \emph{hors ligne en prioritÃ©} (intention produit)}
-LiveShark est conÃ§u comme un analyseur \emph{hors ligne en prioritÃ©} : les premiÃ¨res versions se concentrent sur l'analyse a posteriori
-de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilitÃ© et la simplicitÃ© de support.
-Il s'agit d'un choix d'ingÃ©nierie volontaire, et non d'une limitation produit.
-La capture en direct / l'analyse en ligne est un objectif futur explicite et \PEUT{} Ãªtre implÃ©mentÃ©e une fois le cÅ“ur hors ligne validÃ©.
+\subsection{Stratégie \emph{hors ligne en priorité} (intention produit)}
+LiveShark est conçu comme un analyseur \emph{hors ligne en priorité} : les premières versions se concentrent sur l'analyse a posteriori
+de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
+Il s'agit d'un choix d'ingénierie volontaire, et non d'une limitation produit.
+La capture en direct / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cÅ“ur hors ligne validé.
 
-\textbf{CompatibilitÃ© future.} La chaÃ®ne d'analyse \DOIT{} Ãªtre architecturÃ© afin que l'entrÃ©e des paquets puisse provenir :
+\textbf{Compatibilité future.} La chaîne d'analyse \DOIT{} être architecturé afin que l'entrée des paquets puisse provenir :
 (a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture en direct (future).
-Aucune hypothÃ¨se Â« hors ligne uniquement Â» \NEDOITPAS{} Ãªtre intÃ©grÃ©e au modÃ¨le mÃ©tier (trames, conflits, rapports).
+Aucune hypothèse « hors ligne uniquement » \NEDOITPAS{} être intégrée au modèle métier (trames, conflits, rapports).
 
-Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la prÃ©paration du spectacle et pendant le spectacle :
-il analyse un fichier de capture au fur et Ã  mesure de son Ã©criture, sans imposer une capture native immÃ©diate.
+Le mode suivi constitue une trajectoire pragmatique pour un diagnostic fiable pendant la préparation du spectacle et pendant le spectacle :
+il analyse un fichier de capture au fur et à mesure de son écriture, sans imposer une capture native immédiate.
 
-LiveShark PEUT produire des \emph{indices de causes probables} uniquement comme heuristiques et sÃ©parÃ©s des mesures. Tout indice \DOIT{}
-Ãªtre justifiÃ© par des indicateurs mesurables (pertes, gigue, rafales, asymÃ©tries temporelles) et \NEDOITPAS{} Ãªtre prÃ©sentÃ© comme une
-cause certaine. La localisation robuste des pertes peut nÃ©cessiter plusieurs points de capture (par exemple avant et aprÃ¨s un segment sans fil)
-et n'est rapportÃ©e que lorsque les Ã©lÃ©ments disponibles le permettent.
+LiveShark PEUT produire des \emph{indices de causes probables} uniquement comme heuristiques et séparés des mesures. Tout indice \DOIT{}
+être justifié par des indicateurs mesurables (pertes, gigue, rafales, asymétries temporelles) et \NEDOITPAS{} être présenté comme une
+cause certaine. La localisation robuste des pertes peut nécessiter plusieurs points de capture (par exemple avant et après un segment sans fil)
+et n'est rapportée que lorsque les éléments disponibles le permettent.
 
 \subsection{Non-objectifs}
 \begin{itemize}
-  \item LiveShark ne vise \textbf{pas} Ã  remplacer Wireshark.
+  \item LiveShark ne vise \textbf{pas} à remplacer Wireshark.
   \item LiveShark est \textbf{passif} : il n'injecte pas de trafic.
-  \item ``Laser over IP'' dÃ©marre en mode \textbf{mÃ©triques de flux UDP} uniquement ; la reconstruction de trames laser est hors scope v0.1.
+  \item ``Laser over IP'' démarre en mode \textbf{métriques de flux UDP} uniquement ; la reconstruction de trames laser est hors scope v0.1.
 \end{itemize}
 
 \subsection{Extensions optionnelles (registre non normatif)}
-Chaque extension \DOIT{} amÃ©liorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et \DOIT{} rester reproductible (mÃªmes entrÃ©es $\rightarrow$ mÃªmes sorties).
-Ces candidats sont non normatifs et hors pÃ©rimÃ¨tre v0.1.
+Chaque extension \DOIT{} améliorer un diagnostic exploitable (perte, gigue, rafales, conflits, multi-sources) et \DOIT{} rester reproductible (mêmes entrées $\rightarrow$ mêmes sorties).
+Ces candidats sont non normatifs et hors périmètre v0.1.
 
-Chaque extension dÃ©clare son niveau de support :
+Chaque extension déclare son niveau de support :
 \begin{itemize}
-  \item \textbf{Niveau flux :} mÃ©triques rÃ©seau sans sÃ©mantique mÃ©tier du contenu.
-  \item \textbf{Niveau messages/trames :} dÃ©codage structurÃ© avec un modÃ¨le mÃ©tier stable.
+  \item \textbf{Niveau flux :} métriques réseau sans sémantique métier du contenu.
+  \item \textbf{Niveau messages/trames :} décodage structuré avec un modèle métier stable.
 \end{itemize}
 
-LiveShark \PEUT{} fournir des \emph{pistes de causes probables} uniquement sous forme d'heuristiques. Ces pistes \DOIT{} Ãªtre justifiÃ©es par des motifs observables et \NEDOITPAS{} Ãªtre prÃ©sentÃ©es comme des causes certaines.
+LiveShark \PEUT{} fournir des \emph{pistes de causes probables} uniquement sous forme d'heuristiques. Ces pistes \DOIT{} être justifiées par des motifs observables et \NEDOITPAS{} être présentées comme des causes certaines.
 
 \begin{itemize}
-  \item \textbf{OSC (Messages) :} chronologie des messages de contrÃ´le ; corrÃ©lation avec anomalies DMX/rÃ©seau.
-  \item \textbf{Protocoles de type RTP (Messages) :} trous de sÃ©quence, gigue, dÃ©sordre ; base pour bilans de santÃ© (ex. AES67).
-  \item \textbf{Infrastructure rÃ©seau (Flux) :} motifs IGMP/mDNS/DHCP/ARP/DNS ; problÃ¨mes de multicast/dÃ©couverte/adressage.
+  \item \textbf{OSC (Messages) :} chronologie des messages de contrôle ; corrélation avec anomalies DMX/réseau.
+  \item \textbf{Protocoles de type RTP (Messages) :} trous de séquence, gigue, désordre ; base pour bilans de santé (ex. AES67).
+  \item \textbf{Infrastructure réseau (Flux) :} motifs IGMP/mDNS/DHCP/ARP/DNS ; problèmes de multicast/découverte/adressage.
 \end{itemize}
 
 \section{Architecture (concept)}
@@ -184,202 +184,202 @@ LiveShark \PEUT{} fournir des \emph{pistes de causes probables} uniquement sous 
 \begin{adjustbox}{max width=\linewidth}
 \input{../common/figures/dataflow.tex}
 \end{adjustbox}
-\caption{Pipeline conceptuel d'analyse hors-ligne (niveau Ã©levÃ©).}
-\textit{Note :} La chaÃ®ne d'analyse accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrÃ©e depuis une capture en direct
-est un objectif futur (v0.3+) conforme Ã  l'exigence d'abstraction d'entrÃ©e en P0.
+\caption{Pipeline conceptuel d'analyse hors-ligne (niveau élevé).}
+\textit{Note :} La chaîne d'analyse accepte actuellement (v0.1) uniquement des fichiers PCAP/PCAPNG. L'entrée depuis une capture en direct
+est un objectif futur (v0.3+) conforme à l'exigence d'abstraction d'entrée en P0.
 \end{figure}
 
-\section{MÃ©triques (valeurs par dÃ©faut)}
-Par dÃ©faut :
+\section{Métriques (valeurs par défaut)}
+Par défaut :
 \begin{itemize}
-  \item \textbf{FenÃªtre pps/bps :} 1.0 s (glissante)
-  \item \textbf{FenÃªtre fps :} 5.0 s (glissante)
-  \item \textbf{FenÃªtre gigue :} 10.0 s (glissante)
+  \item \textbf{Fenêtre pps/bps :} 1.0 s (glissante)
+  \item \textbf{Fenêtre fps :} 5.0 s (glissante)
+  \item \textbf{Fenêtre gigue :} 10.0 s (glissante)
 \end{itemize}
-\subsection{DÃ©finitions des mÃ©triques (minimal)}
+\subsection{Définitions des métriques (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenÃªtre glissante de 1.0 s ; unitÃ©s paquets/s et octets/s. La valeur rapportÃ©e est le pic (maximum) sur l'ensemble des fenÃªtres. Si les Ã©chantillons de fenÃªtre sont indisponibles, les valeurs sont omises. (RapportÃ© dans \texttt{flows[]}.)
-  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenÃªtre glissante de 5.0 s.
-  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivÃ©e successifs sur une fenÃªtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unitÃ© est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportÃ©e est le pic (maximum) sur l'ensemble des fenÃªtres.
-  \item \textbf{perte (observÃ©e) :} lorsque des numÃ©ros de sÃ©quence existent (ex. sACN), la perte est rapportÃ©e comme des trous observÃ©s au point de capture. En v0.1, la perte \DOIT{} Ãªtre rapportÃ©e uniquement lorsque des numÃ©ros de sÃ©quence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte cÃ´tÃ© rÃ©cepteur.
+  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres. Si les échantillons de fenêtre sont indisponibles, les valeurs sont omises. (Rapporté dans \texttt{flows[]}.)
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s.
+  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
+  \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
-Voir l'Appendice D pour les dÃ©finitions opÃ©rationnelles et les unitÃ©s.
+Voir l'Appendice D pour les définitions opérationnelles et les unités.
 
-\paragraph{MÇ¸triques diagnostiques supplÇ¸mentaires v0.2}
-Ces champs sont des ajouts optionnels du schÇ¸ma de rapport v0.2 ; les consommateurs v0.1 restent compatibles en ignorant les champs inconnus.
+\paragraph{Métriques diagnostiques supplémentaires v0.2}
+Ces champs sont des ajouts optionnels du schéma de rapport v0.2 ; les consommateurs v0.1 restent compatibles en ignorant les champs inconnus.
 \begin{itemize}
-  \item \textbf{max\_iat\_ms (flux) :} par flux UDP, maximum des intervalles d'arrivÇ¸e $\max(t_i - t_{i-1})$ sur toute la capture. UnitÇ¸ : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatÇ¸s existent pour le flux.
-  \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flux) :} par flux UDP, pics de charge (paquets/s et octets/s) sur fenÇ¦tre \emph{glissante} de 1.0 s. RÇùgle : inclure les paquets dont l'horodatage est dans $[t-1.0, t]$ (bornes incluses). Reporter le maximum des comptes de fenÇ¦tre en entier. Omettre si le flux a moins de deux paquets horodatÇ¸s ou si la durÇ¸e couverte est $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets (univers sACN) :} par univers, compteurs agrÇ¸gÇ¸s sur les sources sACN disposant de numÇ¸ros de sÇ¸quence. En ordre temporel de capture, \texttt{dup\_packets} s'incrÇ¸mente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrÇ¸mente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$ (demi-plage arriÇùre). Le wrap-around (ex. 254, 255, 0, 1) n'est pas considÇ¸rÇ¸ comme un rÇ¸ordonnancement. Omettre ces champs si aucun numÇ¸ro de sÇ¸quence n'est disponible.
+  \item \textbf{max\_iat\_ms (flux) :} par flux UDP, maximum des intervalles d'arrivée $\max(t_i - t_{i-1})$ sur toute la capture. Unité : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatés existent pour le flux.
+  \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flux) :} par flux UDP, pics de charge (paquets/s et octets/s) sur fenêtre \emph{glissante} de 1.0 s. Règle : inclure les paquets dont l'horodatage est dans $[t-1.0, t]$ (bornes incluses). Reporter le maximum des comptes de fenêtre en entier. Omettre si le flux a moins de deux paquets horodatés ou si la durée couverte est $< 1.0$ s.
+  \item \textbf{dup\_packets / reordered\_packets (univers sACN) :} par univers, compteurs agrégés sur les sources sACN disposant de numéros de séquence. En ordre temporel de capture, \texttt{dup\_packets} s'incrémente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrémente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$ (demi-plage arrière). Le wrap-around (ex. 254, 255, 0, 1) n'est pas considéré comme un réordonnancement. Omettre ces champs si aucun numéro de séquence n'est disponible.
 \end{itemize}
 
 
 \section{Exigences contractuelles (extrait)}
-Ce document est une base de dÃ©marrage : les exigences sont volontairement minimales.
+Ce document est une base de démarrage : les exigences sont volontairement minimales.
 
-\subsection{PrioritÃ© P0 (fondations MVP)}
+\subsection{Priorité P0 (fondations MVP)}
 \begin{reqbox}{LS-ARCH-001}{P0}{}
-Le cÅ“ur \DOIT{} exposer une abstraction dâ€™entrÃ©e paquets/Ã©vÃ©nements afin que lâ€™analyse puisse Ãªtre alimentÃ©e par :
-(a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture en direct (future), sans modifier le modÃ¨le mÃ©tier ni le schÃ©ma de rapport.
+Le cÅ“ur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
+(a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture en direct (future), sans modifier le modèle métier ni le schéma de rapport.
 \end{reqbox}
 
 \begin{reqbox}{LS-PROD-001}{P0}{}
-LiveShark \NEDOITPAS{} exiger lâ€™application Wireshark (interface graphique). Il \DOIT{} accepter des fichiers PCAP/PCAPNG produits par des outils de capture standards.
+LiveShark \NEDOITPAS{} exiger l’application Wireshark (interface graphique). Il \DOIT{} accepter des fichiers PCAP/PCAPNG produits par des outils de capture standards.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-001}{P0}{}
-LiveShark \DOIT{} ingÃ©rer des fichiers PCAP/PCAPNG et lister les flux UDP.
+LiveShark \DOIT{} ingérer des fichiers PCAP/PCAPNG et lister les flux UDP.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-010}{P0}{}
-LiveShark \DOIT{} dÃ©coder Art-Net ArtDMX et reconstruire des trames DMX (512 slots) par univers.
+LiveShark \DOIT{} décoder Art-Net ArtDMX et reconstruire des trames DMX (512 slots) par univers.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-011}{P0}{}
-LiveShark \DOIT{} dÃ©coder sACN (E1.31) et reconstruire des trames DMX par univers.
+LiveShark \DOIT{} décoder sACN (E1.31) et reconstruire des trames DMX par univers.
 \end{reqbox}
 \begin{reqbox}{LS-FR-012}{P0}{}
-LiveShark \DOIT{} utiliser une dÃ©finition canonique des trames DMX reconstruites (champs + 512 slots) telle que dÃ©finie dans l'Appendice B.
+LiveShark \DOIT{} utiliser une définition canonique des trames DMX reconstruites (champs + 512 slots) telle que définie dans l'Appendice B.
 \end{reqbox}
 
 \begin{reqbox}{LS-FR-013}{P1}{}
-LiveShark \DOIT{} suivre les rÃ¨gles de reconstruction des trames et de comptage du fps dÃ©finies dans l'Appendice B.
+LiveShark \DOIT{} suivre les règles de reconstruction des trames et de comptage du fps définies dans l'Appendice B.
 \end{reqbox}
 
 
-\subsection{PrioritÃ© P1 (diffÃ©renciateurs critiques)}
+\subsection{Priorité P1 (différenciateurs critiques)}
 \begin{reqbox}{LS-CONF-001}{P1}{}
-LiveShark \DOIT{} dÃ©tecter les sources concurrentes : deux sources ou plus sur le mÃªme univers avec chevauchement $> 1.0$ s.
+LiveShark \DOIT{} détecter les sources concurrentes : deux sources ou plus sur le même univers avec chevauchement $> 1.0$ s.
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-001}{P1}{}
-LiveShark \DOIT{} gÃ©nÃ©rer un rapport JSON versionnÃ© contenant au minimum : rÃ©sumÃ© de capture, univers (avec sources par univers), flux et conflits.
+LiveShark \DOIT{} générer un rapport JSON versionné contenant au minimum : résumé de capture, univers (avec sources par univers), flux et conflits.
 \end{reqbox}
 \begin{reqbox}{LS-REP-002}{P1}{}
-Le rapport JSON \DOIT{} Ãªtre dÃ©terministe : l'ordre des listes est stable et les champs volatils sont explicitement dÃ©finis.
+Le rapport JSON \DOIT{} être déterministe : l'ordre des listes est stable et les champs volatils sont explicitement définis.
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-003}{P1}{}
-Le rapport JSON \DOIT{} inclure les champs et types minimaux dÃ©finis dans l'Appendice A (v0.1).
+Le rapport JSON \DOIT{} inclure les champs et types minimaux définis dans l'Appendice A (v0.1).
 \end{reqbox}
 
 \begin{reqbox}{LS-REP-004}{P1}{}
-Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure dÃ©finie dans l'Appendice C.
+Les enregistrements de conflits du rapport JSON \DOIT{} suivre la structure définie dans l'Appendice C.
 \end{reqbox}
 
 
 
 
 \begin{reqbox}{LS-CONF-002}{P1}{}
-LiveShark \DOIT{} utiliser la dÃ©finition d'identitÃ© de source pour les conflits dÃ©finie dans l'Appendice C.
+LiveShark \DOIT{} utiliser la définition d'identité de source pour les conflits définie dans l'Appendice C.
 \end{reqbox}
 
 \begin{reqbox}{LS-CONF-003}{P1}{}
-LiveShark \DOIT{} calculer le chevauchement des conflits selon la dÃ©finition de l'Appendice C.
+LiveShark \DOIT{} calculer le chevauchement des conflits selon la définition de l'Appendice C.
 \end{reqbox}
 
 \begin{reqbox}{LS-CONF-010}{P1}{}
-LiveShark \DOIT{} utiliser la dÃ©finition d'identitÃ© de source pour la dÃ©tection des conflits dÃ©finie dans l'Appendice C (CID + repli).
+LiveShark \DOIT{} utiliser la définition d'identité de source pour la détection des conflits définie dans l'Appendice C (CID + repli).
 \end{reqbox}
 
 \begin{reqbox}{LS-CONF-011}{P1}{}
-LiveShark \DOIT{} calculer le chevauchement des conflits en utilisant les horodatages de capture et le seuil dÃ©fini dans l'Appendice C (v0.1).
+LiveShark \DOIT{} calculer le chevauchement des conflits en utilisant les horodatages de capture et le seuil défini dans l'Appendice C (v0.1).
 \end{reqbox}
 
 \begin{reqbox}{LS-CONF-012}{P1}{}
-Les enregistrements \texttt{conflicts[]} \DOIT{} inclure les champs requis dÃ©finis dans l'Appendice C (v0.1).
+Les enregistrements \texttt{conflicts[]} \DOIT{} inclure les champs requis définis dans l'Appendice C (v0.1).
 \end{reqbox}
 
 \begin{reqbox}{LS-MET-001}{P1}{}
-LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que dÃ©finis dans l'Appendice D (v0.1).
+LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans l'Appendice D (v0.1).
 \end{reqbox}
 
 
 \section{Limites connues (v0.1)}
 \begin{itemize}
-  \item \textbf{Pourcentage de conformitÃ©} : valeur de remplacement (100.0) tant qu'un dÃ©nominateur formel n'est pas dÃ©fini.
-  \item \textbf{DÃ©tection des conflits} : basÃ©e uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux diffÃ©rents. Le taux de faux positifs n'est pas quantifiÃ© en v0.1 ; les conflits sont des signaux Ã  investiguer.
-  \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorÃ©s.
+  \item \textbf{Pourcentage de conformité} : valeur de remplacement (100.0) tant qu'un dénominateur formel n'est pas défini.
+  \item \textbf{Détection des conflits} : basée uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux différents. Le taux de faux positifs n'est pas quantifié en v0.1 ; les conflits sont des signaux à investiguer.
+  \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
 \end{itemize}
 
-\section{CritÃ¨res de validation (extrait)}
+\section{Critères de validation (extrait)}
 
-\subsection{DÃ©finition de fin v0.1}
-Le MVP est considÃ©rÃ© livrÃ© si :
+\subsection{Définition de fin v0.1}
+Le MVP est considéré livré si :
 \begin{enumerate}
   \item \texttt{liveshark pcap analyse --report out/report.json}\\
   \texttt{file.pcapng} fonctionne sur 3 captures.
-  \item Art-Net et sACN sont dÃ©codÃ©s (univers, sources, fps).
-  \item Le rapport JSON contient \texttt{conflicts[]} (dÃ©tection auto).
-  \item Aucun crash sur PCAP tronquÃ©/corrompu.
+  \item Art-Net et sACN sont décodés (univers, sources, fps).
+  \item Le rapport JSON contient \texttt{conflicts[]} (détection auto).
+  \item Aucun crash sur PCAP tronqué/corrompu.
 \end{enumerate}
 
 \subsection{Tests golden}
 Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ metadata.toml\}}.
-\texttt{metadata.toml} dÃ©crit l'intention du test, les assertions (ex. \texttt{fps\_min},
+\texttt{metadata.toml} décrit l'intention du test, les assertions (ex. \texttt{fps\_min},
 \texttt{compliance\_percentage}) et les
-  rÃ¨gles de tolÃ©rance. Voir \texttt{AGENTS.md} \S9.4 pour le schÃ©ma.
+  règles de tolérance. Voir \texttt{AGENTS.md} \S9.4 pour le schéma.
 
 \appendix
 \section{Appendices (normatifs)}
 \subsection{Appendice A --- Contrat du rapport JSON (v0.1)}
-\subsubsection{SchÃ©ma minimal (champs et types)}
+\subsubsection{Schéma minimal (champs et types)}
 \begin{itemize}
-  \item \texttt{report\_version} : entier (version de schゼma ; v0.1 = 1, v0.2 = 2).
-  \item \texttt{tool.name} et \texttt{tool.version} : chaÃ®nes (identification de l'outil).
-  \item \texttt{generated\_at} : chaÃ®ne, horodatage RFC3339.
-  \item \texttt{input.path} : chaÃ®ne ; \texttt{input.bytes} : entier.
+  \item \texttt{report\_version} : entier (version de sch?ma ; v0.1 = 1, v0.2 = 2).
+  \item \texttt{tool.name} et \texttt{tool.version} : chaînes (identification de l'outil).
+  \item \texttt{generated\_at} : chaîne, horodatage RFC3339.
+  \item \texttt{input.path} : chaîne ; \texttt{input.bytes} : entier.
   \item \texttt{capture\_summary} : objet ou null (si indisponible).
-  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent Ãªtre vides en v0.1).
-  \item \texttt{compliance[]} : tableau (peut Ãªtre vide en v0.1).
-  \item Les Ã©lÃ©ments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaÃ®ne),\\
+  \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent être vides en v0.1).
+  \item \texttt{compliance[]} : tableau (peut être vide en v0.1).
+  \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),\\
   \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel,\\
   et \texttt{source\_name} optionnel ;\\
-  \texttt{cid} est en hexadÃ©cimal minuscule, 32 caractÃ¨res, sans sÃ©parateurs),\\
-  \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de mÃ©triques optionnels\\
+  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),\\
+  \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels\\
   \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count},\\
   \texttt{max\_burst\_len}, \texttt{jitter\_ms}, \texttt{dup\_packets}, \texttt{reordered\_packets}
   (v0.2 ; omis si indisponibles).
-  \item Les Ã©lÃ©ments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaÃ®ne), \texttt{src} (chaÃ®ne), \texttt{dst} (chaÃ®ne),
+  \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
   et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s} optionnels (v0.2 ; omis si indisponibles).
-  \item Les Ã©lÃ©ments de \texttt{conflicts[]} sont dÃ©finis dans l'Appendice C.
-  \item Les Ã©lÃ©ments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaÃ®ne),\\
+  \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
+  \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne),\\
   \texttt{compliance\_percentage}\\
   (flottant ; v0.1 utilise 100.0 comme valeur de remplacement),\\
   et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable),\\
-  \texttt{severity} (chaÃ®ne ; v0.1 utilise \texttt{warning} ou \texttt{error}),\\
+  \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),\\
   \texttt{message} (explication lisible), \texttt{count} (entier, nombre total d'occurrences sur la capture), et \texttt{examples[]} optionnel\\
-  (tableau d'au plus 3 chaÃ®nes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"} ;\\
+  (tableau d'au plus 3 chaînes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"} ;\\
   les octets de charge utile ne sont pas requis).\\
-  La liste d'exemples, lorsqu'elle est prÃ©sente, \DOIT{} Ãªtre dÃ©dupliquÃ©e, triÃ©e de faÃ§on stable et limitÃ©e Ã  3 pour garder des rapports compacts et dÃ©terministes. Les exemples sont illustratifs et n'affectent pas \texttt{count}.
+  La liste d'exemples, lorsqu'elle est présente, \DOIT{} être dédupliquée, triée de façon stable et limitée à 3 pour garder des rapports compacts et déterministes. Les exemples sont illustratifs et n'affectent pas \texttt{count}.
 \end{itemize}
 
 \subsubsection{Identifiants de violations compliance (v0.1, non exhaustif)}
 \begin{itemize}
-  \item \texttt{LS-UDP-SLICE} : erreur de dÃ©coupage UDP ; paquet ignorÃ©.
-  \item \texttt{LS-UDP-MISSING-NETWORK} : couche rÃ©seau manquante ; paquet ignorÃ©.
-  \item \texttt{LS-UDP-MISSING-PAYLOAD} : charge utile IP manquante ; paquet ignorÃ©.
-  \item \texttt{LS-UDP-TOO-SHORT} : charge utile UDP trop courte ; paquet ignorÃ©.
-  \item \texttt{LS-ARTNET-LENGTH} : longueur ArtDMX invalide (0 ou $> 512$) ; paquet ignorÃ©.
-  \item \texttt{LS-ARTNET-TOO-SHORT} : charge utile trop courte ; paquet ignorÃ©.
-  \item \texttt{LS-SACN-DMX-LENGTH} : longueur des donnÃ©es DMX sACN invalide ; paquet ignorÃ©.
-  \item \texttt{LS-SACN-TOO-SHORT} : charge utile trop courte ; paquet ignorÃ©.
-  \item \texttt{LS-ARTNET-UNIVERSE-ID} : identifiant d'univers Art-Net hors plage (valeur $> 0x7FFF$) ; paquet ignorÃ©.
-  \item \texttt{LS-SACN-START-CODE} : start code sACN diffÃ©rent de 0x00 ; paquet ignorÃ©.
-  \item \texttt{LS-SACN-PROPERTY-COUNT} : property value count sACN Ã  0 ou supÃ©rieur Ã  512 ; paquet ignorÃ©.
+  \item \texttt{LS-UDP-SLICE} : erreur de découpage UDP ; paquet ignoré.
+  \item \texttt{LS-UDP-MISSING-NETWORK} : couche réseau manquante ; paquet ignoré.
+  \item \texttt{LS-UDP-MISSING-PAYLOAD} : charge utile IP manquante ; paquet ignoré.
+  \item \texttt{LS-UDP-TOO-SHORT} : charge utile UDP trop courte ; paquet ignoré.
+  \item \texttt{LS-ARTNET-LENGTH} : longueur ArtDMX invalide (0 ou $> 512$) ; paquet ignoré.
+  \item \texttt{LS-ARTNET-TOO-SHORT} : charge utile trop courte ; paquet ignoré.
+  \item \texttt{LS-SACN-DMX-LENGTH} : longueur des données DMX sACN invalide ; paquet ignoré.
+  \item \texttt{LS-SACN-TOO-SHORT} : charge utile trop courte ; paquet ignoré.
+  \item \texttt{LS-ARTNET-UNIVERSE-ID} : identifiant d'univers Art-Net hors plage (valeur $> 0x7FFF$) ; paquet ignoré.
+  \item \texttt{LS-SACN-START-CODE} : start code sACN différent de 0x00 ; paquet ignoré.
+  \item \texttt{LS-SACN-PROPERTY-COUNT} : property value count sACN à 0 ou supérieur à 512 ; paquet ignoré.
 \end{itemize}
 
-\subsubsection{RÃ¨gles de dÃ©terminisme}
+\subsubsection{Règles de déterminisme}
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
-  \texttt{universes[]} triÃ©s par \texttt{universe} croissant puis \texttt{proto} croissant ;
-  \texttt{sources[]} dans chaque univers triÃ©s par \texttt{source\_ip} croissant ;
-  \texttt{flows[]} triÃ©s par \texttt{src} puis \texttt{dst} ;
-  \texttt{conflicts[]} triÃ©s par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
-  \texttt{sources[]} dans chaque conflit triÃ©s par ordre lexicographique des identifiants de source ;
-  \texttt{compliance[]} triÃ©s par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
+  \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
+  \texttt{sources[]} dans chaque univers triés par \texttt{source\_ip} croissant ;
+  \texttt{flows[]} triés par \texttt{src} puis \texttt{dst} ;
+  \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
+  \texttt{sources[]} dans chaque conflit triés par ordre lexicographique des identifiants de source ;
+  \texttt{compliance[]} triés par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
-  \item \textbf{Flottants :} en v0.1, les valeurs flottantes sont sÃ©rialisÃ©es avec une prÃ©cision suffisante pour garantir un JSON dÃ©terministe (minimum 6 chiffres significatifs). Des rÃ¨gles d'arrondi explicites pourront Ãªtre dÃ©finies pour certains champs.
+  \item \textbf{Flottants :} en v0.1, les valeurs flottantes sont sérialisées avec une précision suffisante pour garantir un JSON déterministe (minimum 6 chiffres significatifs). Des règles d'arrondi explicites pourront être définies pour certains champs.
   \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
 \end{itemize}
 
@@ -414,74 +414,74 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
 \end{verbatim}
 
 \subsection{Appendice B --- Contrat de reconstruction des trames DMX (v0.1)}
-\subsubsection{DÃ©finition canonique d'une trame DMX}
-Une trame DMX reconstruite est dÃ©finie par :
+\subsubsection{Définition canonique d'une trame DMX}
+Une trame DMX reconstruite est définie par :
 \begin{itemize}
   \item \textbf{universe} : identifiant d'univers 16 bits.
   \item \textbf{timestamp} : horodatage de capture (timestamp du paquet).
-  \item \textbf{source\_id} : identitÃ© de source stable (voir Appendice C).
+  \item \textbf{source\_id} : identité de source stable (voir Appendice C).
   \item \textbf{protocol} : \texttt{artnet} ou \texttt{sacn}.
   \item \textbf{slots[512]} : 512 valeurs DMX (0--255).
 \end{itemize}
 
-\subsubsection{RÃ¨gles minimales de reconstruction}
+\subsubsection{Règles minimales de reconstruction}
 \begin{itemize}
-  \item Les trames sont reconstruites par univers, par source et par protocole,  Ã  partir de charges utiles valides.
-  \item Avant la premiÃ¨re trame observÃ©e pour un (univers, source, protocole), les valeurs de slots sont Ã  0 par dÃ©faut.
-  \item Si une charge utile fournit moins de 512 slots, les slots manquants conservent la derniÃ¨re valeur connue pour cet (univers, source, protocole).
+  \item Les trames sont reconstruites par univers, par source et par protocole,  à partir de charges utiles valides.
+  \item Avant la première trame observée pour un (univers, source, protocole), les valeurs de slots sont à 0 par défaut.
+  \item Si une charge utile fournit moins de 512 slots, les slots manquants conservent la dernière valeur connue pour cet (univers, source, protocole).
   \item Les trames reconstruites exposent toujours 512 slots.
-  \item Les trames hors ordre sont acceptÃ©es ; la reconstruction et les mÃ©triques sont heuristiques.
-  \item Le fps compte les trames validÃ©es et associÃ©es Ã  un univers.
+  \item Les trames hors ordre sont acceptées ; la reconstruction et les métriques sont heuristiques.
+  \item Le fps compte les trames validées et associées à un univers.
 \end{itemize}
 
 \subsubsection{Normalisation des univers}
-L'univers canonique est l'entier 16 bits dÃ©codÃ© depuis la charge utile du protocole. Pour Art-Net, il est calculÃ© Ã  partir
+L'univers canonique est l'entier 16 bits décodé depuis la charge utile du protocole. Pour Art-Net, il est calculé à partir
 des champs ArtDMX \texttt{Net} (octet de poids fort) et \texttt{SubUni} (octet de poids faible), avec
 \texttt{universe\_id = 256 * net + subuni} (0..32767). \texttt{Net} et \texttt{SubUni} sont des champs d'un octet ;
 \texttt{universe\_id} utilise \texttt{Net} comme octet de poids fort et \texttt{SubUni} comme octet de poids faible
 (ce n'est pas un champ 16 bits en little-endian). Pour sACN, c'est le champ \texttt{universe} en big-endian de la couche
-de framing. Le rapport utilise cette valeur canonique ; un mÃªme univers signifie des valeurs numÃ©riques identiques entre
+de framing. Le rapport utilise cette valeur canonique ; un même univers signifie des valeurs numériques identiques entre
 protocoles.
 
-\subsection{Appendice C --- Contrat de dÃ©tection de conflits (v0.1)}
-\subsubsection{IdentitÃ© de source}
+\subsection{Appendice C --- Contrat de détection de conflits (v0.1)}
+\subsubsection{Identité de source}
 \begin{itemize}
-  \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est prÃ©sent ; sinon \texttt{sacn:<ip>:<port>}.
+  \item \textbf{sACN :} \texttt{sacn:cid:<CID>} lorsque le CID est présent ; sinon \texttt{sacn:<ip>:<port>}.
   \item \textbf{Art-Net :} \texttt{artnet:<ip>:<port>}.
 \end{itemize}
-\textbf{Format du CID :} hexadÃ©cimal minuscule, 32 caractÃ¨res, sans sÃ©parateurs.
+\textbf{Format du CID :} hexadécimal minuscule, 32 caractères, sans séparateurs.
 
-\subsubsection{DÃ©finition du chevauchement}
-Un conflit est dÃ©fini comme : mÃªme univers, au moins deux sources, et chevauchement $> 1.0$ s.
-Le chevauchement est calculÃ© Ã  partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
-En v0.1, la dÃ©tection de conflit est une approximation prudente basÃ©e sur le chevauchement temporel ; tout chevauchement
-$> 1.0$ s dÃ©clenche un conflit, mÃªme si les sources ne concurrencent pas activement les mÃªmes canaux au mÃªme moment.
-Le taux de faux positifs n'est pas quantifiÃ© en v0.1 ; les conflits sont des signaux Ã  investiguer.
-\texttt{affected\_channels[]} est calculÃ© au mieux et peut Ãªtre vide lorsque des indices par canal ne peuvent pas Ãªtre
-dÃ©rivÃ©s de la fenÃªtre de chevauchement.
+\subsubsection{Définition du chevauchement}
+Un conflit est défini comme : même univers, au moins deux sources, et chevauchement $> 1.0$ s.
+Le chevauchement est calculé à partir des intervalles \texttt{[first\_ts, last\_ts]} par source et de leur intersection.
+En v0.1, la détection de conflit est une approximation prudente basée sur le chevauchement temporel ; tout chevauchement
+$> 1.0$ s déclenche un conflit, même si les sources ne concurrencent pas activement les mêmes canaux au même moment.
+Le taux de faux positifs n'est pas quantifié en v0.1 ; les conflits sont des signaux à investiguer.
+\texttt{affected\_channels[]} est calculé au mieux et peut être vide lorsque des indices par canal ne peuvent pas être
+dérivés de la fenêtre de chevauchement.
 
 \subsubsection{Champs d'un conflit}
 \begin{itemize}
   \item \texttt{universe} (entier)
   \item \texttt{sources[]} (liste d'identifiants de source)
   \item \texttt{overlap\_duration\_s} (secondes, flottant)
-    \item \texttt{affected\_channels[]} (liste d'entiers ; calcul au mieux sur la fenÃªtre de chevauchement, peut Ãªtre vide en v0.1)
-  \item \texttt{severity} (chaÃ®ne)
+    \item \texttt{affected\_channels[]} (liste d'entiers ; calcul au mieux sur la fenêtre de chevauchement, peut être vide en v0.1)
+  \item \texttt{severity} (chaîne)
   \item \texttt{conflict\_score} (flottant)
 \end{itemize}
-En v0.1, \texttt{severity} est fixÃ© Ã  \texttt{"medium"} et \texttt{conflict\_score} est Ã©gal Ã  \texttt{overlap\_duration\_s}.
-Optionnel (prÃ©vu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et \texttt{protocols[]}.
+En v0.1, \texttt{severity} est fixé à \texttt{"medium"} et \texttt{conflict\_score} est égal à \texttt{overlap\_duration\_s}.
+Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et \texttt{protocols[]}.
 
-\subsection{Appendice D --- DÃ©finitions des mÃ©triques (v0.1)}
+\subsection{Appendice D --- Définitions des métriques (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenÃªtre glissante de 1.0 s ; unitÃ©s paquets/s et octets/s. La valeur rapportÃ©e est le pic (maximum) sur l'ensemble des fenÃªtres. Si les Ã©chantillons de fenÃªtre sont indisponibles, les valeurs sont omises. (RapportÃ© dans \texttt{flows[]}.)
-  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenÃªtre glissante de 5.0 s ; unitÃ© trames/s.
-  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivÃ©e successifs sur une fenÃªtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unitÃ© est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportÃ©e est le pic (maximum) sur l'ensemble des fenÃªtres.
-  \item \textbf{perte (observÃ©e) :} pour les sources avec numÃ©ros de sÃ©quence fiables (v0.1 : sACN), la perte est la somme des trous de sÃ©quence observÃ©s sur une fenÃªtre glissante de 10.0 s ;\\
-  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par sÃ©quence.\\
-  Si les numÃ©ros de sÃ©quence sont indisponibles, les champs de perte \DOIT{} Ãªtre omis.
-  \item \textbf{rafales :} pour les sources avec numÃ©ros de sÃ©quence fiables (v0.1 : sACN), \texttt{burst\_count} est le nombre de rafales de pertes sur une fenÃªtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
-  longueur maximale de rafale observÃ©e dans la mÃªme fenÃªtre. Si les numÃ©ros de sÃ©quence sont indisponibles, les champs de rafales \DOIT{} Ãªtre omis.
+  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres. Si les échantillons de fenêtre sont indisponibles, les valeurs sont omises. (Rapporté dans \texttt{flows[]}.)
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
+  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
+  \item \textbf{perte (observée) :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;\\
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence.\\
+  Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
+  \item \textbf{rafales :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
+  longueur maximale de rafale observée dans la même fenêtre. Si les numéros de séquence sont indisponibles, les champs de rafales \DOIT{} être omis.
 \end{itemize}
 
 \subsection{Appendice D.1 --- MÇ¸triques diagnostiques v0.2}
@@ -492,14 +492,14 @@ Optionnel (prÃ©vu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} e
 \end{itemize}
 
 \section{Licence}
-Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les spÃ©cifications sont sous licence \textbf{CC-BY-4.0}.
-Les fichiers PDF sont des artefacts de compilation gÃ©nÃ©rÃ©s depuis les sources \texttt{.tex} et \textbf{ne doivent pas Ãªtre versionnÃ©s} dans le dÃ©pÃ´t.
+Le code est sous licence \textbf{MIT OR Apache-2.0}. La documentation et les spécifications sont sous licence \textbf{CC-BY-4.0}.
+Les fichiers PDF sont des artefacts de compilation générés depuis les sources \texttt{.tex} et \textbf{ne doivent pas être versionnés} dans le dépôt.
 
-\section{RÃ©fÃ©rences normatives}
+\section{Références normatives}
 \begin{adjustbox}{max width=\linewidth}
 \begin{tabularx}{\linewidth}{@{}l X@{}}
 \toprule
-\textbf{RÃ©fÃ©rence} & \textbf{Titre} \\
+\textbf{Référence} & \textbf{Titre} \\
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
 RFC 8174 & Ambiguity of Uppercase vs Lowercase\\ in RFC 2119 Key Words \\
@@ -514,5 +514,4 @@ Art-Net 4 & Art-Net 4 Specification\\ (Protocol Release) \\
 \printbibliography
 
 \end{document}
-
 
