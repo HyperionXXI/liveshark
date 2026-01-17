@@ -1,6 +1,5 @@
 use super::error::SacnError;
 use super::layout;
-use crate::protocols::common::reader::optional_nonzero_u8;
 
 /// Safe byte reader for sACN payloads.
 ///
@@ -124,12 +123,6 @@ impl<'a> SacnReader<'a> {
         Ok(data_len)
     }
 
-    /// Read a byte at the offset, returning `None` for zero.
-    pub fn read_optional_nonzero_u8(&self, offset: usize) -> Result<Option<u8>, SacnError> {
-        let value = self.read_u8(offset)?;
-        Ok(optional_nonzero_u8(value))
-    }
-
     /// Read an ASCII string, returning `None` when empty.
     pub fn read_optional_ascii_string(
         &self,
@@ -157,22 +150,6 @@ mod tests {
     use super::SacnReader;
     use crate::protocols::sacn::error::SacnError;
     use crate::protocols::sacn::layout;
-
-    #[test]
-    fn read_optional_nonzero_u8() {
-        let payload = [0x00u8, 0x12u8];
-        let reader = SacnReader::new(&payload);
-        assert_eq!(reader.read_optional_nonzero_u8(0).unwrap(), None);
-        assert_eq!(reader.read_optional_nonzero_u8(1).unwrap(), Some(0x12));
-    }
-
-    #[test]
-    fn read_optional_nonzero_u8_too_short() {
-        let payload = [];
-        let reader = SacnReader::new(&payload);
-        let err = reader.read_optional_nonzero_u8(0).unwrap_err();
-        assert!(matches!(err, SacnError::TooShort { .. }));
-    }
 
     #[test]
     fn read_optional_ascii_string() {

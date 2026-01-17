@@ -20,12 +20,15 @@ pub(crate) struct UniverseSourceStats {
     pub burst_count: u64,
     pub max_burst_len: u64,
     pub current_burst: u64,
+    pub dup_packets: u64,
+    pub reordered_packets: u64,
     pub last_seq: Option<u8>,
     pub first_ts: Option<f64>,
     pub last_ts: Option<f64>,
     pub prev_iat: Option<f64>,
     pub jitter_sum: f64,
     pub jitter_samples: VecDeque<(f64, f64)>,
+    pub jitter_peak: Option<f64>,
     pub frame_samples: VecDeque<f64>,
     pub loss_sum: u64,
     pub loss_samples: VecDeque<(f64, u64)>,
@@ -69,7 +72,7 @@ pub(crate) fn add_artnet_frame(
             source_name: None,
         });
     let source_stats = entry.per_source.entry(source_id.clone()).or_default();
-    update_source_stats(source_stats, sequence, ts);
+    update_source_stats(source_stats, false, sequence, ts);
     update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
     source_id
 }
@@ -97,7 +100,7 @@ pub(crate) fn add_sacn_frame(
             source_name,
         });
     let source_stats = entry.per_source.entry(source_id.clone()).or_default();
-    update_source_stats(source_stats, sequence, ts);
+    update_source_stats(source_stats, true, sequence, ts);
     update_ts_bounds(&mut entry.first_ts, &mut entry.last_ts, ts);
     source_id
 }
@@ -146,6 +149,8 @@ fn build_universe_summaries(
                 burst_count: metrics.burst_count,
                 max_burst_len: metrics.max_burst_len,
                 jitter_ms: metrics.jitter_ms,
+                dup_packets: metrics.dup_packets,
+                reordered_packets: metrics.reordered_packets,
             }
         })
         .collect();
@@ -209,9 +214,16 @@ struct UniverseMetrics {
     burst_count: Option<u64>,
     max_burst_len: Option<u64>,
     jitter_ms: Option<f64>,
+    dup_packets: Option<u64>,
+    reordered_packets: Option<u64>,
 }
 
-fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts: Option<f64>) {
+fn update_source_stats(
+    stats: &mut UniverseSourceStats,
+    seq_reliable: bool,
+    sequence: Option<u8>,
+    ts: Option<f64>,
+) {
     stats.frames += 1;
 
     if stats.first_ts.is_none() {
@@ -235,13 +247,29 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
                 stats.jitter_sum -= sample;
                 stats.jitter_samples.pop_front();
             }
+            let window_avg = stats.jitter_sum / stats.jitter_samples.len() as f64;
+            stats.jitter_peak = Some(
+                stats
+                    .jitter_peak
+                    .map_or(window_avg, |peak| peak.max(window_avg)),
+            );
         }
         stats.prev_iat = Some(iat);
     }
     stats.last_ts = ts;
 
+    if !seq_reliable {
+        return;
+    }
+
     if let Some(seq) = sequence {
         if let Some(last) = stats.last_seq {
+            let delta = seq.wrapping_sub(last);
+            if delta == 0 {
+                stats.dup_packets += 1;
+            } else if delta >= 128 {
+                stats.reordered_packets += 1;
+            }
             let expected = last.wrapping_add(1);
             let gap = seq.wrapping_sub(expected) as u16;
             if gap > 0 && gap < 128 {
@@ -279,13 +307,14 @@ fn update_source_stats(stats: &mut UniverseSourceStats, sequence: Option<u8>, ts
 }
 
 fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> UniverseMetrics {
-    let mut jitter_sum = 0.0;
-    let mut jitter_count = 0u64;
+    let mut jitter_peak = None;
     let mut any_seq = false;
     let mut total_seq_frames = 0u64;
     let mut total_seq_loss = 0u64;
     let mut total_seq_bursts = 0u64;
     let mut total_seq_max_burst = 0u64;
+    let mut total_dup_packets = 0u64;
+    let mut total_reordered_packets = 0u64;
 
     for stats in per_source.values() {
         if stats.last_seq.is_some() {
@@ -297,10 +326,11 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> Univers
             if max_burst > total_seq_max_burst {
                 total_seq_max_burst = max_burst;
             }
+            total_dup_packets += stats.dup_packets;
+            total_reordered_packets += stats.reordered_packets;
         }
-        if !stats.jitter_samples.is_empty() {
-            jitter_sum += stats.jitter_sum / stats.jitter_samples.len() as f64;
-            jitter_count += 1;
+        if let Some(value) = stats.jitter_peak {
+            jitter_peak = Some(jitter_peak.map_or(value, |peak: f64| peak.max(value)));
         }
     }
 
@@ -329,8 +359,14 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> Univers
     } else {
         None
     };
-    let jitter_ms = if jitter_count > 0 {
-        Some((jitter_sum / jitter_count as f64) * 1000.0)
+    let jitter_ms = jitter_peak.map(|value| value * 1000.0);
+    let dup_packets = if any_seq {
+        Some(total_dup_packets)
+    } else {
+        None
+    };
+    let reordered_packets = if any_seq {
+        Some(total_reordered_packets)
     } else {
         None
     };

@@ -17,12 +17,24 @@ pub(crate) struct FlowKey {
 pub(crate) struct FlowStats {
     pub packets: u64,
     pub bytes: u64,
+    pub first_ts: Option<f64>,
     pub last_ts: Option<f64>,
     pub prev_iat: Option<f64>,
+    pub iat_count: u64,
+    pub max_iat_ms: Option<u64>,
     pub jitter_sum: f64,
     pub jitter_samples: VecDeque<(f64, f64)>,
+    pub jitter_peak: Option<f64>,
+    pub window_packets: u64,
+    pub window_bytes: u64,
+    pub window_samples: VecDeque<(f64, u64)>,
+    pub peak_pps: Option<f64>,
+    pub peak_bps: Option<f64>,
+    pub peak_window_packets: u64,
+    pub peak_window_bytes: u64,
 }
 
+const PPS_BPS_WINDOW_S: f64 = 1.0;
 const JITTER_WINDOW_S: f64 = 10.0;
 
 pub(crate) fn add_flow_stats(
@@ -40,25 +52,31 @@ pub(crate) fn add_flow_stats(
     entry.packets += 1;
     entry.bytes += packet.payload.len() as u64;
     update_flow_jitter(entry, ts);
+    update_flow_rates(entry, ts, packet.payload.len() as u64);
 }
 
 pub(crate) fn build_flow_summaries(
     stats: HashMap<FlowKey, FlowStats>,
-    duration_s: Option<f64>,
+    _duration_s: Option<f64>,
 ) -> Vec<FlowSummary> {
     let mut flows: Vec<FlowSummary> = stats
         .into_iter()
         .map(|(key, stats)| {
-            let (pps, bps) = duration_s
-                .map(|d| (stats.packets as f64 / d, stats.bytes as f64 / d))
-                .map(|(pps, bps)| (Some(pps), Some(bps)))
-                .unwrap_or((None, None));
-
-            let iat_jitter_ms = if entry_has_jitter(&stats) {
-                Some((stats.jitter_sum / stats.jitter_samples.len() as f64) * 1000.0)
+            let max_iat_ms = if stats.iat_count > 0 {
+                stats.max_iat_ms
             } else {
                 None
             };
+            let (pps_peak_1s, bps_peak_1s) = match (stats.first_ts, stats.last_ts) {
+                (Some(start), Some(end)) if end - start >= PPS_BPS_WINDOW_S => (
+                    Some(stats.peak_window_packets),
+                    Some(stats.peak_window_bytes),
+                ),
+                _ => (None, None),
+            };
+            let pps = stats.peak_pps;
+            let bps = stats.peak_bps;
+            let iat_jitter_ms = stats.jitter_peak.map(|value| value * 1000.0);
 
             FlowSummary {
                 app_proto: "udp".to_string(),
@@ -67,6 +85,9 @@ pub(crate) fn build_flow_summaries(
                 pps,
                 bps,
                 iat_jitter_ms,
+                max_iat_ms,
+                pps_peak_1s,
+                bps_peak_1s,
             }
         })
         .collect();
@@ -88,8 +109,19 @@ fn update_flow_jitter(stats: &mut FlowStats, ts: Option<f64>) {
         None => return,
     };
 
+    if stats.first_ts.is_none() {
+        stats.first_ts = Some(ts);
+    }
     if let Some(last_ts) = stats.last_ts {
         let iat = ts - last_ts;
+        if iat.is_finite() && iat >= 0.0 {
+            stats.iat_count += 1;
+            let ms = (iat * 1000.0).round();
+            if ms.is_finite() && ms >= 0.0 {
+                let ms = ms as u64;
+                stats.max_iat_ms = Some(stats.max_iat_ms.map_or(ms, |prev| prev.max(ms)));
+            }
+        }
         if let Some(prev_iat) = stats.prev_iat {
             let diff = (iat - prev_iat).abs();
             stats.jitter_sum += diff;

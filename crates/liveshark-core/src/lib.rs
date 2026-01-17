@@ -35,7 +35,7 @@ pub use analysis::{AnalysisError, analyze_pcap_file, analyze_source};
 pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 /// Current report schema version.
-pub const REPORT_VERSION: u32 = 1;
+pub const REPORT_VERSION: u32 = 2;
 /// Default timestamp used when no capture time is available.
 pub const DEFAULT_GENERATED_AT: &str = "1970-01-01T00:00:00Z";
 
@@ -152,6 +152,8 @@ pub struct CaptureSummary {
 ///     burst_count: None,
 ///     max_burst_len: None,
 ///     jitter_ms: None,
+///     dup_packets: None,
+///     reordered_packets: None,
 /// };
 /// assert_eq!(summary.universe, 1);
 /// ```
@@ -182,6 +184,12 @@ pub struct UniverseSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Inter-arrival jitter in milliseconds, when available.
     pub jitter_ms: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Duplicate sACN packets observed (sequence tracked only).
+    pub dup_packets: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Reordered sACN packets observed (sequence tracked only).
+    pub reordered_packets: Option<u64>,
 }
 
 /// Source metadata for a universe.
@@ -220,6 +228,9 @@ pub struct SourceSummary {
 ///     pps: None,
 ///     bps: None,
 ///     iat_jitter_ms: None,
+///     max_iat_ms: None,
+///     pps_peak_1s: None,
+///     bps_peak_1s: None,
 /// };
 /// assert_eq!(flow.app_proto, "udp");
 /// ```
@@ -237,6 +248,15 @@ pub struct FlowSummary {
     pub bps: Option<f64>,
     /// Inter-arrival jitter in milliseconds (windowed).
     pub iat_jitter_ms: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Maximum inter-arrival time in milliseconds.
+    pub max_iat_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Peak packets per second over a 1s window.
+    pub pps_peak_1s: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Peak bytes per second over a 1s window.
+    pub bps_peak_1s: Option<u64>,
 }
 
 /// Conflict summary between multiple sources on the same universe.

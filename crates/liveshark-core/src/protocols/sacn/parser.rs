@@ -105,7 +105,7 @@ pub fn parse_sacn_dmx(payload: &[u8]) -> Result<Option<SacnDmx>, SacnError> {
     let universe = reader.read_u16_be(layout::UNIVERSE_RANGE.clone())?;
     let cid = reader.read_cid_hex()?;
     let source_name = reader.read_optional_ascii_string(layout::SOURCE_NAME_RANGE.clone())?;
-    let sequence = reader.read_optional_nonzero_u8(layout::SEQUENCE_OFFSET)?;
+    let sequence = Some(reader.read_u8(layout::SEQUENCE_OFFSET)?);
     let data_len = reader.read_dmx_data_len()?;
     let slots = if data_len > 0 {
         let needed = layout::DMX_DATA_OFFSET
