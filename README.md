@@ -41,8 +41,11 @@ The project specification (requirements) is written in LaTeX (`.tex`); see "Buil
 ## Usage modes
 
 - **Offline analysis (post-mortem):** analyze a completed PCAP/PCAPNG capture file.
-- **Follow mode (planned):** near-real-time analysis of a capture file that is still being written by an external tool.
+- **Follow mode:** near-real-time analysis of a capture file that is still being written by an external tool.
 - **Native live capture (future, optional):** a possible future objective, not required for the initial milestone.
+
+Follow mode rewrites a full report while a capture file grows:
+`liveshark pcap follow capture.pcapng --report report.json`
 
 Offline-first is an implementation strategy (robustness, reproducibility), not a product limitation.
 LiveShark also targets reliable network diagnostics for small/medium show rigs (wired/wireless), focusing on loss, jitter, and burst patterns with probable-cause hints when possible.

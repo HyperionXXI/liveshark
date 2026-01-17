@@ -2,6 +2,9 @@
 
 Ce dépôt fournit une **spécification PDF imprimable** pour les non-développeurs, avec **une seule source éditable**.
 
+Mode suivi : réécrit un rapport complet tant que le fichier de capture grandit.
+Exemple : `liveshark pcap follow capture.pcapng --report report.json`
+
 Quelle est la référence ?
 - **Source normative (fait foi) :** `spec/en/LiveShark_Spec.tex`
 - **Traduction française :** `spec/fr/LiveShark_Spec.tex` (traduction indicative, peut être en retard)
