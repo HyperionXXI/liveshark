@@ -669,6 +669,9 @@ fn write_report_atomic(path: &Path, json: &str) -> Result<(), CliError> {
     ))
 }
 
+// On Windows, rename does not always replace without a gap; use MoveFileExW
+// with REPLACE_EXISTING | WRITE_THROUGH after writing a tmp in the same
+// directory and syncing it to disk.
 #[cfg(windows)]
 fn replace_file_atomic(tmp: &Path, dest: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
