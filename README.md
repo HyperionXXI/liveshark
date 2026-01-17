@@ -31,6 +31,7 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 
 - Printable specification sources (authoritative): `spec/en/LiveShark_Spec.tex`
 - French translation (informational, may lag): `spec/fr/LiveShark_Spec.tex`
+- Consumer contract guide (JSON): `docs/consumer-contract.md`
 - Documentation build instructions: `docs/README.md`
 - Documentation FR: `docs/fr/README.md`
 - Rust architecture rules (normative): `docs/RUST_ARCHITECTURE.md`

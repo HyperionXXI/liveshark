@@ -5,6 +5,7 @@ Ce dépôt fournit une **spécification PDF imprimable** pour les non-développe
 Quelle est la référence ?
 - **Source normative (fait foi) :** `spec/en/LiveShark_Spec.tex`
 - **Traduction française :** `spec/fr/LiveShark_Spec.tex` (traduction indicative, peut être en retard)
+- **Contrat de consommation JSON :** `docs/fr/consumer-contract.md`
 - **Fichiers PDF :** artefacts générés depuis les `.tex`. Ils sont fournis par confort et **ne sont pas la source de vérité**.
 - **Règles d'architecture Rust (fait foi) :** `docs/RUST_ARCHITECTURE.md`
 - **Traduction française des règles Rust :** `docs/RUST_ARCHITECTURE.fr.md` (traduction indicative)
