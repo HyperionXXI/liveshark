@@ -628,21 +628,31 @@ fn write_report_atomic(path: &Path, json: &str) -> Result<(), CliError> {
     fs::write(&tmp_path, json)
         .with_context(|| format!("Failed to write report: {}", tmp_path.display()))?;
 
-    if let Err(err) = fs::rename(&tmp_path, path) {
-        if path.exists() {
-            fs::remove_file(path)
-                .with_context(|| format!("Failed to replace report: {}", path.display()))?;
-            fs::rename(&tmp_path, path)
-                .with_context(|| format!("Failed to replace report: {}", path.display()))?;
-        } else {
-            return Err(CliError::new(
-                format!("Failed to move report into place: {err}"),
-                Some("check write permissions".to_string()),
-            ));
+    let mut last_err: Option<std::io::Error> = None;
+    for attempt in 0..5u32 {
+        match fs::rename(&tmp_path, path) {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                last_err = Some(err);
+                if path.exists() {
+                    let _ = fs::remove_file(path);
+                }
+                if attempt < 4 {
+                    thread::sleep(Duration::from_millis(50));
+                }
+            }
         }
     }
 
-    Ok(())
+    Err(CliError::new(
+        format!(
+            "Failed to move report into place: {}",
+            last_err
+                .map(|err| err.to_string())
+                .unwrap_or_else(|| "unknown error".to_string())
+        ),
+        Some("check write permissions".to_string()),
+    ))
 }
 
 fn is_transient_error(err: &dyn std::fmt::Display) -> bool {
