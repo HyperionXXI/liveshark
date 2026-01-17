@@ -196,6 +196,7 @@ Par défaut :
   \item \textbf{Fenêtre gigue :} 10.0 s (glissante)
   \item \textbf{Fenêtre de pic :} 1.0 s (glissante) pour \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s}
 \end{itemize}
+Les fenêtres glissantes incluent les paquets dont l'horodatage est dans $[t - W, t]$ (bornes incluses).
 \subsection{Définitions des métriques (minimal)}
 \begin{itemize}
   \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}.)
@@ -203,6 +204,7 @@ Par défaut :
   \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
   \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
+Les métriques optionnelles sont omises lorsqu'elles ne sont pas calculables ; leur absence ne signifie pas zéro.
 Voir l'Appendice D pour les définitions opérationnelles et les unités.
 
 \paragraph{Métriques diagnostiques supplémentaires (additives)}
@@ -214,6 +216,13 @@ Ces champs sont des ajouts optionnels ; un ajout additif \NEDOITPAS{} incrément
 \end{itemize}
 
 
+
+\subsection{Compatibilité et contrat de consommation}
+Les ajouts au rapport JSON sont non bloquants : un consommateur \DOIT{} ignorer les champs inconnus.
+Les métriques optionnelles sont omises (absentes) lorsqu'elles ne sont pas calculables ; l'absence d'un champ ne signifie pas zéro.
+\texttt{report\_version} indique le schéma de base ; un ajout additif ne nécessite pas forcément un bump si les règles ci-dessus sont respectées.
+
+En v0.1, la perte est rapportée uniquement lorsque des numéros de séquence existent (ex. sACN) ; aucune perte n'est inférée pour Art-Net.
 
 \section{Exigences contractuelles (extrait)}
 Ce document est une base de démarrage : les exigences sont volontairement minimales.

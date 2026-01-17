@@ -182,6 +182,7 @@ Unless otherwise stated:
   \item \textbf{jitter window:} 10.0 s sliding window
   \item \textbf{peak window:} 1.0 s sliding window (for \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s})
 \end{itemize}
+Sliding windows include packets with timestamps in $[t - W, t]$ (inclusive).
 
 \subsection{Metrics definitions (minimal)}
 \begin{itemize}
@@ -190,6 +191,7 @@ Unless otherwise stated:
   \item \textbf{jitter (IAT):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
   \item \textbf{loss (observed):} when reliable protocol sequence numbers exist (v0.1: sACN), loss is reported as observed sequence gaps at the capture point. In v0.1, loss \MUST{} be reported only when sequence numbers exist; otherwise loss fields are omitted. This does not guarantee loss at the receiver.
 \end{itemize}
+Optional metrics are omitted when not computable; absence does not imply zero.
 See Appendix D for operational definitions and units.
 
 \paragraph{Additional diagnostic metrics (additive)}
@@ -199,6 +201,13 @@ These fields are optional additions; additive fields \MUSTNOT{} bump \texttt{rep
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flows):} per UDP flow, peak packets/s and bytes/s over a 1.0 s \emph{sliding} window. Window rule: include packets with timestamps in $[t-1.0, t]$ (inclusive of both ends). Report the maximum window count as an integer. Omit if the flow has fewer than two packets with timestamps or the covered duration is $< 1.0$ s.
   \item \textbf{dup\_packets / reordered\_packets (sACN universes):} per universe, counts aggregated across sACN sources with valid sequence numbers. In capture-time order, \texttt{dup\_packets} increments when $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} increments when the modulo-256 delta $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ is in $[128, 255]$ (backward half-range). Wrap-around (e.g., 254, 255, 0, 1) is not considered reordering. Omit these fields when no sequence numbers are available.
 \end{itemize}
+
+\subsection{Compatibility and consumer contract}
+Additions to the JSON report are non-breaking: consumers \MUST{} ignore unknown fields.
+Optional metrics are omitted (absent) when not computable; absence does not mean zero.
+\texttt{report\_version} indicates the base schema, and additive fields do not necessarily require a version bump when the rules above are respected.
+
+In v0.1, loss is reported only when protocol sequence numbers exist (e.g., sACN); it is never inferred for Art-Net.
 
 \section{Contractual requirements (extract)}
 This document is a bootstrap spec: requirements are intentionally minimal at project start.
