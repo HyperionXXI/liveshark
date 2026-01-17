@@ -133,14 +133,40 @@ fn update_flow_jitter(stats: &mut FlowStats, ts: Option<f64>) {
                 stats.jitter_sum -= sample;
                 stats.jitter_samples.pop_front();
             }
+            let window_avg = stats.jitter_sum / stats.jitter_samples.len() as f64;
+            stats.jitter_peak = Some(
+                stats
+                    .jitter_peak
+                    .map_or(window_avg, |peak| peak.max(window_avg)),
+            );
         }
         stats.prev_iat = Some(iat);
     }
     stats.last_ts = Some(ts);
 }
 
-fn entry_has_jitter(stats: &FlowStats) -> bool {
-    !stats.jitter_samples.is_empty()
+fn update_flow_rates(stats: &mut FlowStats, ts: Option<f64>, bytes: u64) {
+    let ts = match ts {
+        Some(ts) => ts,
+        None => return,
+    };
+    stats.window_packets += 1;
+    stats.window_bytes += bytes;
+    stats.window_samples.push_back((ts, bytes));
+    while let Some((sample_ts, sample_bytes)) = stats.window_samples.front().copied() {
+        if ts - sample_ts <= PPS_BPS_WINDOW_S {
+            break;
+        }
+        stats.window_packets = stats.window_packets.saturating_sub(1);
+        stats.window_bytes = stats.window_bytes.saturating_sub(sample_bytes);
+        stats.window_samples.pop_front();
+    }
+    let pps = stats.window_packets as f64 / PPS_BPS_WINDOW_S;
+    let bps = stats.window_bytes as f64 / PPS_BPS_WINDOW_S;
+    stats.peak_pps = Some(stats.peak_pps.map_or(pps, |peak| peak.max(pps)));
+    stats.peak_bps = Some(stats.peak_bps.map_or(bps, |peak| peak.max(bps)));
+    stats.peak_window_packets = stats.peak_window_packets.max(stats.window_packets);
+    stats.peak_window_bytes = stats.peak_window_bytes.max(stats.window_bytes);
 }
 
 #[cfg(test)]
@@ -194,30 +220,27 @@ mod tests {
     }
 
     #[test]
-    fn summaries_compute_rates_when_duration_known() {
+    fn summaries_compute_peak_rates_from_window() {
         let mut stats = HashMap::new();
         let a: IpAddr = "10.0.0.1".parse().unwrap();
         let b: IpAddr = "10.0.0.2".parse().unwrap();
+        let packet = UdpPacket {
+            src_ip: a,
+            src_port: 1000,
+            dst_ip: b,
+            dst_port: 2000,
+            payload: &[0u8; 10],
+        };
 
-        stats.insert(
-            FlowKey {
-                src_ip: a,
-                src_port: 1000,
-                dst_ip: b,
-                dst_port: 2000,
-            },
-            FlowStats {
-                packets: 10,
-                bytes: 100,
-                ..Default::default()
-            },
-        );
+        add_flow_stats(&mut stats, &packet, Some(0.0));
+        add_flow_stats(&mut stats, &packet, Some(0.2));
+        add_flow_stats(&mut stats, &packet, Some(0.4));
+        add_flow_stats(&mut stats, &packet, Some(2.0));
 
         let summaries = build_flow_summaries(stats, Some(2.0));
-        assert_eq!(summaries.len(), 1);
         let summary = &summaries[0];
-        assert_eq!(summary.pps, Some(5.0));
-        assert_eq!(summary.bps, Some(50.0));
+        assert_eq!(summary.pps, Some(3.0));
+        assert_eq!(summary.bps, Some(30.0));
     }
 
     #[test]
@@ -258,5 +281,47 @@ mod tests {
         let summaries = build_flow_summaries(stats, None);
         let summary = &summaries[0];
         assert!(summary.iat_jitter_ms.is_none());
+    }
+
+    #[test]
+    fn flow_max_iat_ms_is_reported() {
+        let mut stats = HashMap::new();
+        let packet = UdpPacket {
+            src_ip: "10.0.0.1".parse().unwrap(),
+            src_port: 1000,
+            dst_ip: "10.0.0.2".parse().unwrap(),
+            dst_port: 2000,
+            payload: &[0u8; 10],
+        };
+
+        add_flow_stats(&mut stats, &packet, Some(0.0));
+        add_flow_stats(&mut stats, &packet, Some(0.5));
+        add_flow_stats(&mut stats, &packet, Some(2.0));
+
+        let summaries = build_flow_summaries(stats, Some(2.0));
+        let summary = &summaries[0];
+        assert_eq!(summary.max_iat_ms, Some(1500));
+    }
+
+    #[test]
+    fn flow_peak_1s_metrics_are_reported() {
+        let mut stats = HashMap::new();
+        let packet = UdpPacket {
+            src_ip: "10.0.0.1".parse().unwrap(),
+            src_port: 1000,
+            dst_ip: "10.0.0.2".parse().unwrap(),
+            dst_port: 2000,
+            payload: &[0u8; 10],
+        };
+
+        add_flow_stats(&mut stats, &packet, Some(0.0));
+        add_flow_stats(&mut stats, &packet, Some(0.2));
+        add_flow_stats(&mut stats, &packet, Some(0.4));
+        add_flow_stats(&mut stats, &packet, Some(2.0));
+
+        let summaries = build_flow_summaries(stats, Some(2.0));
+        let summary = &summaries[0];
+        assert_eq!(summary.pps_peak_1s, Some(3));
+        assert_eq!(summary.bps_peak_1s, Some(30));
     }
 }

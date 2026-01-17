@@ -60,18 +60,18 @@ fn golden_artnet_gap() {
 fn golden_artnet_burst_has_burst_metrics() {
     let report = load_expected_report("tests/golden/artnet_burst");
     let summary = &report.universes[0];
-    assert_eq!(summary.burst_count, Some(2));
-    assert_eq!(summary.max_burst_len, Some(3));
-    assert_eq!(summary.loss_packets, Some(5));
+    assert!(summary.burst_count.is_none());
+    assert!(summary.max_burst_len.is_none());
+    assert!(summary.loss_packets.is_none());
 }
 
 #[test]
 fn golden_artnet_gap_has_gap_metrics() {
     let report = load_expected_report("tests/golden/artnet_gap");
     let summary = &report.universes[0];
-    assert_eq!(summary.burst_count, Some(1));
-    assert_eq!(summary.max_burst_len, Some(7));
-    assert_eq!(summary.loss_packets, Some(7));
+    assert!(summary.burst_count.is_none());
+    assert!(summary.max_burst_len.is_none());
+    assert!(summary.loss_packets.is_none());
 }
 
 #[test]
@@ -108,6 +108,11 @@ fn golden_flow_only() {
 }
 
 #[test]
+fn golden_flow_peak_and_maxgap() {
+    run_golden("tests/golden/flow_peak_and_maxgap");
+}
+
+#[test]
 fn golden_artnet_invalid_length() {
     run_golden("tests/golden/artnet_invalid_length");
 }
@@ -115,4 +120,17 @@ fn golden_artnet_invalid_length() {
 #[test]
 fn golden_sacn_invalid_start_code() {
     run_golden("tests/golden/sacn_invalid_start_code");
+}
+
+#[test]
+fn golden_sacn_dup_reorder() {
+    run_golden("tests/golden/sacn_dup_reorder");
+}
+
+#[test]
+fn golden_sacn_dup_reorder_has_metrics() {
+    let report = load_expected_report("tests/golden/sacn_dup_reorder");
+    let summary = &report.universes[0];
+    assert_eq!(summary.dup_packets, Some(1));
+    assert_eq!(summary.reordered_packets, Some(1));
 }

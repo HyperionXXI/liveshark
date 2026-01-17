@@ -39,6 +39,7 @@ fn main() -> Result<(), String> {
     let root = PathBuf::from("tests/golden");
     write_sacn_fixtures(&root)?;
     write_artnet_fixtures(&root)?;
+    write_flow_fixtures(&root)?;
     Ok(())
 }
 
@@ -51,6 +52,10 @@ fn write_sacn_fixtures(root: &Path) -> Result<(), String> {
         root.join("sacn_gap").join("input.pcapng"),
         CaptureSpec::sacn(vec![1, 2, 10]),
     )?;
+    write_capture(
+        root.join("sacn_dup_reorder").join("input.pcapng"),
+        CaptureSpec::sacn(vec![10, 10, 9, 10]),
+    )?;
     Ok(())
 }
 
@@ -62,6 +67,15 @@ fn write_artnet_fixtures(root: &Path) -> Result<(), String> {
     write_capture(
         root.join("artnet_gap").join("input.pcapng"),
         CaptureSpec::artnet(vec![1, 2, 10]),
+    )?;
+    Ok(())
+}
+
+fn write_flow_fixtures(root: &Path) -> Result<(), String> {
+    write_flow_capture(
+        root.join("flow_peak_and_maxgap").join("input.pcapng"),
+        &[0, 200_000, 400_000, 2_000_000],
+        10,
     )?;
     Ok(())
 }
@@ -115,6 +129,28 @@ fn write_capture(path: PathBuf, spec: CaptureSpec) -> Result<(), String> {
         let ts_us = (idx as u64) * 1_000_000;
         packets.push((ts_us, frame));
     }
+
+    write_pcapng(&path, &packets)?;
+    Ok(())
+}
+
+fn write_flow_capture(
+    path: PathBuf,
+    timestamps_us: &[u64],
+    payload_len: usize,
+) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|err| format!("failed to create {}: {}", parent.display(), err))?;
+    }
+
+    let payload = vec![0x42u8; payload_len];
+    let frame = build_ipv4_udp_packet("10.0.0.1", "10.0.0.2", 1000, 2000, &payload);
+    let packets = timestamps_us
+        .iter()
+        .copied()
+        .map(|ts| (ts, frame.clone()))
+        .collect::<Vec<_>>();
 
     write_pcapng(&path, &packets)?;
     Ok(())

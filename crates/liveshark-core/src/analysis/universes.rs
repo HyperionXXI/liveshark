@@ -377,6 +377,8 @@ fn compute_metrics(per_source: &HashMap<String, UniverseSourceStats>) -> Univers
         burst_count,
         max_burst_len,
         jitter_ms,
+        dup_packets,
+        reordered_packets,
     }
 }
 
@@ -719,10 +721,10 @@ mod tests {
     #[test]
     fn jitter_uses_sliding_window() {
         let mut source_stats = UniverseSourceStats::default();
-        update_source_stats(&mut source_stats, None, Some(0.0));
-        update_source_stats(&mut source_stats, None, Some(1.0));
-        update_source_stats(&mut source_stats, None, Some(2.0));
-        update_source_stats(&mut source_stats, None, Some(13.0));
+        update_source_stats(&mut source_stats, true, None, Some(0.0));
+        update_source_stats(&mut source_stats, true, None, Some(1.0));
+        update_source_stats(&mut source_stats, true, None, Some(2.0));
+        update_source_stats(&mut source_stats, true, None, Some(13.0));
 
         let mut per_source = HashMap::new();
         per_source.insert("artnet:10.0.0.1:6454".to_string(), source_stats);
@@ -777,6 +779,57 @@ mod tests {
         let metrics = compute_metrics(&per_source);
         assert_eq!(metrics.loss_packets, Some(2));
         assert_eq!(metrics.loss_rate, Some(0.5));
+    }
+
+    #[test]
+    fn artnet_without_sequence_omits_loss_and_bursts() {
+        let mut per_source = HashMap::new();
+        per_source.insert(
+            "artnet:10.0.0.1:6454".to_string(),
+            UniverseSourceStats {
+                frames: 5,
+                ..UniverseSourceStats::default()
+            },
+        );
+
+        let metrics = compute_metrics(&per_source);
+        assert!(metrics.loss_packets.is_none());
+        assert!(metrics.loss_rate.is_none());
+        assert!(metrics.burst_count.is_none());
+        assert!(metrics.max_burst_len.is_none());
+    }
+
+    #[test]
+    fn sacn_dup_packets_are_counted() {
+        let mut stats = UniverseSourceStats::default();
+        update_source_stats(&mut stats, true, Some(10), Some(0.0));
+        update_source_stats(&mut stats, true, Some(10), Some(1.0));
+        update_source_stats(&mut stats, true, Some(11), Some(2.0));
+
+        assert_eq!(stats.dup_packets, 1);
+        assert_eq!(stats.reordered_packets, 0);
+    }
+
+    #[test]
+    fn sacn_reordered_packets_are_counted() {
+        let mut stats = UniverseSourceStats::default();
+        update_source_stats(&mut stats, true, Some(10), Some(0.0));
+        update_source_stats(&mut stats, true, Some(9), Some(1.0));
+        update_source_stats(&mut stats, true, Some(11), Some(2.0));
+
+        assert_eq!(stats.dup_packets, 0);
+        assert_eq!(stats.reordered_packets, 1);
+    }
+
+    #[test]
+    fn sacn_wraparound_is_not_reordered() {
+        let mut stats = UniverseSourceStats::default();
+        update_source_stats(&mut stats, true, Some(254), Some(0.0));
+        update_source_stats(&mut stats, true, Some(255), Some(1.0));
+        update_source_stats(&mut stats, true, Some(0), Some(2.0));
+        update_source_stats(&mut stats, true, Some(1), Some(3.0));
+
+        assert_eq!(stats.reordered_packets, 0);
     }
 
     #[test]
