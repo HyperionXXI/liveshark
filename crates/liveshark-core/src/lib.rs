@@ -388,3 +388,76 @@ pub fn make_stub_report(input_path: &str, input_bytes: u64) -> Report {
         compliance: vec![],
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn report_omits_optional_fields_when_none() {
+        let report = Report {
+            report_version: REPORT_VERSION,
+            tool: ToolInfo {
+                name: "liveshark".to_string(),
+                version: "0.1.0".to_string(),
+            },
+            generated_at: DEFAULT_GENERATED_AT.to_string(),
+            input: InputInfo {
+                path: "capture.pcapng".to_string(),
+                bytes: 1,
+            },
+            capture_summary: Some(CaptureSummary {
+                packets_total: 1,
+                time_start: None,
+                time_end: None,
+            }),
+            universes: vec![UniverseSummary {
+                universe: 1,
+                proto: "artnet".to_string(),
+                sources: vec![SourceSummary {
+                    source_ip: "10.0.0.1".to_string(),
+                    cid: None,
+                    source_name: None,
+                }],
+                fps: None,
+                frames_count: 1,
+                loss_packets: None,
+                loss_rate: None,
+                burst_count: None,
+                max_burst_len: None,
+                jitter_ms: None,
+                dup_packets: None,
+                reordered_packets: None,
+            }],
+            flows: vec![FlowSummary {
+                app_proto: "udp".to_string(),
+                src: "10.0.0.1:1000".to_string(),
+                dst: "10.0.0.2:2000".to_string(),
+                pps: None,
+                bps: None,
+                iat_jitter_ms: None,
+                max_iat_ms: None,
+                pps_peak_1s: None,
+                bps_peak_1s: None,
+            }],
+            conflicts: vec![],
+            compliance: vec![],
+        };
+
+        let value = serde_json::to_value(&report).expect("report json");
+        let capture = value.get("capture_summary").expect("capture_summary");
+        assert!(capture.get("time_start").is_none());
+        assert!(capture.get("time_end").is_none());
+
+        let universe = &value["universes"][0];
+        assert!(universe.get("fps").is_none());
+        let source = &universe["sources"][0];
+        assert!(source.get("cid").is_none());
+        assert!(source.get("source_name").is_none());
+
+        let flow = &value["flows"][0];
+        assert!(flow.get("pps").is_none());
+        assert!(flow.get("bps").is_none());
+        assert!(flow.get("iat_jitter_ms").is_none());
+    }
+}
