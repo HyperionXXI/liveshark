@@ -74,8 +74,16 @@ pub(crate) fn build_flow_summaries(
                 ),
                 _ => (None, None),
             };
-            let pps = stats.peak_pps;
-            let bps = stats.peak_bps;
+            let (pps, bps) = match (stats.first_ts, stats.last_ts) {
+                (Some(start), Some(end)) if end > start && stats.iat_count > 0 => {
+                    let duration_s = end - start;
+                    (
+                        Some(stats.packets as f64 / duration_s),
+                        Some(stats.bytes as f64 / duration_s),
+                    )
+                }
+                _ => (None, None),
+            };
             let iat_jitter_ms = stats.jitter_peak.map(|value| value * 1000.0);
 
             FlowSummary {
@@ -220,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn summaries_compute_peak_rates_from_window() {
+    fn summaries_compute_average_rates_from_active_interval() {
         let mut stats = HashMap::new();
         let a: IpAddr = "10.0.0.1".parse().unwrap();
         let b: IpAddr = "10.0.0.2".parse().unwrap();
@@ -239,8 +247,8 @@ mod tests {
 
         let summaries = build_flow_summaries(stats, Some(2.0));
         let summary = &summaries[0];
-        assert_eq!(summary.pps, Some(3.0));
-        assert_eq!(summary.bps, Some(30.0));
+        assert_eq!(summary.pps, Some(2.0));
+        assert_eq!(summary.bps, Some(20.0));
     }
 
     #[test]

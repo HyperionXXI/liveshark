@@ -35,7 +35,7 @@ pub use analysis::{AnalysisError, analyze_pcap_file, analyze_source};
 pub use source::{PacketEvent, PacketSource, PcapFileSource, SourceError};
 
 /// Current report schema version.
-pub const REPORT_VERSION: u32 = 2;
+pub const REPORT_VERSION: u32 = 1;
 /// Default timestamp used when no capture time is available.
 pub const DEFAULT_GENERATED_AT: &str = "1970-01-01T00:00:00Z";
 
@@ -60,6 +60,7 @@ pub struct Report {
     /// Input capture metadata.
     pub input: InputInfo,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Optional capture summary (may be empty when unavailable).
     pub capture_summary: Option<CaptureSummary>,
     /// Per-universe summaries in stable order.
@@ -129,8 +130,10 @@ pub struct InputInfo {
 pub struct CaptureSummary {
     /// Total packet count observed in the capture.
     pub packets_total: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// RFC3339 timestamp of the first packet (if known).
     pub time_start: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// RFC3339 timestamp of the last packet (if known).
     pub time_end: Option<String>,
 }
@@ -165,6 +168,7 @@ pub struct UniverseSummary {
     pub proto: String,
     /// Observed sources for this universe (stable order).
     pub sources: Vec<SourceSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Frames-per-second metric (windowed).
     pub fps: Option<f64>,
     /// Number of reconstructed frames.
@@ -209,8 +213,10 @@ pub struct UniverseSummary {
 pub struct SourceSummary {
     /// Source IP address as a string.
     pub source_ip: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// sACN CID in canonical form, when available.
     pub cid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// sACN source name, when available.
     pub source_name: Option<String>,
 }
@@ -242,10 +248,13 @@ pub struct FlowSummary {
     pub src: String,
     /// Destination endpoint in `ip:port` form.
     pub dst: String,
-    /// Packets per second (windowed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Packets per second (flow active interval average).
     pub pps: Option<f64>,
-    /// Bytes per second (windowed).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Bytes per second (flow active interval average).
     pub bps: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Inter-arrival jitter in milliseconds (windowed).
     pub iat_jitter_ms: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
