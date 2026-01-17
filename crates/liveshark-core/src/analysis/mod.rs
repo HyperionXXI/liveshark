@@ -6,8 +6,13 @@
 //!
 //! Invariants:
 //! - Output lists are sorted deterministically (universes, flows, conflicts, compliance).
-//! - Metrics use fixed sliding windows (see `flows` and `universes`).
+//! - Sliding-window metrics use the same inclusion rule across modules.
 //! - DMX reconstruction is stateful per (universe, source, protocol).
+//!
+//! Version française (résumé):
+//! Ce module orchestre l'analyse de bout en bout et produit un rapport stable.
+//! Les listes sont triées de manière déterministe, les fenêtres glissantes
+//! appliquent une convention unique, et la reconstruction DMX se fait avec état.
 
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -64,6 +69,16 @@ pub enum AnalysisError {
 ///
 /// # Errors
 /// Returns `AnalysisError` when the file cannot be opened or parsed.
+///
+/// # Examples
+/// ```no_run
+/// use liveshark_core::analyze_pcap_file;
+/// use std::path::Path;
+///
+/// let report = analyze_pcap_file(Path::new("capture.pcapng"))?;
+/// assert!(report.report_version >= 1);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn analyze_pcap_file(path: &Path) -> Result<Report, AnalysisError> {
     let source = PcapFileSource::open(path)?;
     analyze_source(path, source)
@@ -74,6 +89,26 @@ pub fn analyze_pcap_file(path: &Path) -> Result<Report, AnalysisError> {
 /// # Errors
 /// Returns `AnalysisError` for I/O or parsing failures originating from the
 /// packet source.
+///
+/// # Examples
+/// ```no_run
+/// use liveshark_core::{analyze_source, PacketSource, SourceError};
+/// use std::path::Path;
+///
+/// struct EmptySource;
+///
+/// impl PacketSource for EmptySource {
+///     fn next_packet(
+///         &mut self,
+///     ) -> Result<Option<liveshark_core::PacketEvent>, SourceError> {
+///         Ok(None)
+///     }
+/// }
+///
+/// let report = analyze_source(Path::new("empty.pcapng"), EmptySource)?;
+/// assert!(report.flows.is_empty());
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn analyze_source<S: PacketSource>(
     path: &Path,
     mut source: S,

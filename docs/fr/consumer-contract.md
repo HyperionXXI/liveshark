@@ -1,21 +1,21 @@
 # Contrat de consommation du rapport JSON LiveShark
 
-Ce document est un guide de compatibilite concis pour les consommateurs des rapports LiveShark.
-Il ne remplace pas la specification ; la spec fait foi.
+Ce document est un guide de compatibilité concis pour les consommateurs des rapports LiveShark.
+Il ne remplace pas la spécification ; la spec fait foi.
 
-## Regles de compatibilite
+## Règles de compatibilité
 
 - Les ajouts de champs sont non bloquants.
 - Un consommateur DOIT ignorer les champs inconnus.
-- Les champs optionnels sont omis lorsqu'ils ne sont pas calculables ; l'absence ne signifie pas zero.
-- `report_version` designe le schema de base et ne change pas forcement pour les ajouts additifs.
-- La perte est rapportee uniquement si des numeros de sequence existent (ex. sACN).
+- Les champs optionnels sont omis lorsqu'ils ne sont pas calculables ; l'absence ne signifie pas zéro.
+- `report_version` désigne le schéma de base et ne change pas forcément pour les ajouts additifs.
+- La perte est rapportée uniquement si des numéros de séquence existent (ex. sACN).
 
-## Convention de fenetres (metriques)
+## Convention de fenêtres (métriques)
 
-Toutes les fenetres glissantes incluent les paquets dont l'horodatage est dans `[t - W, t]` (bornes incluses).
+Toutes les fenêtres glissantes incluent les paquets dont l'horodatage est dans `[t - W, t]` (bornes incluses).
 
-## Exemple minimal (presence vs absence)
+## Exemple minimal (présence vs absence)
 
 ```json
 {
@@ -26,9 +26,9 @@ Toutes les fenetres glissantes incluent les paquets dont l'horodatage est dans `
 }
 ```
 
-L'absence de `pps` ou `bps` ci-dessus signifie que les valeurs ne sont pas calculables, pas zero.
+L'absence de `pps` ou `bps` ci-dessus signifie que les valeurs ne sont pas calculables, pas zéro.
 
-## Exemple (metriques optionnelles presentes)
+## Exemple (métriques optionnelles présentes)
 
 ```json
 {

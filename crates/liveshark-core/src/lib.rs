@@ -1,18 +1,27 @@
 //! LiveShark core library for post-mortem PCAP analysis.
 //!
-//! This crate exposes the analysis pipeline used by the CLI and tests:
+//! This crate implements the offline analysis pipeline used by the CLI:
 //! packet sources feed the analysis layer, which drives protocol decoders
 //! (layout/reader/parser) and aggregates results into a deterministic report.
 //! Parsing is byte-oriented and side-effect free; all I/O is isolated in
-//! `source` modules.
+//! `source` modules. Protocol conventions are captured in readers so parsers
+//! stay minimal and consistent with the spec.
 //!
-//! Key guarantees:
+//! Invariants:
 //! - Report outputs are deterministic and stable across runs.
-//! - DMX frames are reconstructed statefully from partial payloads.
+//! - DMX frames are reconstructed statefully per universe/source/protocol.
+//! - Sliding-window metrics use a single, explicit inclusion rule.
 //!
 //! References (normative):
 //! - `docs/RUST_ARCHITECTURE.md`
 //! - `spec/en/LiveShark_Spec.tex`
+//!
+//! Version française (résumé):
+//! Cette crate fournit le cœur d'analyse hors ligne : sources -> analyse ->
+//! décodeurs de protocoles (layout/reader/parser) -> rapport déterministe.
+//! Les E/S restent dans `source`, les conventions de protocole dans les `reader`.
+//! Garanties : ordre stable du rapport, reconstruction DMX avec état, fenêtres
+//! glissantes définies de manière unique. Voir la spec EN pour la référence.
 //!
 //! # Examples
 //! ```no_run
@@ -60,8 +69,8 @@ pub struct Report {
     /// Input capture metadata.
     pub input: InputInfo,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Optional capture summary (may be empty when unavailable).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub capture_summary: Option<CaptureSummary>,
     /// Per-universe summaries in stable order.
     pub universes: Vec<UniverseSummary>,
@@ -130,11 +139,11 @@ pub struct InputInfo {
 pub struct CaptureSummary {
     /// Total packet count observed in the capture.
     pub packets_total: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// RFC3339 timestamp of the first packet (if known).
-    pub time_start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_start: Option<String>,
     /// RFC3339 timestamp of the last packet (if known).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub time_end: Option<String>,
 }
 
@@ -168,31 +177,31 @@ pub struct UniverseSummary {
     pub proto: String,
     /// Observed sources for this universe (stable order).
     pub sources: Vec<SourceSummary>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Frames-per-second metric (windowed).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fps: Option<f64>,
     /// Number of reconstructed frames.
     pub frames_count: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Observed loss packets, when sequence tracking is available.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub loss_packets: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Observed loss rate, when sequence tracking is available.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub loss_rate: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Number of bursts detected within the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub burst_count: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Maximum burst length observed within the window.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_burst_len: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Inter-arrival jitter in milliseconds, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub jitter_ms: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Duplicate sACN packets observed (sequence tracked only).
-    pub dup_packets: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub dup_packets: Option<u64>,
     /// Reordered sACN packets observed (sequence tracked only).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reordered_packets: Option<u64>,
 }
 
@@ -213,11 +222,11 @@ pub struct UniverseSummary {
 pub struct SourceSummary {
     /// Source IP address as a string.
     pub source_ip: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// sACN CID in canonical form, when available.
-    pub cid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub cid: Option<String>,
     /// sACN source name, when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source_name: Option<String>,
 }
 
@@ -248,23 +257,23 @@ pub struct FlowSummary {
     pub src: String,
     /// Destination endpoint in `ip:port` form.
     pub dst: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Packets per second (flow active interval average).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pps: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Bytes per second (flow active interval average).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bps: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Inter-arrival jitter in milliseconds (windowed).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub iat_jitter_ms: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Maximum inter-arrival time in milliseconds.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_iat_ms: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     /// Peak packets per second over a 1s window.
-    pub pps_peak_1s: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub pps_peak_1s: Option<u64>,
     /// Peak bytes per second over a 1s window.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bps_peak_1s: Option<u64>,
 }
 
@@ -354,8 +363,8 @@ pub struct Violation {
     pub message: String,
     /// Number of occurrences aggregated into this violation.
     pub count: u64,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     /// At most three example contexts, formatted as `source ip:port @ ts; ...`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub examples: Vec<String>,
 }
 

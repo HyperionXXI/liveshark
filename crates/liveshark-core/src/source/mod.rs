@@ -2,7 +2,11 @@
 //!
 //! Sources abstract over capture inputs (pcap/pcapng today) and keep I/O
 //! separate from protocol parsing. A `PacketSource` yields raw packets in
-//! capture order with optional timestamps.
+//! capture order with optional timestamps and linktype metadata.
+//!
+//! Version française (résumé):
+//! Les sources encapsulent l'entrée PCAP/PCAPNG et isolent les E/S du décodage.
+//! Elles fournissent des paquets bruts, ordonnés, avec horodatage optionnel.
 
 mod pcap;
 
@@ -36,6 +40,24 @@ pub struct PacketEvent {
 }
 
 /// Abstract packet source for the analysis pipeline.
+///
+/// # Examples
+/// ```
+/// use liveshark_core::{PacketEvent, PacketSource, SourceError};
+/// use pcap_parser::Linktype;
+///
+/// struct OnePacket;
+///
+/// impl PacketSource for OnePacket {
+///     fn next_packet(&mut self) -> Result<Option<PacketEvent>, SourceError> {
+///         Ok(Some(PacketEvent {
+///             ts: Some(0.0),
+///             linktype: Linktype::ETHERNET,
+///             data: vec![0u8; 4],
+///         }))
+///     }
+/// }
+/// ```
 pub trait PacketSource {
     /// Returns the next packet event, or `None` at end of stream.
     fn next_packet(&mut self) -> Result<Option<PacketEvent>, SourceError>;
