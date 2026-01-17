@@ -18,6 +18,7 @@
 //! déterministe. Les erreurs sont affichées sur stderr et retournent un code
 //! non nul en cas d'échec.
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::thread;
@@ -435,6 +436,7 @@ fn cmd_pcap_follow(
     }
 
     let mut last_seen: Option<FollowSeen> = None;
+    let mut force_retry = false;
     let mut last_violations: Option<Vec<ViolationSummary>> = None;
     let mut last_warning: Option<Instant> = None;
     let mut iterations = 0u64;
@@ -465,9 +467,9 @@ fn cmd_pcap_follow(
         if rotated {
             last_violations = None;
         }
-        last_seen = Some(current);
+        let do_analyze = changed || force_retry;
 
-        if !changed {
+        if !do_analyze {
             if !quiet {
                 eprintln!("follow: no change");
             }
@@ -481,6 +483,8 @@ fn cmd_pcap_follow(
 
         match liveshark_core::analyze_pcap_file(&resolved_input) {
             Ok(rep) => {
+                force_retry = false;
+                last_seen = Some(current);
                 let json = serialize_json(&rep, pretty, compact)?;
                 if stdout {
                     println!("{}", json);
@@ -490,7 +494,9 @@ fn cmd_pcap_follow(
 
                 if list_violations && !quiet {
                     let summary = violations_summary(&rep);
-                    if last_violations.as_ref() != Some(&summary) {
+                    if summary.is_empty() {
+                        last_violations = Some(summary);
+                    } else if last_violations.as_ref() != Some(&summary) {
                         print_violations_summary(&summary);
                         last_violations = Some(summary);
                     }
@@ -512,9 +518,12 @@ fn cmd_pcap_follow(
             }
             Err(err) => {
                 if is_transient_error(&err) {
+                    force_retry = true;
                     if !quiet && should_warn(&mut last_warning) {
-                        eprintln!("warning: capture appears incomplete; retrying ({})", err);
+                        eprintln!("warning: follow transient: {}", err);
                     }
+                    sleep_interval(interval);
+                    continue;
                 } else {
                     return Err(CliError::new(
                         format!("PCAP/PCAPNG analysis failed: {err}"),
@@ -581,6 +590,9 @@ fn violations_summary(rep: &liveshark_core::Report) -> Vec<ViolationSummary> {
 }
 
 fn print_violations_summary(summary: &[ViolationSummary]) {
+    if summary.is_empty() {
+        return;
+    }
     eprintln!("Compliance violations:");
     for item in summary {
         eprintln!("  {} {} ({})", item.protocol, item.id, item.count);
@@ -625,18 +637,20 @@ fn write_report_atomic(path: &Path, json: &str) -> Result<(), CliError> {
     tmp.push(".tmp");
     let tmp_path = PathBuf::from(tmp);
 
-    fs::write(&tmp_path, json)
+    let mut file = fs::File::create(&tmp_path)
         .with_context(|| format!("Failed to write report: {}", tmp_path.display()))?;
+    file.write_all(json.as_bytes())
+        .with_context(|| format!("Failed to write report: {}", tmp_path.display()))?;
+    file.sync_all()
+        .with_context(|| format!("Failed to write report: {}", tmp_path.display()))?;
+    drop(file);
 
-    let mut last_err: Option<std::io::Error> = None;
+    let mut last_err: Option<io::Error> = None;
     for attempt in 0..5u32 {
-        match fs::rename(&tmp_path, path) {
+        match replace_file_atomic(&tmp_path, path) {
             Ok(()) => return Ok(()),
             Err(err) => {
                 last_err = Some(err);
-                if path.exists() {
-                    let _ = fs::remove_file(path);
-                }
                 if attempt < 4 {
                     thread::sleep(Duration::from_millis(50));
                 }
@@ -655,9 +669,40 @@ fn write_report_atomic(path: &Path, json: &str) -> Result<(), CliError> {
     ))
 }
 
+#[cfg(windows)]
+fn replace_file_atomic(tmp: &Path, dest: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::{
+        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
+    };
+
+    let tmp_w: Vec<u16> = tmp.as_os_str().encode_wide().chain(Some(0)).collect();
+    let dest_w: Vec<u16> = dest.as_os_str().encode_wide().chain(Some(0)).collect();
+    let result = unsafe {
+        MoveFileExW(
+            tmp_w.as_ptr(),
+            dest_w.as_ptr(),
+            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+        )
+    };
+    if result == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn replace_file_atomic(tmp: &Path, dest: &Path) -> io::Result<()> {
+    fs::rename(tmp, dest)
+}
+
 fn is_transient_error(err: &dyn std::fmt::Display) -> bool {
     let msg = err.to_string().to_lowercase();
-    msg.contains("incomplete") || msg.contains("unexpected end") || msg.contains("eof")
+    msg.contains("incomplete")
+        || msg.contains("unexpected end")
+        || msg.contains("eof")
+        || msg.contains("too short")
+        || msg.contains("failed to fill whole buffer")
 }
 
 fn should_warn(last_warning: &mut Option<Instant>) -> bool {
