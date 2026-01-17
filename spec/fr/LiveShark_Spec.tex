@@ -139,7 +139,7 @@ La capture en direct est un objectif futur et \PEUT{} être ajoutée plus tard v
 LiveShark est conçu comme un analyseur \emph{hors ligne en priorité} : les premières versions se concentrent sur l'analyse a posteriori
 de captures PCAP/PCAPNG afin de maximiser la robustesse, la reproductibilité et la simplicité de support.
 Il s'agit d'un choix d'ingénierie volontaire, et non d'une limitation produit.
-La capture en direct / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cÅ“ur hors ligne validé.
+La capture en direct / l'analyse en ligne est un objectif futur explicite et \PEUT{} être implémentée une fois le cœur hors ligne validé.
 
 \textbf{Compatibilité future.} La chaîne d'analyse \DOIT{} être architecturé afin que l'entrée des paquets puisse provenir :
 (a) d'un lecteur de fichiers (PCAP/PCAPNG), ou (b) d'une source de capture en direct (future).
@@ -192,21 +192,21 @@ est un objectif futur (v0.3+) conforme à l'exigence d'abstraction d'entrée en 
 \section{Métriques (valeurs par défaut)}
 Par défaut :
 \begin{itemize}
-  \item \textbf{Fenêtre pps/bps :} 1.0 s (glissante)
   \item \textbf{Fenêtre fps :} 5.0 s (glissante)
   \item \textbf{Fenêtre gigue :} 10.0 s (glissante)
+  \item \textbf{Fenêtre de pic :} 1.0 s (glissante) pour \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s}
 \end{itemize}
 \subsection{Définitions des métriques (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres. Si les échantillons de fenêtre sont indisponibles, les valeurs sont omises. (Rapporté dans \texttt{flows[]}.)
+  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}.)
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s.
   \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
   \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
 Voir l'Appendice D pour les définitions opérationnelles et les unités.
 
-\paragraph{Métriques diagnostiques supplémentaires v0.2}
-Ces champs sont des ajouts optionnels du schéma de rapport v0.2 ; les consommateurs v0.1 restent compatibles en ignorant les champs inconnus.
+\paragraph{Métriques diagnostiques supplémentaires (additives)}
+Ces champs sont des ajouts optionnels ; un ajout additif \NEDOITPAS{} incrémenter \texttt{report\_version}.
 \begin{itemize}
   \item \textbf{max\_iat\_ms (flux) :} par flux UDP, maximum des intervalles d'arrivée $\max(t_i - t_{i-1})$ sur toute la capture. Unité : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatés existent pour le flux.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flux) :} par flux UDP, pics de charge (paquets/s et octets/s) sur fenêtre \emph{glissante} de 1.0 s. Règle : inclure les paquets dont l'horodatage est dans $[t-1.0, t]$ (bornes incluses). Reporter le maximum des comptes de fenêtre en entier. Omettre si le flux a moins de deux paquets horodatés ou si la durée couverte est $< 1.0$ s.
@@ -214,12 +214,13 @@ Ces champs sont des ajouts optionnels du schéma de rapport v0.2 ; les consommat
 \end{itemize}
 
 
+
 \section{Exigences contractuelles (extrait)}
 Ce document est une base de démarrage : les exigences sont volontairement minimales.
 
 \subsection{Priorité P0 (fondations MVP)}
 \begin{reqbox}{LS-ARCH-001}{P0}{}
-Le cÅ“ur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
+Le cœur \DOIT{} exposer une abstraction d’entrée paquets/événements afin que l’analyse puisse être alimentée par :
 (a) un lecteur PCAP/PCAPNG (v0.1), et (b) une source de capture en direct (future), sans modifier le modèle métier ni le schéma de rapport.
 \end{reqbox}
 
@@ -325,7 +326,7 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
 \subsection{Appendice A --- Contrat du rapport JSON (v0.1)}
 \subsubsection{Schéma minimal (champs et types)}
 \begin{itemize}
-  \item \texttt{report\_version} : entier (version de sch?ma ; v0.1 = 1, v0.2 = 2).
+  \item \texttt{report\_version} : entier (version de schéma ; n'est incrémentée qu'en cas de rupture de compatibilité ; les ajouts additifs de champs optionnels n'incrémentent pas la version).
   \item \texttt{tool.name} et \texttt{tool.version} : chaînes (identification de l'outil).
   \item \texttt{generated\_at} : chaîne, horodatage RFC3339.
   \item \texttt{input.path} : chaîne ; \texttt{input.bytes} : entier.
@@ -339,9 +340,9 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
   \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels\\
   \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count},\\
   \texttt{max\_burst\_len}, \texttt{jitter\_ms}, \texttt{dup\_packets}, \texttt{reordered\_packets}
-  (v0.2 ; omis si indisponibles).
+  (omis si indisponibles).
   \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
-  et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s} optionnels (v0.2 ; omis si indisponibles).
+  et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s} optionnels (omis si indisponibles).
   \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
   \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne),\\
   \texttt{compliance\_percentage}\\
@@ -474,21 +475,21 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
 
 \subsection{Appendice D --- Définitions des métriques (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde sur une fenêtre glissante de 1.0 s ; unités paquets/s et octets/s. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres. Si les échantillons de fenêtre sont indisponibles, les valeurs sont omises. (Rapporté dans \texttt{flows[]}.)
+  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}.)
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
   \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
   \item \textbf{perte (observée) :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;\\
-  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)} pour les trames suivies par séquence.\\
-  Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)}\\
+  pour les trames suivies par séquence. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
   \item \textbf{rafales :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
   longueur maximale de rafale observée dans la même fenêtre. Si les numéros de séquence sont indisponibles, les champs de rafales \DOIT{} être omis.
 \end{itemize}
 
-\subsection{Appendice D.1 --- MÇ¸triques diagnostiques v0.2}
+\subsection{Appendice D.1 --- Métriques diagnostiques supplémentaires (additives)}
 \begin{itemize}
-  \item \textbf{max\_iat\_ms :} par flux, maximum des intervalles d'arrivÇ¸e $\max(t_i - t_{i-1})$ sur toute la capture. UnitÇ¸ : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatÇ¸s existent.
-  \item \textbf{pps\_peak\_1s / bps\_peak\_1s :} par flux, pics de charge (paquets/s et octets/s) sur une fenÇ¦tre glissante de 1.0 s, avec rÇùgle d'inclusion $[t-1.0, t]$. Reporter le maximum des comptes de fenÇ¦tre en entier. Omettre si moins de deux paquets horodatÇ¸s existent ou si la durÇ¸e couverte est $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets :} par univers, compteurs agrÇ¸gÇ¸s sur les sources sACN avec numÇ¸ros de sÇ¸quence. \texttt{dup\_packets} s'incrÇ¸mente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrÇ¸mente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$. Le wrap-around (ex. 254, 255, 0, 1) est dans l'ordre. Omettre si aucun numÇ¸ro de sÇ¸quence n'est disponible.
+  \item \textbf{max\_iat\_ms :} par flux, maximum des intervalles d'arrivée $\max(t_i - t_{i-1})$ sur toute la capture. Unité : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatés existent.
+  \item \textbf{pps\_peak\_1s / bps\_peak\_1s :} par flux, pics de charge (paquets/s et octets/s) sur une fenêtre glissante de 1.0 s, avec règle d'inclusion $[t-1.0, t]$. Reporter le maximum des comptes de fenêtre en entier. Omettre si moins de deux paquets horodatés existent ou si la durée couverte est $< 1.0$ s.
+  \item \textbf{dup\_packets / reordered\_packets :} par univers, compteurs agrégés sur les sources sACN avec numéros de séquence. \texttt{dup\_packets} s'incrémente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrémente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$. Le wrap-around (ex. 254, 255, 0, 1) est dans l'ordre. Omettre si aucun numéro de séquence n'est disponible.
 \end{itemize}
 
 \section{Licence}
@@ -503,15 +504,13 @@ Les fichiers PDF sont des artefacts de compilation générés depuis les sources
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
 RFC 8174 & Ambiguity of Uppercase vs Lowercase\\ in RFC 2119 Key Words \\
-RFC 3550 & RTP: A Transport Protocol for\\ Real-Time Applications \\
 ANSI E1.31-2018 & Streaming ACN (sACN) \\
 Art-Net 4 & Art-Net 4 Specification\\ (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
 
-\nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
+\nocite{rfc2119,rfc8174,e1312018,artnet4}
 \printbibliography
 
 \end{document}
-

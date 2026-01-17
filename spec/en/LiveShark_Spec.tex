@@ -178,22 +178,22 @@ aligned with the input abstraction requirement in P0.
 \section{Metrics (defaults)}
 Unless otherwise stated:
 \begin{itemize}
-  \item \textbf{pps/bps window:} 1.0 s sliding window
   \item \textbf{fps window:} 5.0 s sliding window
   \item \textbf{jitter window:} 10.0 s sliding window
+  \item \textbf{peak window:} 1.0 s sliding window (for \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s})
 \end{itemize}
 
 \subsection{Metrics definitions (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window. The reported value is the peak (maximum) over all windows; units are packets/s and bytes/s. If windowed sampling is unavailable, fields are omitted. (Reported in \texttt{flows[]}.)
+  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist or the active duration is unavailable. (Reported in \texttt{flows[]}.)
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
   \item \textbf{jitter (IAT):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
   \item \textbf{loss (observed):} when reliable protocol sequence numbers exist (v0.1: sACN), loss is reported as observed sequence gaps at the capture point. In v0.1, loss \MUST{} be reported only when sequence numbers exist; otherwise loss fields are omitted. This does not guarantee loss at the receiver.
 \end{itemize}
 See Appendix D for operational definitions and units.
 
-\paragraph{v0.2 additional diagnostic metrics}
-These fields are optional additions in report schema v0.2; v0.1 consumers remain compatible by ignoring unknown fields.
+\paragraph{Additional diagnostic metrics (additive)}
+These fields are optional additions; additive fields \MUSTNOT{} bump \texttt{report\_version}.
 \begin{itemize}
   \item \textbf{max\_iat\_ms (flows):} per UDP flow, maximum observed inter-arrival time $\max(t_i - t_{i-1})$ over the capture. Unit: milliseconds, integer rounded to nearest. Omit if fewer than two packets with timestamps exist for the flow.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flows):} per UDP flow, peak packets/s and bytes/s over a 1.0 s \emph{sliding} window. Window rule: include packets with timestamps in $[t-1.0, t]$ (inclusive of both ends). Report the maximum window count as an integer. Omit if the flow has fewer than two packets with timestamps or the covered duration is $< 1.0$ s.
@@ -315,7 +315,7 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
 \subsection{Appendix A --- JSON report contract (v0.1)}
 \subsubsection{Minimal schema (fields and types)}
 \begin{itemize}
-  \item \texttt{report\_version}: integer (schema version; v0.1 = 1, v0.2 = 2).
+  \item \texttt{report\_version}: integer (schema version). Additive optional fields \MUSTNOT{} bump this value.
   \item \texttt{tool.name} and \texttt{tool.version}: strings (tool identification).
   \item \texttt{generated\_at}: string, RFC3339 timestamp.
   \item \texttt{input.path}: string; \texttt{input.bytes}: integer.
@@ -327,11 +327,11 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
     \texttt{cid} is lowercase hex, 32 characters, no separators),
     \texttt{fps} (float or null), \texttt{frames\_count} (integer), and optional metric fields\\
     \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms},\\
-    \texttt{dup\_packets}, \texttt{reordered\_packets} (v0.2; omitted when unavailable)
+    \texttt{dup\_packets}, \texttt{reordered\_packets} (omitted when unavailable)
   (omitted when unavailable).
   \item \texttt{flows[]} elements contain: \texttt{app\_proto} (string), \texttt{src} (string), \texttt{dst} (string),
   and optional \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s}
-  (v0.2; omitted when unavailable).
+  (omitted when unavailable).
   \item \texttt{conflicts[]} elements are defined in Appendix C.
   \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 uses 100.0 as a placeholder),
   and \texttt{violations[]} (array of objects with: \texttt{id} (stable identifier), \texttt{severity} (string; v0.1 uses \texttt{warning} or \texttt{error}),
@@ -459,7 +459,7 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
 
 \subsection{Appendix D --- Metric definitions (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second over a 1.0 s sliding window; units are packets/s and bytes/s. The reported value is the peak (maximum) over all windows. If windowed samples are unavailable, values are omitted. (Reported in \texttt{flows[]}.)
+  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist or the active duration is unavailable. (Reported in \texttt{flows[]}.)
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
   \item \textbf{jitter (IAT):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
   \item \textbf{loss (observed):} for sources with reliable sequence numbers (v0.1: sACN), loss is the sum of observed sequence gaps over a 10.0 s sliding window;\\
@@ -468,7 +468,7 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
   \item \textbf{bursts:} for sequence-tracked sources (v0.1: sACN), \texttt{burst\_count} is the number of loss bursts over a 10.0 s sliding window; \texttt{max\_burst\_len} is the maximum burst length observed in the same window. If sequence numbers are unavailable, burst fields \MUST{} be omitted.
 \end{itemize}
 
-\subsection{Appendix D.1 --- v0.2 diagnostic metrics}
+\subsection{Appendix D.1 --- Additional diagnostic metrics (additive)}
 \begin{itemize}
   \item \textbf{max\_iat\_ms:} per flow, maximum observed inter-arrival time $\max(t_i - t_{i-1})$ over the capture. Unit: milliseconds, integer rounded to nearest. Omit when fewer than two packets with timestamps exist.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s:} per flow, peak packets/s and bytes/s over a 1.0 s sliding window, with inclusion rule $[t-1.0, t]$. Report the maximum window count as an integer. Omit when fewer than two packets with timestamps exist or when the covered duration is $< 1.0$ s.
@@ -487,14 +487,13 @@ PDF files are build artifacts generated from the \texttt{.tex} sources and \text
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
 RFC 8174 & Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words \\
-RFC 3550 & RTP: A Transport Protocol for Real-Time Applications \\
 ANSI E1.31-2018 & Streaming ACN (sACN) \\
 Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
 
-\nocite{rfc2119,rfc8174,rfc3550,e1312018,artnet4}
+\nocite{rfc2119,rfc8174,e1312018,artnet4}
 \printbibliography
 
 \end{document}
