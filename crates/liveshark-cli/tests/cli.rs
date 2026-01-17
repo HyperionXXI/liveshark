@@ -335,6 +335,52 @@ fn follow_list_violations_is_not_repeated() {
 }
 
 #[test]
+fn follow_transient_errors_retry_without_change() {
+    let temp = TempDir::new().expect("tempdir");
+    let input = temp.path().join("capture.pcapng");
+    std::fs::write(&input, []).expect("write truncated capture");
+
+    let assert = cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(&input)
+        .arg("--stdout")
+        .arg("--interval-ms")
+        .arg("5000")
+        .arg("--max-iterations")
+        .arg("2")
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf8 stderr");
+    assert!(stderr.matches("warning: follow transient:").count() >= 2);
+}
+
+#[test]
+fn follow_list_violations_is_silent_when_empty() {
+    let input = repo_root()
+        .join("tests")
+        .join("golden")
+        .join("flow_only")
+        .join("input.pcapng");
+    let assert = cmd()
+        .arg("pcap")
+        .arg("follow")
+        .arg(input)
+        .arg("--stdout")
+        .arg("--list-violations")
+        .arg("--interval-ms")
+        .arg("0")
+        .arg("--max-iterations")
+        .arg("1")
+        .assert()
+        .success();
+
+    let stderr = String::from_utf8(assert.get_output().stderr.clone()).expect("utf8 stderr");
+    assert!(!stderr.contains("Compliance violations"));
+}
+
+#[test]
 fn pcap_info_outputs_path_and_packets() {
     let input = sample_capture();
     let assert = cmd()
