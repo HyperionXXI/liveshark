@@ -16,3 +16,6 @@ This viewer is local/offline only: no network access, no dependencies.
 ## Limitations
 - Browser file:// security means Reload only re-reads the last selected File object.
 - Large reports may be slow to render in the table view.
+
+## QA checklist
+See `docs/VIEWER_QA.md` after any GUI change.
