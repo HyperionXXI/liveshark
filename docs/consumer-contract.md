@@ -9,6 +9,7 @@ It does not replace the specification; the spec remains authoritative.
 - Consumers MUST ignore unknown fields.
 - Optional fields are omitted when not computable; absence does not mean zero.
 - `report_version` denotes the base schema and does not necessarily change for additive fields.
+- `report_version` is an integer in v0.1 reports (for example: `1`).
 - Loss is reported only when protocol sequence numbers exist (e.g., sACN).
 
 ## Windowing Convention (Metrics)
