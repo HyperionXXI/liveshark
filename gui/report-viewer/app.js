@@ -5,6 +5,7 @@
   sort: { key: null, dir: "asc" },
   filter: "",
   rows: [],
+  selected: null,
 };
 
 const columns = {
@@ -40,6 +41,13 @@ const columns = {
   ],
 };
 
+const numericColumns = {
+  universes: new Set(["fps", "jitter_ms", "loss_rate"]),
+  flows: new Set(["pps", "bps", "iat_jitter_ms"]),
+  conflicts: new Set(["overlap_duration_s", "conflict_score"]),
+  compliance: new Set(["count"]),
+};
+
 const openBtn = document.getElementById("openBtn");
 const reloadBtn = document.getElementById("reloadBtn");
 const fileInput = document.getElementById("fileInput");
@@ -49,6 +57,8 @@ const tableHead = document.getElementById("tableHead");
 const tableBody = document.getElementById("tableBody");
 const detailsBody = document.getElementById("detailsBody");
 const statusEl = document.getElementById("status");
+const errorBanner = document.getElementById("errorBanner");
+const copyJsonBtn = document.getElementById("copyJsonBtn");
 
 const summaryVersion = document.getElementById("summaryVersion");
 const summaryDuration = document.getElementById("summaryDuration");
@@ -71,6 +81,37 @@ reloadBtn.addEventListener("click", () => {
   }
 });
 
+copyJsonBtn.addEventListener("click", async () => {
+  if (!state.selected || !state.selected.raw) {
+    return;
+  }
+  const payload = JSON.stringify(state.selected.raw, null, 2);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(payload);
+      copyJsonBtn.textContent = "Copied";
+      setTimeout(() => {
+        copyJsonBtn.textContent = "Copy JSON";
+      }, 1200);
+      return;
+    }
+  } catch (err) {
+    // Fall through to legacy copy.
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = payload;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  copyJsonBtn.textContent = "Copied";
+  setTimeout(() => {
+    copyJsonBtn.textContent = "Copy JSON";
+  }, 1200);
+});
+
 filterInput.addEventListener("input", (event) => {
   state.filter = event.target.value.trim().toLowerCase();
   renderTable();
@@ -82,6 +123,8 @@ Array.from(document.querySelectorAll(".tab")).forEach((tab) => {
     tab.classList.add("active");
     state.activeTab = tab.dataset.tab;
     state.sort = { key: null, dir: "asc" };
+    state.selected = null;
+    copyJsonBtn.disabled = true;
     detailsBody.textContent = "Select a row to view details.";
     renderTable();
   });
@@ -118,17 +161,34 @@ function loadFile(file) {
       }
       state.report = data;
       state.lastFile = file;
+      state.selected = null;
       reloadBtn.disabled = false;
+      copyJsonBtn.disabled = true;
+      setErrorBanner("");
       statusEl.textContent = `Loaded: ${file.name}`;
       updateSummary();
       renderTable();
     } catch (err) {
-      state.report = null;
-      statusEl.textContent = "Invalid report.json";
-      detailsBody.textContent = String(err);
+      setErrorBanner(`Failed to parse report.json: ${err.message}`);
+      statusEl.textContent = state.report
+        ? "Invalid report.json (showing last valid report)."
+        : "Invalid report.json";
+      if (!state.report) {
+        detailsBody.textContent = String(err);
+      }
     }
   };
   reader.readAsText(file);
+}
+
+function setErrorBanner(message) {
+  if (!message) {
+    errorBanner.hidden = true;
+    errorBanner.textContent = "";
+    return;
+  }
+  errorBanner.hidden = false;
+  errorBanner.textContent = message;
 }
 
 function updateSummary() {
@@ -171,7 +231,7 @@ function renderTable() {
 
   renderHeader(tab);
 
-  const filtered = applyFilter(rows);
+  const filtered = applyFilter(rows, tab);
   const sorted = applySort(filtered);
   tableBody.innerHTML = "";
 
@@ -182,6 +242,17 @@ function renderTable() {
 
   statusEl.textContent = `${sorted.length} rows`;
 
+  if (sorted.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = columns[tab].length;
+    td.className = "no-results";
+    td.textContent = "No results";
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+    return;
+  }
+
   sorted.forEach((row) => {
     const tr = document.createElement("tr");
     tr.addEventListener("click", () => {
@@ -189,12 +260,23 @@ function renderTable() {
         r.classList.remove("selected")
       );
       tr.classList.add("selected");
-      renderDetails(row.raw);
+      state.selected = row;
+      renderDetails(tab, row);
     });
 
     columns[tab].forEach((col) => {
       const td = document.createElement("td");
-      td.textContent = fmtOptional(row[col.key]);
+      const value = fmtOptional(row[col.key]);
+      const text = String(value);
+      const truncated = truncate(text, 140);
+      td.textContent = truncated;
+      if (truncated !== text) {
+        td.title = text;
+        td.classList.add("cell-truncate");
+      }
+      if (isNumericColumn(tab, col.key) && text !== "N/A") {
+        td.classList.add("cell-num");
+      }
       tr.appendChild(td);
     });
 
@@ -207,7 +289,9 @@ function renderHeader(tab) {
   const tr = document.createElement("tr");
   columns[tab].forEach((col) => {
     const th = document.createElement("th");
-    th.textContent = col.label;
+    const isActive = state.sort.key === col.key;
+    const indicator = isActive ? (state.sort.dir === "asc" ? " ▲" : " ▼") : "";
+    th.textContent = `${col.label}${indicator}`;
     th.addEventListener("click", () => {
       const dir =
         state.sort.key === col.key && state.sort.dir === "asc" ? "desc" : "asc";
@@ -230,7 +314,7 @@ function buildRows(report, tab) {
           .map((s) => s.source_ip || s.cid || s.source_name)
           .filter(Boolean)
           .join(", ");
-        return {
+        const row = {
           universe: u.universe,
           proto: u.proto,
           source_id: sourceId || "N/A",
@@ -240,20 +324,46 @@ function buildRows(report, tab) {
           burst: formatBurst(u),
           raw: u,
         };
+        row._details = {
+          universe_id: u.universe,
+          protocol: u.proto,
+          source_id: sourceId || "N/A",
+          fps: fmtNumber(u.fps, 2),
+          jitter_ms: fmtMs(u.jitter_ms),
+          loss_rate: fmtRate(u.loss_rate),
+          burst_count: fmtOptional(u.burst_count),
+          max_burst_len: fmtOptional(u.max_burst_len),
+        };
+        row._filterValues = collectFilterValues(tab, row);
+        return row;
       });
     case "flows":
-      return (report.flows || []).map((f) => ({
-        flow: `${f.src || ""} -> ${f.dst || ""}`.trim(),
-        app_proto: f.app_proto,
-        pps: fmtRate(f.pps),
-        bps: fmtRate(f.bps),
-        iat_jitter_ms: fmtMs(f.iat_jitter_ms),
-        raw: f,
-      }));
+      return (report.flows || []).map((f) => {
+        const row = {
+          flow: `${f.src || ""} -> ${f.dst || ""}`.trim(),
+          app_proto: f.app_proto,
+          pps: fmtRate(f.pps),
+          bps: fmtRate(f.bps),
+          iat_jitter_ms: fmtMs(f.iat_jitter_ms),
+          raw: f,
+        };
+        row._details = {
+          flow: row.flow,
+          protocol: f.app_proto,
+          pps: fmtRate(f.pps),
+          bps: fmtRate(f.bps),
+          iat_jitter_ms: fmtMs(f.iat_jitter_ms),
+          max_iat_ms: fmtMs(f.max_iat_ms),
+          pps_peak_1s: fmtRate(f.pps_peak_1s),
+          bps_peak_1s: fmtRate(f.bps_peak_1s),
+        };
+        row._filterValues = collectFilterValues(tab, row);
+        return row;
+      });
     case "conflicts":
       return (report.conflicts || []).map((c) => {
         const sources = Array.isArray(c.sources) ? c.sources : [];
-        return {
+        const row = {
           universe: c.universe,
           source_a: sources[0] || "N/A",
           source_b: sources[1] || "N/A",
@@ -261,44 +371,76 @@ function buildRows(report, tab) {
           conflict_score: fmtNumber(c.conflict_score, 2),
           raw: c,
         };
+        row._details = {
+          universe_id: c.universe,
+          source_a: sources[0] || "N/A",
+          source_b: sources[1] || "N/A",
+          overlap_duration_s: fmtNumber(c.overlap_duration_s, 2),
+          conflict_score: fmtNumber(c.conflict_score, 2),
+        };
+        row._filterValues = collectFilterValues(tab, row);
+        return row;
       });
     case "compliance":
       return (report.compliance || []).flatMap((entry) => {
         const protocol = entry.protocol;
         const violations = Array.isArray(entry.violations) ? entry.violations : [];
         if (violations.length === 0) {
-          return [
-            {
-              protocol,
-              id: "N/A",
-              severity: "N/A",
-              count: 0,
-              examples: "",
-              raw: entry,
-            },
-          ];
+          const row = {
+            protocol,
+            id: "N/A",
+            severity: "N/A",
+            count: 0,
+            examples: "",
+            raw: entry,
+          };
+          row._details = {
+            protocol,
+            id: "N/A",
+            severity: "N/A",
+            occurrences: 0,
+            examples: [],
+          };
+          row._filterValues = collectFilterValues(tab, row);
+          return [row];
         }
-        return violations.map((v) => ({
-          protocol,
-          id: v.id,
-          severity: v.severity,
-          count: v.count,
-          examples: (v.examples || []).slice(0, 3).join("; "),
-          raw: v,
-        }));
+        return violations.map((v) => {
+          const examples = Array.isArray(v.examples) ? v.examples : [];
+          const row = {
+            protocol,
+            id: v.id,
+            severity: v.severity,
+            count: v.count,
+            examples: examples.slice(0, 3).join("; "),
+            raw: v,
+          };
+          row._details = {
+            protocol,
+            id: v.id,
+            severity: v.severity,
+            occurrences: v.count,
+            examples,
+          };
+          row._filterValues = collectFilterValues(tab, row);
+          return row;
+        });
       });
     default:
       return [];
   }
 }
 
-function applyFilter(rows) {
+function collectFilterValues(tab, row) {
+  return columns[tab].map((col) => String(row[col.key] ?? ""));
+}
+
+function applyFilter(rows, tab) {
   if (!state.filter) {
     return rows;
   }
   return rows.filter((row) =>
-    Object.values(row)
-      .map((value) => String(value).toLowerCase())
+    row._filterValues
+      .map((value) => value.toLowerCase())
       .some((value) => value.includes(state.filter))
   );
 }
@@ -309,20 +451,149 @@ function applySort(rows) {
   }
   const { key, dir } = state.sort;
   return [...rows].sort((a, b) => {
-    const left = a[key] ?? "";
-    const right = b[key] ?? "";
-    if (left === right) {
-      return 0;
-    }
-    if (dir === "asc") {
-      return left > right ? 1 : -1;
-    }
-    return left < right ? 1 : -1;
+    const left = a[key];
+    const right = b[key];
+    const result = compareValues(left, right);
+    return dir === "asc" ? result : -result;
   });
 }
 
-function renderDetails(obj) {
-  detailsBody.textContent = JSON.stringify(obj, null, 2);
+function compareValues(left, right) {
+  const leftNum = Number(left);
+  const rightNum = Number(right);
+  const leftIsNum = !Number.isNaN(leftNum) && left !== null && left !== "";
+  const rightIsNum = !Number.isNaN(rightNum) && right !== null && right !== "";
+  if (leftIsNum && rightIsNum) {
+    return leftNum - rightNum;
+  }
+  const leftStr = String(left ?? "").toLowerCase();
+  const rightStr = String(right ?? "").toLowerCase();
+  if (leftStr === rightStr) {
+    return 0;
+  }
+  return leftStr > rightStr ? 1 : -1;
+}
+
+function isNumericColumn(tab, key) {
+  return numericColumns[tab] && numericColumns[tab].has(key);
+}
+
+function renderDetails(tab, row) {
+  detailsBody.innerHTML = "";
+  if (!row) {
+    detailsBody.textContent = "Select a row to view details.";
+    copyJsonBtn.disabled = true;
+    return;
+  }
+
+  copyJsonBtn.disabled = false;
+
+  if (tab === "compliance") {
+    renderComplianceDetails(row);
+    return;
+  }
+
+  const details = row._details || {};
+  const section = document.createElement("div");
+  const overviewTitle = document.createElement("div");
+  overviewTitle.className = "details-section-title";
+  overviewTitle.textContent = "Overview";
+  section.appendChild(overviewTitle);
+
+  const list = document.createElement("div");
+  list.className = "details-list";
+  Object.keys(details).forEach((key) => {
+    const value = fmtOptional(details[key]);
+    const keyEl = document.createElement("div");
+    keyEl.className = "details-key";
+    keyEl.textContent = key;
+    const valEl = document.createElement("div");
+    valEl.textContent = String(value);
+    list.appendChild(keyEl);
+    list.appendChild(valEl);
+  });
+  section.appendChild(list);
+
+  const rawTitle = document.createElement("div");
+  rawTitle.className = "details-section-title";
+  rawTitle.textContent = "Raw JSON";
+  section.appendChild(rawTitle);
+
+  const rawBlock = document.createElement("pre");
+  rawBlock.className = "details-json";
+  rawBlock.textContent = JSON.stringify(row.raw, null, 2);
+  section.appendChild(rawBlock);
+
+  detailsBody.appendChild(section);
+}
+
+function renderComplianceDetails(row) {
+  const details = row._details || {};
+  const section = document.createElement("div");
+
+  const overviewTitle = document.createElement("div");
+  overviewTitle.className = "details-section-title";
+  overviewTitle.textContent = "Violation";
+  section.appendChild(overviewTitle);
+
+  const list = document.createElement("div");
+  list.className = "details-list";
+  const overviewPairs = [
+    ["protocol", details.protocol],
+    ["id", details.id],
+    ["severity", details.severity],
+    ["occurrences", details.occurrences],
+  ];
+  overviewPairs.forEach(([key, value]) => {
+    const keyEl = document.createElement("div");
+    keyEl.className = "details-key";
+    keyEl.textContent = key;
+    const valEl = document.createElement("div");
+    valEl.textContent = String(fmtOptional(value));
+    list.appendChild(keyEl);
+    list.appendChild(valEl);
+  });
+  section.appendChild(list);
+
+  const examplesTitle = document.createElement("div");
+  examplesTitle.className = "details-section-title";
+  examplesTitle.textContent = "Examples";
+  section.appendChild(examplesTitle);
+
+  const examplesList = document.createElement("ul");
+  examplesList.className = "details-examples";
+  const examples = Array.isArray(details.examples) ? details.examples : [];
+  if (examples.length === 0) {
+    const item = document.createElement("li");
+    item.textContent = "N/A";
+    examplesList.appendChild(item);
+  } else {
+    examples.forEach((example) => {
+      const item = document.createElement("li");
+      item.textContent = String(example);
+      examplesList.appendChild(item);
+    });
+  }
+  section.appendChild(examplesList);
+
+  const rawTitle = document.createElement("div");
+  rawTitle.className = "details-section-title";
+  rawTitle.textContent = "Raw JSON";
+  section.appendChild(rawTitle);
+
+  const rawBlock = document.createElement("pre");
+  rawBlock.className = "details-json";
+  rawBlock.textContent = JSON.stringify(row.raw, null, 2);
+  section.appendChild(rawBlock);
+
+  detailsBody.appendChild(section);
+}
+
+function truncate(text, maxLen) {
+  if (text.length <= maxLen) {
+    return text;
+  }
+  return `${text.slice(0, maxLen - 3)}...`;
 }
 
 function fmtOptional(value) {

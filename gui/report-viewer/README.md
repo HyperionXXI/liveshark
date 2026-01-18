@@ -1,18 +1,18 @@
-﻿# LiveShark Report Viewer (v0.1)
+﻿# LiveShark Report Viewer (v0.1.1)
 
 A small zero-dependency HTML/CSS/JS viewer to inspect a LiveShark `report.json`.
 This viewer is local/offline only: no network access, no dependencies.
 
 ## Usage
 1. Open `index.html` in a modern browser (Chrome / Edge / Firefox).
-2. Click **Open report.json** and select a LiveShark report file (drag and drop also works).
-3. Browse **Universes / Flows / Conflicts / Compliance**, sort columns, and use the text filter.
+2. Drag and drop a LiveShark report, or click **Open report.json**.
+3. Use tabs, sorting, and filter to inspect data; click a row for details.
 
-## Interpretation notes (contract)
-- **Absence != zero**: optional metrics are **omitted** when not computable and displayed as **N/A**.
-- **Loss metrics** are reported **only** when protocol sequence numbers exist (e.g. **sACN**). No loss is inferred for Art-Net.
-- **Determinism**: report lists are sorted deterministically in JSON; the UI may re-sort locally for display.
+## Contract notes
+- Optional fields are omitted when not computable (absence != zero).
+- Loss metrics exist only when sequence numbers exist (for example, sACN); never inferred for Art-Net.
+- Lists are sorted deterministically in the report.
 
-## Known limitations
-- Browser file:// security can limit automatic reload; use the Reload button when needed.
+## Limitations
+- Browser file:// security means Reload only re-reads the last selected File object.
 - Large reports may be slow to render in the table view.
