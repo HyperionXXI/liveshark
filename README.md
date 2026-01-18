@@ -30,10 +30,8 @@ It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX
 ## Documentation / Specification
 
 - Printable specification sources (authoritative): `spec/en/LiveShark_Spec.tex`
-- French translation (informational, may lag): `spec/fr/LiveShark_Spec.tex`
 - Consumer contract guide (JSON): `docs/consumer-contract.md`
 - Documentation build instructions: `docs/README.md`
-- Documentation FR: `docs/fr/README.md`
 - Rust architecture rules (normative): `docs/RUST_ARCHITECTURE.md`
 
 The project specification (requirements) is written in LaTeX (`.tex`); see "Build the PDFs" below to compile it.
@@ -63,14 +61,17 @@ Interpretation notes:
 - Loss metrics are only reported when sequence numbers exist (sACN).
 - Output lists are sorted for deterministic reports.
 
-FR summary: see `docs/fr/README.md`.
+## Report Viewer (GUI)
+
+See `gui/report-viewer/` for a zero-dependency, offline HTML viewer of `report.json`.
+Contract reminders: absence != zero, loss only when sequence exists (sACN), and JSON lists are deterministic.
 
 ## Build the PDFs (for non-developers)
 
 The specs are compiled directly from the `.tex` sources (no external diagram tools required).
 
 Option A -- MiKTeX GUI (Windows, no terminal required)
-- Open `spec/en/LiveShark_Spec.tex` or `spec/fr/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
+- Open `spec/en/LiveShark_Spec.tex` in the MiKTeX/TeXworks GUI.
 - Use XeLaTeX and compile to PDF.
 
 Note: this does not require Perl; `latexmk` does.
@@ -83,12 +84,10 @@ make pdf
 Option C -- direct (requires Perl for `latexmk` on Windows)
 ```bash
 latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/en/LiveShark_Spec.tex
-latexmk -xelatex -interaction=nonstopmode -halt-on-error spec/fr/LiveShark_Spec.tex
 ```
 
 Outputs:
 - `spec/en/LiveShark_Spec.pdf`
-- `spec/fr/LiveShark_Spec.pdf`
 Note: PDFs are generated artifacts and should not be committed to the repository.
 
 ## Roadmap (high level)
@@ -106,10 +105,3 @@ Docs/specs: CC-BY-4.0 (see `LICENSE-CC-BY-4.0`).
 
 PDFs are built with XeLaTeX/latexmk only (TikZ for diagrams). No external diagram tools are required.
 Rust toolchain: edition 2024, MSRV 1.85 (CI validates stable + MSRV).
-
-## Languages
-
-- **EN** is the reference version for specs and contracts.
-- **FR** is a translation to ease review and analysis.
-
-If there is a mismatch, EN prevails until explicitly validated otherwise.
