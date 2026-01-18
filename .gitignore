@@ -15,6 +15,7 @@ Thumbs.db
 # Temporary workspace
 tmp/**
 out/**
+gui/report-viewer/fixtures/*.json
 
 # LaTeX (on versionne les sources, pas les builds)
 spec/**/build/
