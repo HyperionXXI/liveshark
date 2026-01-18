@@ -1,17 +1,18 @@
-# Documentation LiveShark (spécification d'abord)
+﻿# Documentation LiveShark (spécification d'abord)
 
-Ce dépôt fournit une **spécification PDF imprimable** pour les non-développeurs, avec **une seule source éditable**.
+Ce dépôt fournit une spécification PDF imprimable pour les non-développeurs, tout en
+conservant une seule source éditable.
 
 Mode suivi : réécrit un rapport complet tant que le fichier de capture grandit.
 Exemple : `liveshark pcap follow capture.pcapng --report report.json`
 
 Quelle est la référence ?
-- **Source normative (fait foi) :** `spec/en/LiveShark_Spec.tex`
-- **Traduction française :** `spec/fr/LiveShark_Spec.tex` (traduction indicative, peut être en retard)
-- **Contrat de consommation JSON :** `docs/fr/consumer-contract.md`
-- **Fichiers PDF :** artefacts générés depuis les `.tex`. Ils sont fournis par confort et **ne sont pas la source de vérité**.
-- **Règles d'architecture Rust (fait foi) :** `docs/RUST_ARCHITECTURE.md`
-- **Traduction française des règles Rust :** `docs/RUST_ARCHITECTURE.fr.md` (traduction indicative)
+- Source normative (fait foi) : `spec/en/LiveShark_Spec.tex`
+- Traduction française : `spec/fr/LiveShark_Spec.tex` (traduction indicative, peut être en retard)
+- Contrat de consommation JSON : `docs/fr/consumer-contract.md`
+- Fichiers PDF : artefacts générés depuis les `.tex`. Ils sont fournis par confort et ne sont pas la source de vérité.
+- Règles d'architecture Rust (fait foi) : `docs/RUST_ARCHITECTURE.md`
+- Traduction française des règles Rust : `docs/RUST_ARCHITECTURE.fr.md` (traduction indicative)
 
 Générer les PDF
 Option A -- MiKTeX GUI (Windows, sans terminal)
@@ -40,9 +41,9 @@ Sorties :
 - `spec/fr/LiveShark_Spec.pdf`
 
 Mini-glossaire
-- **Analyse hors ligne / a posteriori :** analyse d'un fichier de capture terminé.
-- **Mode suivi :** analyse en quasi temps réel d'un fichier de capture en cours d'écriture.
-- **Quasi temps réel :** faible latence liée à la croissance du fichier, sans capture native.
+- Analyse hors ligne / a posteriori : analyse d'un fichier de capture terminé.
+- Mode suivi : analyse en quasi temps réel d'un fichier de capture en cours d'écriture.
+- Quasi temps réel : faible latence liée à la croissance du fichier, sans capture native.
 Note : les PDF sont des artefacts générés et ne doivent pas être versionnés dans le dépôt.
 
 Notes

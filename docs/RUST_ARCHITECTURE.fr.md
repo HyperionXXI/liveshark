@@ -1,22 +1,22 @@
-# Règles d'architecture Rust — traduction française (informative)
+﻿# Règles d'architecture Rust (normatives) -- traduction française (informative)
 
 Ce document est la traduction française (informative) de `docs/RUST_ARCHITECTURE.md`.
 En cas de divergence, la version anglaise fait foi.
 
 ## Portée
 
-Ces règles s'appliquent à toutes les entrées externes : PCAP/PCAPNG, trames
-réseau, fichiers, et charges utiles de protocoles.
+Ces règles s'appliquent à toutes les entrées externes : PCAP/PCAPNG, trames réseau, fichiers,
+et toute charge utile de protocole.
 
 ## Modèle de décodage par couches (obligatoire)
 
 Pour chaque protocole ou type de message, utiliser les modules suivants :
 
 - `layout` : constantes pour les offsets, longueurs et plages du format
-- `reader` : fonctions utilitaires sûres pour lire octets, entiers, tranches (« slices ») et chaînes
+- `reader` : utilitaires sûrs pour lire octets, entiers, tranches et chaînes
 - `parser` : logique métier uniquement (conversion vers structures de domaine)
 - `error` : type d'erreur dédié avec messages exploitables
-- `tests` : tests unitaires ; tests golden quand la sortie alimente des rapports
+- `tests` : tests unitaires ; tests golden quand la sortie alimente les rapports
 
 Le parseur ne doit pas contenir d'accès bas niveau aux octets. Toute lecture
 passe par `reader`.
@@ -45,9 +45,8 @@ Centraliser les fonctions utilitaires dans `reader` :
 - `read_slice(range) -> Result<&[u8], _>`
 - `read_ascii_string(range) -> Result<String, _>`
 
-Les conventions de protocole (ex. « 0 signifie absent ») doivent être
-encapsulées dans une fonction utilitaire (ex. `parse_optional_nonzero`), sans
-répétition.
+Les conventions de protocole (ex. "0 signifie absent") doivent être encapsulées
+dans une fonction utilitaire (ex. `parse_optional_nonzero`), sans répétition.
 
 ## Tests (obligatoire)
 
@@ -61,9 +60,9 @@ déviation manuelle de style.
 
 ## Liens de référence
 
-- Rust Style Guide : https://doc.rust-lang.org/style-guide/
-- Rust Book (gestion des erreurs, Result vs panic) : https://doc.rust-lang.org/book/ch09-00-error-handling.html
-- RFC 1679 (panic-safe slicing) : https://rust-lang.github.io/rfcs/1679-panic-safe-slicing.html
-- Rust std slice `.get` : https://doc.rust-lang.org/std/primitive.slice.html#method.get
-- Séparation des préoccupations (SoC) : https://en.wikipedia.org/wiki/Separation_of_concerns
-- DRY : https://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+- Rust Style Guide: https://doc.rust-lang.org/style-guide/
+- Rust Book (gestion des erreurs, Result vs panic): https://doc.rust-lang.org/book/ch09-00-error-handling.html
+- RFC 1679 (panic-safe slicing): https://rust-lang.github.io/rfcs/1679-panic-safe-slicing.html
+- Rust std slice `.get`: https://doc.rust-lang.org/std/primitive.slice.html#method.get
+- Separation of Concerns (SoC): https://en.wikipedia.org/wiki/Separation_of_concerns
+- DRY: https://en.wikipedia.org/wiki/Don%27t_repeat_yourself

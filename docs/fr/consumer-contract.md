@@ -1,4 +1,4 @@
-# Contrat de consommation du rapport JSON LiveShark
+﻿# Contrat de consommation des rapports JSON LiveShark
 
 Ce document est un guide de compatibilité concis pour les consommateurs des rapports LiveShark.
 Il ne remplace pas la spécification ; la spec fait foi.
@@ -8,7 +8,7 @@ Il ne remplace pas la spécification ; la spec fait foi.
 - Les ajouts de champs sont non bloquants.
 - Un consommateur DOIT ignorer les champs inconnus.
 - Les champs optionnels sont omis lorsqu'ils ne sont pas calculables ; l'absence ne signifie pas zéro.
-- `report_version` désigne le schéma de base et ne change pas forcément pour les ajouts additifs.
+- `report_version` désigne le schéma de base et ne change pas nécessairement pour les ajouts additifs.
 - La perte est rapportée uniquement si des numéros de séquence existent (ex. sACN).
 
 ## Convention de fenêtres (métriques)
