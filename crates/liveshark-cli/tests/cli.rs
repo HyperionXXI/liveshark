@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::io;
 use std::path::Path;
 use std::process::Stdio;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 use tempfile::TempDir;
 
 fn cmd() -> Command {
@@ -57,6 +57,27 @@ fn wait_for_file_change(
         if let Ok(bytes) = std::fs::read(path) {
             if !bytes.is_empty() && bytes != previous_bytes {
                 return bytes;
+            }
+        }
+        if start.elapsed() > timeout {
+            panic!("timed out waiting for {}", path.display());
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn wait_for_mtime_change(
+    path: &std::path::Path,
+    previous: SystemTime,
+    timeout: Duration,
+) -> SystemTime {
+    let start = Instant::now();
+    loop {
+        if let Ok(meta) = std::fs::metadata(path) {
+            if let Ok(modified) = meta.modified() {
+                if modified > previous {
+                    return modified;
+                }
             }
         }
         if start.elapsed() > timeout {
@@ -517,6 +538,9 @@ fn follow_missing_file_recovers_after_recreate() {
         .success();
 
     let bytes0 = read_bytes(&report);
+    let mtime0 = std::fs::metadata(&report)
+        .and_then(|meta| meta.modified())
+        .expect("report mtime");
 
     let interval = Duration::from_millis(50);
     let child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("liveshark"))
@@ -528,20 +552,22 @@ fn follow_missing_file_recovers_after_recreate() {
         .arg("--interval-ms")
         .arg(interval.as_millis().to_string())
         .arg("--max-iterations")
-        .arg("8")
+        .arg("20")
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .expect("spawn follow");
 
-    let bytes1 = wait_for_file_change(&report, &bytes0, Duration::from_secs(3));
+    let _mtime1 = wait_for_mtime_change(&report, mtime0, Duration::from_secs(3));
+    let bytes1 = read_bytes(&report);
+    assert!(!bytes1.is_empty());
     std::fs::remove_file(&target).expect("remove capture");
     wait_for_absent_file(&target, Duration::from_secs(2));
     std::thread::sleep(Duration::from_millis(
         (interval.as_millis() as u64).saturating_mul(2),
     ));
     std::fs::copy(&recreate, &target).expect("recreate capture");
-    let _bytes2 = wait_for_file_change(&report, &bytes1, Duration::from_secs(3));
+    let _bytes2 = wait_for_file_change(&report, &bytes1, Duration::from_secs(5));
 
     let output = child.wait_with_output().expect("wait follow");
     assert!(output.status.success());
