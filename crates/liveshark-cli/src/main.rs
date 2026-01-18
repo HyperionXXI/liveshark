@@ -1,22 +1,17 @@
 //! LiveShark command-line interface.
 //!
 //! This binary runs offline analysis for PCAP/PCAPNG captures and emits a
-//! deterministic JSON report to a file path you provide. It is a thin wrapper
-//! over the `liveshark-core` analysis pipeline and follows the contract
-//! defined in `spec/en/LiveShark_Spec.tex`.
+//! deterministic JSON report. It is a thin wrapper over `liveshark-core` and
+//! follows the contract in `spec/en/LiveShark_Spec.tex`.
 //!
 //! Typical usage:
-//! - `liveshark analyse capture.pcapng -o report.json`
-//! - `liveshark analyze capture.pcap -o report.json`
+//! - `liveshark analyze capture.pcapng --report report.json`
 //! - `liveshark pcap analyse capture.pcapng --report report.json`
+//! - `liveshark pcap follow capture.pcapng --report report.json`
 //!
 //! Errors are reported to stderr; a non-zero exit code indicates failure to
 //! read the input capture or to write the report.
 //!
-//! Version française (résumé):
-//! L'outil CLI analyse des captures PCAP/PCAPNG et écrit un rapport JSON
-//! déterministe. Les erreurs sont affichées sur stderr et retournent un code
-//! non nul en cas d'échec.
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
