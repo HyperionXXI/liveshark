@@ -1,0 +1,70 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LiveShark Report Viewer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="openBtn" type="button">Open report.json</button>
+        <button id="reloadBtn" type="button" disabled>Reload</button>
+        <input id="fileInput" type="file" accept=".json" hidden />
+      </div>
+      <div class="topbar-right" id="summary">
+        <div class="summary-item">Report: <span id="summaryVersion">N/A</span></div>
+        <div class="summary-item">Duration: <span id="summaryDuration">N/A</span></div>
+        <div class="summary-item">Universes: <span id="summaryUniverses">0</span></div>
+        <div class="summary-item">Flows: <span id="summaryFlows">0</span></div>
+        <div class="summary-item">Conflicts: <span id="summaryConflicts">0</span></div>
+        <div class="summary-item">Violations: <span id="summaryViolations">0</span></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="dropzone" id="dropzone">
+        <div class="dropzone-inner">
+          <div class="dropzone-title">Drop report.json here</div>
+          <div class="dropzone-sub">or use the Open button</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="universes">Universes</button>
+          <button class="tab" data-tab="flows">Flows</button>
+          <button class="tab" data-tab="conflicts">Conflicts</button>
+          <button class="tab" data-tab="compliance">Compliance</button>
+        </div>
+
+        <div class="tab-content">
+          <div class="toolbar">
+            <input id="filterInput" type="text" placeholder="Filter..." />
+            <div class="status" id="status">No report loaded.</div>
+          </div>
+
+          <div class="content">
+            <div class="table-wrap">
+              <table id="dataTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <aside class="details" id="details">
+              <div class="details-title">Details</div>
+              <div class="details-body" id="detailsBody">Select a row to view details.</div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      LiveShark Report Viewer (v0.1) - local, no network, no dependencies.
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
