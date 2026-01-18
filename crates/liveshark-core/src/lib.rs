@@ -325,7 +325,7 @@ pub struct ConflictSummary {
 pub struct ComplianceSummary {
     /// Protocol name (e.g., "artnet", "sacn", "udp").
     pub protocol: String,
-    /// Compliance percentage (0.0–100.0).
+    /// Compliance percentage (0.0-100.0).
     pub compliance_percentage: f64,
     /// Violations sorted by severity and ID.
     pub violations: Vec<Violation>,
