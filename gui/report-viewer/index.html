@@ -32,6 +32,7 @@
       </section>
 
       <section class="panel">
+        <div class="error-banner" id="errorBanner" hidden></div>
         <div class="tabs" id="tabs">
           <button class="tab active" data-tab="universes">Universes</button>
           <button class="tab" data-tab="flows">Flows</button>
@@ -53,7 +54,10 @@
               </table>
             </div>
             <aside class="details" id="details">
-              <div class="details-title">Details</div>
+              <div class="details-header">
+                <div class="details-title">Details</div>
+                <button id="copyJsonBtn" type="button" disabled>Copy JSON</button>
+              </div>
               <div class="details-body" id="detailsBody">Select a row to view details.</div>
             </aside>
           </div>
@@ -62,7 +66,7 @@
     </main>
 
     <footer class="footer">
-      LiveShark Report Viewer (v0.1) - local, no network, no dependencies.
+      LiveShark Report Viewer (v0.1.1) - local, no network, no dependencies.
     </footer>
 
     <script src="app.js"></script>
