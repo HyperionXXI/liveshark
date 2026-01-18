@@ -7,11 +7,25 @@ on:
 jobs:
   clippy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, "1.85.0"]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
+      - name: fmt
+        run: cargo fmt --check
+      - name: test
+        run: cargo test
+      - name: doctest (core)
+        run: cargo test -p liveshark-core --doc
+      - name: doc (core)
+        run: cargo doc -p liveshark-core --no-deps
+      - name: doc (cli)
+        run: cargo doc -p liveshark-cli --no-deps --bins
       - name: clippy (core)
         run: cargo clippy -p liveshark-core --all-targets -- -D warnings
       - name: clippy (cli)
