@@ -65,6 +65,8 @@ Interpretation notes:
 
 See `gui/report-viewer/` for a zero-dependency, offline HTML viewer of `report.json`.
 Contract reminders: absence != zero, loss only when sequence exists (sACN), and JSON lists are deterministic.
+Note: when opened via file://, Reload can only re-read the last selected file object.
+Large reports may be slow to render in the table view.
 
 ## Build the PDFs (for non-developers)
 
