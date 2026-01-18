@@ -4,6 +4,7 @@ use predicates::str::contains;
 use predicates::str::is_match;
 use serde_json::Value;
 use std::io;
+use std::path::Path;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
@@ -63,6 +64,18 @@ fn wait_for_file_change(
         }
         std::thread::sleep(Duration::from_millis(10));
     }
+}
+
+fn replace_file(dest: &Path, src: &Path) {
+    let parent = dest.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = dest
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("capture");
+    let tmp = parent.join(format!("{file_name}.tmp"));
+    std::fs::copy(src, &tmp).expect("copy temp");
+    let _ = std::fs::remove_file(dest);
+    std::fs::rename(&tmp, dest).expect("rename temp");
 }
 
 fn repo_root() -> std::path::PathBuf {
@@ -470,7 +483,7 @@ fn follow_rotation_truncation_triggers_reanalysis() {
 
     wait_for_nonempty_file(&report, Duration::from_secs(2));
     let bytes0 = read_bytes(&report);
-    std::fs::copy(&small, &target).expect("overwrite capture");
+    replace_file(&target, &small);
     let _bytes1 = wait_for_file_change(&report, &bytes0, Duration::from_secs(2));
 
     let output = child.wait_with_output().expect("wait follow");
