@@ -28,3 +28,9 @@ Short checklist to close v0.1 without adding features.
 - `git push origin v0.1.0`
 - Create GitHub Release `v0.1.0` with short notes.
 - Attach Windows binary if available.
+
+## Patch release v0.1.1
+- Run Viewer QA: `docs/VIEWER_QA.md`.
+- `git tag v0.1.1`
+- `git push origin v0.1.1`
+- Create GitHub Release `v0.1.1` with short notes (mention the viewer polish).
