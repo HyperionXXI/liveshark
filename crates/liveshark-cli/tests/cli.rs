@@ -3,7 +3,8 @@ use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use predicates::str::is_match;
 use serde_json::Value;
-use std::process::{Command as StdCommand, Stdio};
+use std::io;
+use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
@@ -11,16 +12,50 @@ fn cmd() -> Command {
     Command::new(assert_cmd::cargo::cargo_bin!("liveshark"))
 }
 
-fn cmd_process() -> StdCommand {
-    StdCommand::new(assert_cmd::cargo::cargo_bin!("liveshark"))
-}
-
-fn wait_for_file(path: &std::path::Path, timeout: Duration) {
+fn wait_for_nonempty_file(path: &std::path::Path, timeout: Duration) {
     let start = Instant::now();
     loop {
         if let Ok(meta) = std::fs::metadata(path) {
             if meta.len() > 0 {
                 return;
+            }
+        }
+        if start.elapsed() > timeout {
+            panic!("timed out waiting for {}", path.display());
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn wait_for_absent_file(path: &std::path::Path, timeout: Duration) {
+    let start = Instant::now();
+    loop {
+        match std::fs::metadata(path) {
+            Ok(_) => {}
+            Err(err) if err.kind() == io::ErrorKind::NotFound => return,
+            Err(err) => panic!("unexpected metadata error: {}", err),
+        }
+        if start.elapsed() > timeout {
+            panic!("timed out waiting for {}", path.display());
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn read_bytes(path: &std::path::Path) -> Vec<u8> {
+    std::fs::read(path).expect("read file")
+}
+
+fn wait_for_file_change(
+    path: &std::path::Path,
+    previous_bytes: &[u8],
+    timeout: Duration,
+) -> Vec<u8> {
+    let start = Instant::now();
+    loop {
+        if let Ok(bytes) = std::fs::read(path) {
+            if !bytes.is_empty() && bytes != previous_bytes {
+                return bytes;
             }
         }
         if start.elapsed() > timeout {
@@ -417,77 +452,88 @@ fn follow_rotation_truncation_triggers_reanalysis() {
     let target = temp.path().join("capture.pcapng");
     std::fs::copy(&big, &target).expect("copy capture");
 
-    let target_clone = target.clone();
-    let small_clone = small.clone();
     let report = temp.path().join("report.json");
-    let report_clone = report.clone();
-    std::thread::spawn(move || {
-        wait_for_file(&report_clone, Duration::from_secs(2));
-        std::fs::copy(&small_clone, &target_clone).expect("overwrite capture");
-    });
-
-    let child = cmd_process()
+    let child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("liveshark"))
         .arg("pcap")
         .arg("follow")
         .arg(&target)
         .arg("--report")
         .arg(&report)
         .arg("--interval-ms")
-        .arg("100")
+        .arg("50")
         .arg("--max-iterations")
-        .arg("3")
+        .arg("6")
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .expect("spawn follow");
+
+    wait_for_nonempty_file(&report, Duration::from_secs(2));
+    let bytes0 = read_bytes(&report);
+    std::fs::copy(&small, &target).expect("overwrite capture");
+    let _bytes1 = wait_for_file_change(&report, &bytes0, Duration::from_secs(2));
 
     let output = child.wait_with_output().expect("wait follow");
     assert!(output.status.success());
 
     let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
     assert!(stderr.contains("follow: rotated"));
-    assert!(stderr.matches("follow: analyzing").count() >= 2);
 }
 
 #[test]
 fn follow_missing_file_recovers_after_recreate() {
     let temp = TempDir::new().expect("tempdir");
     let input = sample_capture();
+    let recreate = repo_root()
+        .join("tests")
+        .join("golden")
+        .join("flow_only")
+        .join("input.pcapng");
     let target = temp.path().join("capture.pcapng");
     std::fs::copy(&input, &target).expect("copy capture");
 
-    let target_clone = target.clone();
-    let input_clone = input.clone();
     let report = temp.path().join("report.json");
-    let report_clone = report.clone();
-    std::thread::spawn(move || {
-        wait_for_file(&report_clone, Duration::from_secs(2));
-        std::fs::remove_file(&target_clone).expect("remove capture");
-        std::thread::sleep(Duration::from_millis(150));
-        std::fs::copy(&input_clone, &target_clone).expect("recreate capture");
-    });
+    cmd()
+        .arg("pcap")
+        .arg("analyze")
+        .arg(&target)
+        .arg("--report")
+        .arg(&report)
+        .arg("--pretty")
+        .assert()
+        .success();
 
-    let child = cmd_process()
+    let bytes0 = read_bytes(&report);
+
+    let interval = Duration::from_millis(50);
+    let child = std::process::Command::new(assert_cmd::cargo::cargo_bin!("liveshark"))
         .arg("pcap")
         .arg("follow")
         .arg(&target)
         .arg("--report")
         .arg(&report)
         .arg("--interval-ms")
-        .arg("100")
+        .arg(interval.as_millis().to_string())
         .arg("--max-iterations")
-        .arg("3")
+        .arg("8")
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
         .expect("spawn follow");
 
+    let bytes1 = wait_for_file_change(&report, &bytes0, Duration::from_secs(3));
+    std::fs::remove_file(&target).expect("remove capture");
+    wait_for_absent_file(&target, Duration::from_secs(2));
+    std::thread::sleep(Duration::from_millis(
+        (interval.as_millis() as u64).saturating_mul(2),
+    ));
+    std::fs::copy(&recreate, &target).expect("recreate capture");
+    let _bytes2 = wait_for_file_change(&report, &bytes1, Duration::from_secs(3));
+
     let output = child.wait_with_output().expect("wait follow");
     assert!(output.status.success());
-
     let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
     assert!(stderr.contains("warning: follow transient: input missing:"));
-    assert!(stderr.matches("follow: analyzing").count() >= 2);
 }
 
 #[test]
