@@ -28,3 +28,15 @@ jobs:
         run: cargo doc -p liveshark-cli --no-deps --bins
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+  windows-cli:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - name: test (cli)
+        run: cargo test -p liveshark-cli --test cli
+      - name: clippy (cli)
+        run: cargo clippy -p liveshark-cli --all-targets -- -D warnings
