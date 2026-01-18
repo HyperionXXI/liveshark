@@ -50,6 +50,21 @@ Follow mode rewrites a full report while a capture file grows:
 Offline-first is an implementation strategy (robustness, reproducibility), not a product limitation.
 LiveShark also targets reliable network diagnostics for small/medium show rigs (wired/wireless), focusing on loss, jitter, and burst patterns with probable-cause hints when possible.
 
+## Quickstart v0.1
+
+Analyze a capture and write a report:
+`liveshark pcap analyze capture.pcapng --report report.json`
+
+Follow a growing capture and rewrite the report:
+`liveshark pcap follow capture.pcapng --report report.json`
+
+Interpretation notes:
+- Absence != zero (optional fields are omitted when not computable).
+- Loss metrics are only reported when sequence numbers exist (sACN).
+- Output lists are sorted for deterministic reports.
+
+FR summary: see `docs/fr/README.md`.
+
 ## Build the PDFs (for non-developers)
 
 The specs are compiled directly from the `.tex` sources (no external diagram tools required).
