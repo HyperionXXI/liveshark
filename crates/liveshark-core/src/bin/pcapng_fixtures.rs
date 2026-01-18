@@ -304,6 +304,6 @@ fn enhanced_packet_body(ts_us: u64, data: &[u8]) -> Vec<u8> {
     body.extend_from_slice(&cap_len.to_be_bytes());
     body.extend_from_slice(data);
     let pad_len = (4 - (data.len() % 4)) % 4;
-    body.extend(std::iter::repeat(0u8).take(pad_len));
+    body.extend(std::iter::repeat_n(0u8, pad_len));
     body
 }
