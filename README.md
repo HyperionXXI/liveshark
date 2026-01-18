@@ -4,7 +4,7 @@
 
 It analyzes **PCAP/PCAPNG** captures and turns Art-Net / sACN traffic into **DMX frame reconstruction**, **automatic conflict detection** (double emitters), and **reproducible reports**.
 
-> Status: **v0.1 specification complete / implementation in progress**.
+> Status: **v0.1 specification complete / core + follow implemented; ongoing hardening**.
 
 ## Quick overview
 
@@ -90,6 +90,7 @@ Docs/specs: CC-BY-4.0 (see `LICENSE-CC-BY-4.0`).
 ## Toolchain
 
 PDFs are built with XeLaTeX/latexmk only (TikZ for diagrams). No external diagram tools are required.
+Rust toolchain: edition 2024, MSRV 1.85 (CI validates stable + MSRV).
 
 ## Languages
 
