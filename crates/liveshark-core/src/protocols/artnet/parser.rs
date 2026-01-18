@@ -8,7 +8,7 @@ use super::reader::ArtNetReader;
 /// illustrative and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::artnet::ArtDmx;
 ///
 /// let frame = ArtDmx {
@@ -34,7 +34,7 @@ pub struct ArtDmx {
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::artnet::{layout, parse_artdmx};
 ///
 /// let length = 4u16;

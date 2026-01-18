@@ -12,7 +12,7 @@ use super::reader::UdpReader;
 /// illustrative and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use std::net::IpAddr;
 ///
 /// use liveshark_core::analysis::udp::UdpPacket;
@@ -42,7 +42,7 @@ pub struct UdpPacket<'a> {
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use etherparse::PacketBuilder;
 /// use liveshark_core::analysis::udp::parse_udp_packet;
 /// use pcap_parser::Linktype;

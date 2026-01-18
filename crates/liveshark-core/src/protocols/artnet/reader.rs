@@ -8,7 +8,7 @@ use crate::protocols::common::reader::optional_nonzero_u8;
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::artnet::{layout, reader::ArtNetReader};
 ///
 /// let mut payload = vec![0u8; layout::LENGTH_RANGE.end];

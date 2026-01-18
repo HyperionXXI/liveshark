@@ -8,7 +8,7 @@ use super::reader::SacnReader;
 /// illustrative and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::sacn::SacnDmx;
 ///
 /// let frame = SacnDmx {
@@ -38,7 +38,7 @@ pub struct SacnDmx {
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::sacn::{layout, parse_sacn_dmx};
 ///
 /// let count = 3u16;

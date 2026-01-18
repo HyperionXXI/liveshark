@@ -6,7 +6,7 @@ use thiserror::Error;
 /// illustrative and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::sacn::error::SacnError;
 ///
 /// let err = SacnError::InvalidStartCode { value: 1 };

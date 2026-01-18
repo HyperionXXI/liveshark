@@ -7,7 +7,7 @@ use super::layout;
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::sacn::{layout, reader::SacnReader};
 ///
 /// let mut payload = vec![0u8; layout::START_CODE_OFFSET + 1];

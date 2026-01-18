@@ -8,8 +8,8 @@ use pcap_parser::Linktype;
 ///
 /// # Examples
 /// This helper is part of an internal module, so the example is marked as
-/// `ignore` for doctests.
-/// ```ignore
+/// text example.
+/// ```text
 /// use liveshark_core::source::pcap::reader::read_magic_and_rewind;
 /// use std::io::Cursor;
 ///
@@ -32,8 +32,8 @@ pub fn read_magic_and_rewind<R: Read + Seek>(reader: &mut R) -> Result<[u8; 4], 
 ///
 /// # Examples
 /// This helper is part of an internal module, so the example is marked as
-/// `ignore` for doctests.
-/// ```ignore
+/// text example.
+/// ```text
 /// use liveshark_core::source::pcap::reader::is_pcapng_magic;
 ///
 /// let magic = [0x0a, 0x0d, 0x0d, 0x0a];
@@ -47,8 +47,8 @@ pub fn is_pcapng_magic(magic: &[u8; 4]) -> bool {
 ///
 /// # Examples
 /// This helper is part of an internal module, so the example is marked as
-/// `ignore` for doctests.
-/// ```ignore
+/// text example.
+/// ```text
 /// use liveshark_core::source::pcap::reader::linktype_for_interface;
 /// use pcap_parser::Linktype;
 ///
@@ -67,8 +67,8 @@ pub fn linktype_for_interface(linktypes: &[Linktype], if_id: u32) -> Linktype {
 ///
 /// # Examples
 /// This helper is part of an internal module, so the example is marked as
-/// `ignore` for doctests.
-/// ```ignore
+/// text example.
+/// ```text
 /// use liveshark_core::source::pcap::reader::pcapng_ts_to_seconds;
 ///
 /// let seconds = pcapng_ts_to_seconds(0, 1_500_000);

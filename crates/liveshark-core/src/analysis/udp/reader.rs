@@ -7,7 +7,7 @@ use super::layout;
 /// and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::analysis::udp::reader::UdpReader;
 ///
 /// let payload = [0u8; 12];

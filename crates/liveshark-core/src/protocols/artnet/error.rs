@@ -6,7 +6,7 @@ use thiserror::Error;
 /// illustrative and not compiled as a public doctest.
 ///
 /// # Examples
-/// ```ignore
+/// ```text
 /// use liveshark_core::protocols::artnet::error::ArtNetError;
 ///
 /// let err = ArtNetError::InvalidDmxLength { len: 0 };
