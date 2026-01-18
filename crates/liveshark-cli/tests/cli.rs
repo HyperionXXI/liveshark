@@ -503,7 +503,7 @@ fn follow_rotation_truncation_triggers_reanalysis() {
         .expect("spawn follow");
 
     wait_for_nonempty_file(&report, Duration::from_secs(2));
-    let bytes0 = read_bytes(&report);
+    let _bytes0 = read_bytes(&report);
     replace_file(&target, &small);
     let _bytes1 = wait_for_file_change(&report, &bytes0, Duration::from_secs(2));
 
