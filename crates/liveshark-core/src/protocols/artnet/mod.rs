@@ -9,11 +9,6 @@
 //! unsupported opcode). Byte offsets and protocol conventions live in
 //! `layout` and `reader` respectively.
 //!
-//! Version française (résumé):
-//! Le module décode Art-Net/ArtDMX avec validations strictes (signature,
-//! opcode, univers, longueur DMX paire dans 2..=512). Les positions sont dans
-//! `layout`, les conventions dans `reader`.
-
 pub mod error;
 pub mod layout;
 pub mod parser;

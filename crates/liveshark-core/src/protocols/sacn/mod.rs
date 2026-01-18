@@ -8,11 +8,6 @@
 //! details are defined in `layout`, while conventions and safe reads live in
 //! `reader`.
 //!
-//! Version française (résumé):
-//! Le module décode sACN (E1.31) et valide PID, vecteurs, `start code` et
-//! `property value count`. Les détails de format sont dans `layout`, les
-//! conventions et lectures sûres dans `reader`.
-
 pub mod error;
 pub mod layout;
 pub mod parser;

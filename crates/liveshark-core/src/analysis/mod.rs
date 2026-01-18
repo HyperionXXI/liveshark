@@ -1,19 +1,15 @@
 //! Analysis entry points and report aggregation.
 //!
-//! This module drives the end-to-end analysis pipeline: packets are decoded,
-//! protocol-specific frames are reconstructed, and summaries are aggregated
-//! into a deterministic report.
+//! The analysis pipeline decodes UDP packets, reconstructs DMX frames per
+//! universe/source/protocol, and aggregates metrics into stable-order summaries.
+//! It enforces deterministic ordering and shared windowing conventions so
+//! reports remain reproducible across runs.
 //!
 //! Invariants:
 //! - Output lists are sorted deterministically (universes, flows, conflicts, compliance).
-//! - Sliding-window metrics use the same inclusion rule across modules.
+//! - Sliding-window metrics use the same inclusion rule: [t - W, t].
 //! - DMX reconstruction is stateful per (universe, source, protocol).
 //!
-//! Version française (résumé):
-//! Ce module orchestre l'analyse de bout en bout et produit un rapport stable.
-//! Les listes sont triées de manière déterministe, les fenêtres glissantes
-//! appliquent une convention unique, et la reconstruction DMX se fait avec état.
-
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;

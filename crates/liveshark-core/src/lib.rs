@@ -1,27 +1,21 @@
-//! LiveShark core library for post-mortem PCAP analysis.
+//! LiveShark core library for offline, post-mortem analysis of show-control
+//! network captures (Art-Net, sACN).
 //!
-//! This crate implements the offline analysis pipeline used by the CLI:
-//! packet sources feed the analysis layer, which drives protocol decoders
-//! (layout/reader/parser) and aggregates results into a deterministic report.
-//! Parsing is byte-oriented and side-effect free; all I/O is isolated in
-//! `source` modules. Protocol conventions are captured in readers so parsers
-//! stay minimal and consistent with the spec.
+//! Architecture overview:
+//! - `source` provides packet inputs with timestamps and linktype metadata.
+//! - `analysis` drives decoding, reconstructs DMX frames, and aggregates metrics.
+//! - `protocols` implements layout/reader/parser/error for each wire format.
+//! - reports are serialized from deterministic, stable-order summaries.
+//! - parsers are pure (no I/O); protocol conventions live in readers.
 //!
 //! Invariants:
 //! - Report outputs are deterministic and stable across runs.
 //! - DMX frames are reconstructed statefully per universe/source/protocol.
-//! - Sliding-window metrics use a single, explicit inclusion rule.
+//! - Sliding-window metrics use a single inclusion rule: [t - W, t].
 //!
 //! References (normative):
 //! - `docs/RUST_ARCHITECTURE.md`
 //! - `spec/en/LiveShark_Spec.tex`
-//!
-//! Version française (résumé):
-//! Cette crate fournit le cœur d'analyse hors ligne : sources -> analyse ->
-//! décodeurs de protocoles (layout/reader/parser) -> rapport déterministe.
-//! Les E/S restent dans `source`, les conventions de protocole dans les `reader`.
-//! Garanties : ordre stable du rapport, reconstruction DMX avec état, fenêtres
-//! glissantes définies de manière unique. Voir la spec EN pour la référence.
 //!
 //! # Examples
 //! ```no_run
@@ -33,7 +27,6 @@
 //! println!("report version: {}", report.report_version);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
-
 use serde::{Deserialize, Serialize};
 
 mod analysis;

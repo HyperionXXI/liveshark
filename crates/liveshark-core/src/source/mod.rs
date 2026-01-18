@@ -1,13 +1,9 @@
 //! Packet sources for analysis.
 //!
-//! Sources abstract over capture inputs (pcap/pcapng today) and keep I/O
-//! separate from protocol parsing. A `PacketSource` yields raw packets in
-//! capture order with optional timestamps and linktype metadata.
+//! Sources abstract capture inputs (pcap/pcapng today) and keep I/O separate
+//! from protocol parsing. A `PacketSource` yields raw packets in capture order
+//! with optional timestamps and linktype metadata.
 //!
-//! Version française (résumé):
-//! Les sources encapsulent l'entrée PCAP/PCAPNG et isolent les E/S du décodage.
-//! Elles fournissent des paquets bruts, ordonnés, avec horodatage optionnel.
-
 mod pcap;
 
 pub use pcap::PcapFileSource;

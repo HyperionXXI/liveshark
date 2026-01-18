@@ -8,12 +8,8 @@
 //!
 //! Parsers are pure and contain no I/O; sources and analysis layers handle
 //! file access and aggregation. Protocol conventions live in readers so the
-//! parsing surface stays minimal and consistent across modules.
+//! parsing surface stays minimal and consistent with the spec.
 //!
-//! Version française (résumé):
-//! Les protocoles suivent un empilement layout/reader/parser/error. Les `reader`
-//! capturent les conventions, les `parser` restent minimaux, sans E/S.
-
 pub mod artnet;
 pub(crate) mod common;
 pub mod sacn;
