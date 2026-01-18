@@ -43,6 +43,11 @@ jobs:
           if (Test-Path LICENSE-MIT) { Copy-Item LICENSE-MIT dist\LICENSE-MIT }
           if (Test-Path LICENSE-APACHE) { Copy-Item LICENSE-APACHE dist\LICENSE-APACHE }
           if (Test-Path LICENSE-CC-BY-4.0) { Copy-Item LICENSE-CC-BY-4.0 dist\LICENSE-CC-BY-4.0 }
+          if (Test-Path NOTICE) { Copy-Item NOTICE dist\NOTICE }
+          if (Test-Path gui\report-viewer) {
+            New-Item -ItemType Directory -Force -Path dist\report-viewer | Out-Null
+            Copy-Item -Recurse gui\report-viewer\* dist\report-viewer\
+          }
           $tag = "${{ steps.tag.outputs.tag }}"
           $zip = "liveshark-$tag-windows-x86_64.zip"
           Compress-Archive -Path dist\* -DestinationPath $zip
