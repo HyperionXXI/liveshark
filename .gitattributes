@@ -16,3 +16,19 @@
 # Keep shell scripts and Makefile LF (CI/Linux friendly)
 *.sh text eol=lf
 Makefile text eol=lf
+
+# CI / config files (keep LF in repo)
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+Cargo.lock text eol=lf
+
+# Binary artifacts (never EOL-normalize)
+*.pcap binary
+*.pcapng binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+
