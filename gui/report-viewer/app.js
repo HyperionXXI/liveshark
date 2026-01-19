@@ -27,6 +27,7 @@ const columns = {
   ],
   conflicts: [
     { key: "universe", label: "universe_id" },
+    { key: "proto", label: "protocol" },
     { key: "source_a", label: "source_a" },
     { key: "source_b", label: "source_b" },
     { key: "overlap_duration_s", label: "overlap_duration_s" },
@@ -277,6 +278,12 @@ function renderTable() {
       if (isNumericColumn(tab, col.key) && text !== "N/A") {
         td.classList.add("cell-num");
       }
+      // Apply protocol color-coding for proto columns
+      if (col.key === "proto" && text !== "N/A") {
+        td.classList.add("cell-proto");
+        const protoClass = `cell-proto-${text.toLowerCase()}`;
+        td.classList.add(protoClass);
+      }
       tr.appendChild(td);
     });
 
@@ -365,6 +372,7 @@ function buildRows(report, tab) {
         const sources = Array.isArray(c.sources) ? c.sources : [];
         const row = {
           universe: c.universe,
+          proto: c.proto || "N/A",
           source_a: sources[0] || "N/A",
           source_b: sources[1] || "N/A",
           overlap_duration_s: fmtNumber(c.overlap_duration_s, 2),
@@ -373,6 +381,7 @@ function buildRows(report, tab) {
         };
         row._details = {
           universe_id: c.universe,
+          protocol: c.proto || "N/A",
           source_a: sources[0] || "N/A",
           source_b: sources[1] || "N/A",
           overlap_duration_s: fmtNumber(c.overlap_duration_s, 2),

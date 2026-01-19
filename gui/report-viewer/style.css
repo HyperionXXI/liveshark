@@ -211,6 +211,25 @@ tr.selected {
   text-overflow: ellipsis;
 }
 
+.cell-proto {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.cell-proto-artnet {
+  background: #dbeef8;
+  color: #0d47a1;
+}
+
+.cell-proto-sacn {
+  background: #ffeceb;
+  color: #c62828;
+}
+
 .no-results {
   text-align: center;
   color: var(--muted);
