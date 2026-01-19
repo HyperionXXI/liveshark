@@ -156,6 +156,8 @@ fn build_universe_summaries(
                 jitter_ms: metrics.jitter_ms,
                 dup_packets: metrics.dup_packets,
                 reordered_packets: metrics.reordered_packets,
+                first_seen: stats.first_ts,
+                last_seen: stats.last_ts,
             }
         })
         .collect();
@@ -532,6 +534,7 @@ pub(crate) fn build_conflicts(
                         affected_channels,
                         severity: "medium".to_string(),
                         conflict_score: overlap,
+                        first_seen: Some(overlap_start),
                     });
                 }
             }
