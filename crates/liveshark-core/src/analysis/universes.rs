@@ -70,6 +70,7 @@ pub(crate) fn add_artnet_frame(
             source_ip: source_ip.to_string(),
             cid: None,
             source_name: None,
+            source_id: None,
         });
     let source_stats = entry.per_source.entry(source_id.clone()).or_default();
     update_source_stats(source_stats, false, sequence, ts);
@@ -98,6 +99,7 @@ pub(crate) fn add_sacn_frame(
             source_ip: source_ip.to_string(),
             cid: Some(cid),
             source_name,
+            source_id: None,
         });
     let source_stats = entry.per_source.entry(source_id.clone()).or_default();
     update_source_stats(source_stats, true, sequence, ts);
@@ -134,7 +136,10 @@ fn build_universe_summaries(
             sources_with_ids.sort_by(|a, b| a.0.cmp(&b.0));
             let sources = sources_with_ids
                 .into_iter()
-                .map(|(_, summary)| summary)
+                .map(|(id, mut summary)| {
+                    summary.source_id = Some(id);
+                    summary
+                })
                 .collect();
             let metrics = compute_metrics(&stats.per_source);
 
@@ -482,6 +487,7 @@ fn prune_burst_lengths(samples: &mut VecDeque<(f64, u64)>, now: f64) {
 pub(crate) fn build_conflicts(
     stats: &HashMap<u16, UniverseStats>,
     dmx_store: &DmxStore,
+    proto: &str,
 ) -> Vec<crate::ConflictSummary> {
     let mut conflicts = Vec::new();
 
@@ -521,6 +527,7 @@ pub(crate) fn build_conflicts(
                     conflicts.push(crate::ConflictSummary {
                         universe: *universe,
                         sources: vec![src_a_label, src_b_label],
+                        proto: Some(proto.to_string()),
                         overlap_duration_s: overlap,
                         affected_channels,
                         severity: "medium".to_string(),
@@ -632,7 +639,7 @@ mod tests {
         add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(3.0));
 
         let dmx_store = DmxStore::default();
-        let conflicts = build_conflicts(&stats, &dmx_store);
+        let conflicts = build_conflicts(&stats, &dmx_store, "artnet");
         assert_eq!(conflicts.len(), 1);
         let conflict = &conflicts[0];
         assert_eq!(conflict.universe, 1);
@@ -672,6 +679,7 @@ mod tests {
                 source_ip: "10.0.0.1".to_string(),
                 cid: Some("cid-2".to_string()),
                 source_name: None,
+                source_id: None,
             },
         );
         universe.sources.insert(
@@ -680,6 +688,7 @@ mod tests {
                 source_ip: "10.0.0.1".to_string(),
                 cid: Some("cid-1".to_string()),
                 source_name: None,
+                source_id: None,
             },
         );
         stats.insert(1, universe);
@@ -690,6 +699,9 @@ mod tests {
         assert_eq!(sources.len(), 2);
         assert_eq!(sources[0].cid.as_deref(), Some("cid-1"));
         assert_eq!(sources[1].cid.as_deref(), Some("cid-2"));
+        // Verify source_id is populated per v0.2
+        assert_eq!(sources[0].source_id.as_deref(), Some("a-source"));
+        assert_eq!(sources[1].source_id.as_deref(), Some("b-source"));
     }
 
     #[test]
@@ -709,7 +721,7 @@ mod tests {
         add_artnet_frame(&mut stats, 1, &ip_b, 6454, None, Some(4.0));
 
         let dmx_store = DmxStore::new();
-        let conflicts = build_conflicts(&stats, &dmx_store);
+        let conflicts = build_conflicts(&stats, &dmx_store, "artnet");
 
         assert_eq!(conflicts.len(), 2);
         assert_eq!(conflicts[0].universe, 1);

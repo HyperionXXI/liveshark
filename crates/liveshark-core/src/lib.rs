@@ -208,6 +208,7 @@ pub struct UniverseSummary {
 ///     source_ip: "192.168.0.2".to_string(),
 ///     cid: None,
 ///     source_name: None,
+///     source_id: None,
 /// };
 /// assert_eq!(source.source_ip, "192.168.0.2");
 /// ```
@@ -221,6 +222,9 @@ pub struct SourceSummary {
     /// sACN source name, when available.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_name: Option<String>,
+    /// Canonical source identifier (v0.2 additive), matching identifiers in conflicts[].sources[].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
 }
 
 /// Flow-level summary for a UDP endpoint pair.
@@ -279,6 +283,7 @@ pub struct FlowSummary {
 /// let conflict = ConflictSummary {
 ///     universe: 1,
 ///     sources: vec!["sacn:cid:deadbeef".to_string()],
+///     proto: None,
 ///     overlap_duration_s: 1.2,
 ///     affected_channels: Vec::new(),
 ///     severity: "low".to_string(),
@@ -292,6 +297,9 @@ pub struct ConflictSummary {
     pub universe: u16,
     /// Canonical source identifiers.
     pub sources: Vec<String>,
+    /// Protocol name (v0.2 additive; "artnet" or "sacn"), when available.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proto: Option<String>,
     /// Duration of the overlap in seconds.
     pub overlap_duration_s: f64,
     /// Channel indices affected (empty in v0.1).
@@ -420,6 +428,7 @@ mod tests {
                     source_ip: "10.0.0.1".to_string(),
                     cid: None,
                     source_name: None,
+                    source_id: None,
                 }],
                 fps: None,
                 frames_count: 1,

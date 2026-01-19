@@ -208,12 +208,23 @@ Par défaut :
   \item \textbf{Fenêtre de pic :} 1.0 s (glissante) pour \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s}
 \end{itemize}
 Les fenêtres glissantes incluent les paquets dont l'horodatage est dans $[t - W, t]$ (bornes incluses).
+
+\paragraph{Delta de séquence sACN modulo-256 (définition de base).}
+Pour les flux sACN, les numéros de séquence sont des compteurs 8 bits. Soit le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$, où \texttt{seq\_prev} est le numéro de séquence du paquet précédent provenant de la même source. Le delta détermine la classification de l'ordre des paquets :
+\begin{itemize}
+  \item Si $\Delta = 0$ : paquet dupliqué (même séquence que le précédent).
+  \item Si $\Delta = 1$ : paquet dans l'ordre.
+  \item Si $\Delta \in [2, 127]$ : indique un trou de séquence ; le nombre de paquets manquants est $(\Delta - 1)$.
+  \item Si $\Delta \in [128, 255]$ (demi-plage arrière) : paquet réordonné ; \textbf{ne} contribue \textbf{pas} à la perte.
+  \item Wrap-around (ex. $\ldots, 254, 255, 0, 1, \ldots$) : traité comme dans l'ordre.
+\end{itemize}
+
 \subsection{Définitions des métriques (minimal)}
 \begin{itemize}
   \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent, si $t_{last} == t_{first}$, ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}).
   \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s. La valeur rapportée est le débit sur la dernière fenêtre de 5.0 s se terminant au dernier horodatage observé.
   \item \textbf{gigue IAT (diagnostic) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
-  \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
+  \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (v0.1 : sACN), la perte est rapportée comme des trous observés au point de capture. Pour sACN, les trous sont calculés par source en utilisant la règle du delta modulo-256 ci-dessus ; seul $\Delta \in [2,127]$ contribue à la perte observée comme $(\Delta-1)$ paquets manquants. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
 Les métriques optionnelles sont omises lorsqu'elles ne sont pas calculables ; leur absence ne signifie pas zéro.
 Voir l'Appendice D pour les définitions opérationnelles et les unités.
@@ -439,14 +450,15 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
   \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),\\
   \texttt{sources[]} (tableau d'objets avec \texttt{source\_ip}, \texttt{cid} optionnel,\\
   et \texttt{source\_name} optionnel ;\\
-  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs),\\
+  \texttt{cid} est en hexadécimal minuscule, 32 caractères, sans séparateurs ;\\
+  v0.2 ajoute le champ optionnel \texttt{source\_id}, voir Appendice E),\\
   \texttt{fps} (flottant ou null), \texttt{frames\_count} (entier), et des champs de métriques optionnels\\
   \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count},\\
   \texttt{max\_burst\_len}, \texttt{jitter\_ms}, \texttt{dup\_packets}, \texttt{reordered\_packets}
   (omis si indisponibles).
   \item Les éléments de \texttt{flows[]} contiennent : \texttt{app\_proto} (chaîne), \texttt{src} (chaîne), \texttt{dst} (chaîne),
   et \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s} optionnels (omis si indisponibles).
-  \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
+  \item Les éléments de \texttt{conflicts[]} contiennent : \texttt{universe} (entier), \texttt{sources[]} (tableau d'identifiants de source, voir Appendice C), \texttt{proto} (chaîne ; additive v0.2, indique le protocole), \texttt{overlap\_duration\_s} (flottant), \texttt{affected\_channels[]} (tableau d'entiers ou vide), \texttt{severity} (chaîne), et \texttt{conflict\_score} (flottant). Définition complète dans l'Appendice C.
   \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne),\\
   \texttt{compliance\_percentage}\\
   (flottant ; v0.1 émet 100.0 comme placeholder ; les consommateurs \NEDOITPAS{} s'y fier et \DOIT{} utiliser \texttt{violations[]} à la place),\\
@@ -485,7 +497,7 @@ Sauf mention contraire :
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
   \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
-  \texttt{sources[]} dans chaque univers triés par \texttt{source\_ip} croissant, puis \texttt{cid} croissant (si présent ; \texttt{cid} absent en dernier) ;
+  \texttt{sources[]} dans chaque univers triés par \texttt{source\_id} croissant si présent (v0.2) ; pour la compatibilité v0.1, trier par \texttt{source\_ip} croissant, puis \texttt{cid} croissant (si présent ; \texttt{cid} absent en dernier) ;
   \texttt{flows[]} triés par \texttt{src} puis \texttt{dst}, puis \texttt{app\_proto} ;
   \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
   \texttt{sources[]} dans chaque conflit triés par ordre lexicographique des identifiants de source ;
@@ -621,6 +633,28 @@ Art-Net 4 & Art-Net 4 Specification\\ (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
+
+\subsection{Appendice E --- Champs additifs du schéma v0.2}
+
+Cet appendice documente les champs optionnels ajoutés en v0.2 du contrat du rapport JSON. Ces champs sont \textit{additifs} et n'affectent pas \texttt{report\_version} ; les consommateurs v0.1 conformes \DOIT{} tolérer leur présence et \NEDOITPAS{} les traiter comme des incompatibilités. Tous les champs v0.2 utilisent la sémantique \texttt{skip\_serializing\_if} : ils sont omis de la sortie JSON s'ils sont null ou absents, garantissant la compatibilité rétroactive avec les workflows v0.1 existants.
+
+\subsubsection{SourceSummary.source\_id (chaîne optionnelle, v0.2)}
+\begin{itemize}
+  \item \textbf{Objectif :} Fournir un identifiant stable et déterministe pour chaque source afin de permettre aux fonctionnalités compare/timeline de l'IHM de suivre les sources de manière fiable entre rapports.
+  \item \textbf{Format :} Suit les règles d'identité de source de l'Appendice C : \texttt{sacn:cid:<CID>}, \texttt{sacn:<ip>:<port>}, ou \texttt{artnet:<ip>:<port>}.
+  \item \textbf{Disponibilité :} Toujours complété en v0.2 quand un \texttt{SourceSummary} est émis. Absent (null) en v0.1.
+  \item \textbf{Impact sur l'ordre :} Si présent en v0.2, \texttt{sources[]} sont triés par \texttt{source\_id} croissant (remplaçant la règle v0.1 de tri par \texttt{source\_ip}, puis \texttt{cid}).
+  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{source\_id} comme clé stable primaire pour les comparaisons entre rapports et le suivi d'état de l'IHM.
+\end{itemize}
+
+\subsubsection{ConflictSummary.proto (chaîne optionnelle, v0.2)}
+\begin{itemize}
+  \item \textbf{Objectif :} Indiquer le protocole (\texttt{artnet} ou \texttt{sacn}) des sources impliquées dans un conflit. Permet le rendu spécifique au protocole et les stratégies de résolution de conflits dans l'IHM.
+  \item \textbf{Format :} Valeur de chaîne : \texttt{artnet} ou \texttt{sacn}.
+  \item \textbf{Disponibilité :} Toujours complété en v0.2 pour chaque enregistrement \texttt{ConflictSummary}. Absent (null) en v0.1.
+  \item \textbf{Sémantique :} Un enregistrement de conflit implique toujours des sources du même protocole ; donc \texttt{proto} est une seule chaîne, non par source.
+  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{proto} pour étiqueter les résumés de conflits et permettre le filtrage ou le rendu conscient du protocole dans l'IHM.
+\end{itemize}
 
 \nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}
 \printbibliography

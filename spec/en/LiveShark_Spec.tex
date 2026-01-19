@@ -199,6 +199,18 @@ Sliding windows include packets with timestamps in $[t - W, t]$ (inclusive).
 Unless explicitly stated otherwise, windowed metrics report the value for the \textbf{last} window ending at the last observed timestamp. This applies to \texttt{fps}, \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, and \texttt{max\_burst\_len}. Peak metrics (e.g., \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s} and IAT jitter) report the \textbf{maximum} over all windows.
 
 \subsection{Metrics definitions (minimal)}
+
+\paragraph{sACN modulo-256 sequence delta (baseline definition).}
+For sACN flows, packet sequence numbers are 8-bit counters. Let the modulo-256 delta be $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$, where $\texttt{seq\_prev}$ is the sequence number of the previous packet from the same source. The delta determines packet ordering classification:
+\begin{itemize}
+  \item If $\Delta = 0$: duplicate packet (same sequence as prior).
+  \item If $\Delta = 1$: in-order packet.
+  \item If $\Delta \in [2, 127]$: indicates gap in sequence; missing count is $(\Delta - 1)$.
+  \item If $\Delta \in [128, 255]$ (backward half-range): packet is reordered; \textbf{does not} contribute to loss.
+  \item Wrap-around (e.g., $\ldots, 254, 255, 0, 1, \ldots$): treated as in-order.
+\end{itemize}
+
+\paragraph{Minimal metrics.}
 \begin{itemize}
   \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist, if $t_{last} == t_{first}$, or if the active duration is unavailable. (Reported in \texttt{flows[]}.)
   \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s. The reported value is the rate over the last 5.0 s window ending at the last observed timestamp.
@@ -416,7 +428,7 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
   \item \texttt{compliance[]}: array (may be empty in v0.1).
   \item \texttt{universes[]} elements contain: \texttt{universe} (integer), \texttt{proto} (string),
   \texttt{sources[]} (array of objects with \texttt{source\_ip}, optional \texttt{cid} and \texttt{source\_name};
-    \texttt{cid} is lowercase hex, 32 characters, no separators),
+    \texttt{cid} is lowercase hex, 32 characters, no separators; v0.2 adds optional \texttt{source\_id} field, see Appendix D),
     \texttt{fps} (float or null), \texttt{frames\_count} (integer), and optional metric fields\\
     \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, \texttt{max\_burst\_len}, \texttt{jitter\_ms},\\
     \texttt{dup\_packets}, \texttt{reordered\_packets} (omitted when unavailable)
@@ -424,7 +436,7 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
   \item \texttt{flows[]} elements contain: \texttt{app\_proto} (string), \texttt{src} (string), \texttt{dst} (string),
   and optional \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s}
   (omitted when unavailable).
-  \item \texttt{conflicts[]} elements are defined in Appendix C.
+  \item \texttt{conflicts[]} elements contain: \texttt{universe} (integer), \texttt{sources[]} (array of source identifiers, see Appendix C), \texttt{proto} (string; v0.2 additive, indicates protocol of sources involved), \texttt{overlap\_duration\_s} (float), \texttt{affected\_channels[]} (array of integers or empty), \texttt{severity} (string), and \texttt{conflict\_score} (float). Full definition in Appendix C.
   \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 emits 100.0 as a placeholder; consumers \MUSTNOT{} rely on it and \MUST{} use \texttt{violations[]} instead),
   and \texttt{violations[]} (array of objects with: \texttt{id} (stable identifier), \texttt{severity} (string; v0.1 uses \texttt{warning} or \texttt{error}),
   \texttt{message} (human-readable explanation), \texttt{count} (integer, total number of occurrences across the capture), and optional
@@ -460,7 +472,7 @@ Unless explicitly stated otherwise:
 \begin{itemize}
   \item \textbf{Stable ordering:}
   \texttt{universes[]} sorted by \texttt{universe} ascending, then \texttt{proto} ascending;
-  \texttt{sources[]} in each universe sorted by \texttt{source\_ip} ascending, then \texttt{cid} ascending (when present; absent \texttt{cid} sorts last);
+  \texttt{sources[]} in each universe sorted by \texttt{source\_id} ascending when present (v0.2); for v0.1 compatibility, sort by \texttt{source\_ip} ascending, then \texttt{cid} ascending (when present; absent \texttt{cid} sorts last);
   \texttt{flows[]} sorted by \texttt{src}, then \texttt{dst}, then \texttt{app\_proto};
   \texttt{conflicts[]} sorted by \texttt{universe}, then \texttt{sources} lexicographically;
   \texttt{sources[]} in each conflict record sorted lexicographically by source identifier;
@@ -593,6 +605,28 @@ Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
+
+\subsection{Appendix D --- v0.2 additive schema fields}
+
+This appendix documents optional fields added in v0.2 of the JSON report contract. These fields are \textit{additive} and do not affect \texttt{report\_version}; compliant v0.1 consumers \MUST{} tolerate their presence and \MUSTNOT{} treat them as incompatibilities. All v0.2 fields use \texttt{skip\_serializing\_if} semantics: they are omitted from the JSON output when null or absent, ensuring backward compatibility with existing v0.1 workflows.
+
+\subsubsection{SourceSummary.source\_id (optional string, v0.2)}
+\begin{itemize}
+  \item \textbf{Purpose:} Provide a stable, deterministic identifier for each source to enable GUI compare/timeline features that require reliable cross-report source tracking.
+  \item \textbf{Format:} Follows Appendix C source identity rules: \texttt{sacn:cid:<CID>}, \texttt{sacn:<ip>:<port>}, or \texttt{artnet:<ip>:<port>}.
+  \item \textbf{Availability:} Always populated in v0.2 when a \texttt{SourceSummary} is emitted. Absent (null) in v0.1.
+  \item \textbf{Sorting impact:} When present in v0.2, \texttt{sources[]} are sorted by \texttt{source\_id} ascending (superseding the v0.1 rule of sorting by \texttt{source\_ip}, then \texttt{cid}).
+  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{source\_id} as the primary stable key for cross-report comparisons and GUI state tracking.
+\end{itemize}
+
+\subsubsection{ConflictSummary.proto (optional string, v0.2)}
+\begin{itemize}
+  \item \textbf{Purpose:} Indicate the protocol (\texttt{artnet} or \texttt{sacn}) of the sources involved in a conflict. Enables protocol-specific GUI rendering and conflict resolution strategies.
+  \item \textbf{Format:} String value: \texttt{artnet} or \texttt{sacn}.
+  \item \textbf{Availability:} Always populated in v0.2 for each \texttt{ConflictSummary} record. Absent (null) in v0.1.
+  \item \textbf{Semantics:} A conflict record always involves sources from the same protocol; hence \texttt{proto} is a single string, not per-source.
+  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{proto} to tag conflict summaries and enable protocol-aware filtering or rendering in the GUI.
+\end{itemize}
 
 \nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}
 \printbibliography
