@@ -293,6 +293,14 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D
   \item \textbf{Conflict detection} uses time overlap only and may produce false positives when sources are active on different channels. The false-positive rate is not quantified in v0.1; conflicts are signals to investigate.
   \item \textbf{sACN validation} drops packets with non-zero start code or invalid property value count.
 \end{itemize}
+\section{Planned scope (v0.2, non-normative)}
+\begin{itemize}
+  \item \textbf{Viewer timeline:} time-based navigation for universes, flows, and conflicts (read-only).
+  \item \textbf{Compare mode:} side-by-side diff of two reports to highlight deltas in metrics and conflicts.
+  \item \textbf{Performance focus:} viewer remains responsive on large reports (table and details).
+  \item \textbf{Offline only:} still file-based analysis, no native live capture.
+  \item \textbf{Schema stability:} additive fields remain optional; no breaking changes to v0.1 consumers.
+\end{itemize}
 \section{Validation criteria (extract)}
 
 \subsection{Definition of Done v0.1}
