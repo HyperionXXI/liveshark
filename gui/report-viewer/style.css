@@ -230,6 +230,16 @@ tr.selected {
   color: #c62828;
 }
 
+.cell-source-id {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: #f5f3ef;
+  padding: 3px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  color: #4a4641;
+}
+
 .no-results {
   text-align: center;
   color: var(--muted);

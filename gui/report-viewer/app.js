@@ -284,6 +284,10 @@ function renderTable() {
         const protoClass = `cell-proto-${text.toLowerCase()}`;
         td.classList.add(protoClass);
       }
+      // Apply source_id styling for monospace display
+      if (col.key === "source_id" && text !== "N/A") {
+        td.classList.add("cell-source-id");
+      }
       tr.appendChild(td);
     });
 
@@ -317,8 +321,9 @@ function buildRows(report, tab) {
   switch (tab) {
     case "universes":
       return (report.universes || []).map((u) => {
+        // Use v0.2 source_id field if available, fall back to extracting from IP/CID/name
         const sourceId = (u.sources || [])
-          .map((s) => s.source_ip || s.cid || s.source_name)
+          .map((s) => s.source_id || s.source_ip || s.cid || s.source_name)
           .filter(Boolean)
           .join(", ");
         const row = {
