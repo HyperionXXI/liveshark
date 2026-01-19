@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timeline Test</title>
+    <link rel="stylesheet" href="report-viewer/style.css">
+</head>
+<body style="padding: 20px;">
+    <h1>Timeline Visualization Test</h1>
+    
+    <div id="timelineSection" class="timeline-section">
+        <div class="timeline-header">
+            <h3>Timeline</h3>
+            <div class="timeline-info">
+                <span id="timelineStart">Start: N/A</span>
+                <span id="timelineDuration">Duration: N/A</span>
+                <span id="timelineEnd">End: N/A</span>
+            </div>
+        </div>
+        <div class="timeline-container">
+            <svg class="timeline-svg" id="timelineSvg" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div class="timeline-legend">
+            <div class="legend-item">
+                <div class="legend-bar universe-bar"></div>
+                <span>Universe active</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-marker conflict-marker"></div>
+                <span>Conflict detected</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="report-viewer/app.js"></script>
+    <script>
+        // Load the golden report with conflicts
+        fetch('../tests/golden/artnet_conflict/expected_report.json')
+            .then(r => r.json())
+            .then(report => {
+                console.log('Loaded report:', report);
+                renderTimeline(report);
+            })
+            .catch(err => console.error('Error:', err));
+    </script>
+</body>
+</html>

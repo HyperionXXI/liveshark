@@ -6,6 +6,7 @@
   filter: "",
   rows: [],
   selected: null,
+  timelineFilter: null, // { type: "universe" | "conflict", universe?, proto?, conflictKey? }
 };
 
 const columns = {
@@ -258,6 +259,16 @@ function renderTable() {
 
   sorted.forEach((row) => {
     const tr = document.createElement("tr");
+    
+    // Add data attributes for timeline sync
+    if (row.universe !== undefined && row.proto !== undefined) {
+      tr.setAttribute("data-universe", row.universe);
+      tr.setAttribute("data-proto", row.proto);
+    }
+    if (row._conflictKey !== undefined) {
+      tr.setAttribute("data-conflict-key", row._conflictKey);
+    }
+    
     tr.addEventListener("click", () => {
       Array.from(tableBody.querySelectorAll("tr")).forEach((r) =>
         r.classList.remove("selected")
@@ -317,6 +328,15 @@ function renderHeader(tab) {
     tr.appendChild(th);
   });
   tableHead.appendChild(tr);
+}
+
+// Helper function for conflict identification (used in buildRows)
+function createConflictKey(conflict) {
+  // Create a deterministic key: universe + proto + sorted sources + first_seen
+  const sources = Array.isArray(conflict.sources)
+    ? conflict.sources.slice().sort().join("|")
+    : "";
+  return `${conflict.universe}:${conflict.proto}:${sources}:${conflict.first_seen}`;
 }
 
 function buildRows(report, tab) {
@@ -380,6 +400,7 @@ function buildRows(report, tab) {
     case "conflicts":
       return (report.conflicts || []).map((c) => {
         const sources = Array.isArray(c.sources) ? c.sources : [];
+        const conflictKey = createConflictKey(c);
         const row = {
           universe: c.universe,
           proto: c.proto || "N/A",
@@ -388,6 +409,7 @@ function buildRows(report, tab) {
           overlap_duration_s: fmtNumber(c.overlap_duration_s, 2),
           conflict_score: fmtNumber(c.conflict_score, 2),
           raw: c,
+          _conflictKey: conflictKey,
         };
         row._details = {
           universe_id: c.universe,
@@ -786,10 +808,33 @@ function renderTimeline(report) {
     rect.setAttribute("stroke-width", "1");
     rect.setAttribute("class", "timeline-bar");
     
+    // Data attributes for sync
+    rect.setAttribute("data-universe", u.universe);
+    rect.setAttribute("data-proto", u.proto);
+    rect.style.cursor = "pointer";
+    
     // Tooltip
     const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    title.textContent = `Universe ${u.universe} (${u.proto})\n${formatTimestamp(u.first_seen)} - ${formatTimestamp(u.last_seen)}`;
+    title.textContent = `Universe ${u.universe} (${u.proto})\n${formatTimestamp(u.first_seen)} - ${formatTimestamp(u.last_seen)}\nClick to filter`;
     rect.appendChild(title);
+    
+    // Click handler
+    rect.addEventListener("click", () => {
+      applyUniverseFilter(u.universe, u.proto);
+    });
+    
+    // Hover sync
+    rect.addEventListener("mouseenter", () => {
+      document
+        .querySelectorAll(`tr[data-universe="${u.universe}"][data-proto="${u.proto}"]`)
+        .forEach((row) => row.classList.add("hover-highlight"));
+    });
+    rect.addEventListener("mouseleave", () => {
+      document
+        .querySelectorAll("tr.hover-highlight")
+        .forEach((row) => row.classList.remove("hover-highlight"));
+    });
+    
     timelineSvg.appendChild(rect);
 
     yPos += barHeight + 10;
@@ -810,6 +855,7 @@ function renderTimeline(report) {
 
     data.conflicts.forEach((c, idx) => {
       const x = timeToX(c.first_seen);
+      const conflictKey = createConflictKey(c);
 
       // Conflict marker (triangle)
       const points = [
@@ -826,11 +872,35 @@ function renderTimeline(report) {
       polygon.setAttribute("stroke", "#e65100");
       polygon.setAttribute("stroke-width", "1");
       polygon.setAttribute("class", "timeline-conflict-marker");
+      
+      // Data attributes for sync
+      polygon.setAttribute("data-conflict-key", conflictKey);
+      polygon.setAttribute("data-universe", c.universe);
+      polygon.style.cursor = "pointer";
 
       const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
       const sourcesStr = c.sources ? c.sources.join(", ") : "unknown";
-      title.textContent = `Universe ${c.universe} conflict\nSources: ${sourcesStr}\nTime: ${formatTimestamp(c.first_seen)}`;
+      title.textContent = `Universe ${c.universe} conflict\nSources: ${sourcesStr}\nTime: ${formatTimestamp(c.first_seen)}\nClick to focus`;
       polygon.appendChild(title);
+      
+      // Click handler
+      polygon.addEventListener("click", () => {
+        applyConflictFocus(conflictKey);
+      });
+      
+      // Hover sync
+      polygon.addEventListener("mouseenter", () => {
+        const conflictRow = tableBody.querySelector(`tr[data-conflict-key="${conflictKey}"]`);
+        if (conflictRow) {
+          conflictRow.classList.add("hover-highlight");
+        }
+      });
+      polygon.addEventListener("mouseleave", () => {
+        document
+          .querySelectorAll("tr.hover-highlight")
+          .forEach((row) => row.classList.remove("hover-highlight"));
+      });
+      
       timelineSvg.appendChild(polygon);
     });
 
@@ -862,3 +932,127 @@ function renderTimeline(report) {
     timelineSvg.appendChild(label);
   }
 }
+
+// Timeline ↔ Table Sync Functions
+function applyUniverseFilter(universe, proto) {
+  state.timelineFilter = { type: "universe", universe, proto };
+  
+  // Hide non-matching rows
+  const allRows = tableBody.querySelectorAll("tr");
+  allRows.forEach((row) => {
+    const rowUniverse = row.getAttribute("data-universe");
+    const rowProto = row.getAttribute("data-proto");
+    
+    if (rowUniverse === String(universe) && rowProto === proto) {
+      row.classList.remove("is-hidden");
+    } else {
+      row.classList.add("is-hidden");
+    }
+  });
+  
+  // Highlight matching rows
+  highlightElements(
+    tableBody.querySelectorAll(`tr[data-universe="${universe}"][data-proto="${proto}"]`)
+  );
+  
+  updateFilterStatus();
+  renderTable(); // Re-render to apply hiding
+}
+
+function applyConflictFocus(conflictKey) {
+  state.timelineFilter = { type: "conflict", conflictKey };
+  
+  // Switch to conflicts tab if not already there
+  if (state.activeTab !== "conflicts") {
+    state.activeTab = "conflicts";
+    renderTable();
+  }
+  
+  // Highlight matching conflict row
+  const matchingRow = tableBody.querySelector(`tr[data-conflict-key="${conflictKey}"]`);
+  if (matchingRow) {
+    highlightElements(matchingRow);
+    // Scroll into view
+    matchingRow.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else {
+    showNotification("Conflict not found in current view");
+  }
+  
+  updateFilterStatus();
+}
+
+function clearTimelineFilter() {
+  state.timelineFilter = null;
+  
+  // Show all rows again
+  const allRows = tableBody.querySelectorAll("tr");
+  allRows.forEach((row) => row.classList.remove("is-hidden"));
+  
+  updateFilterStatus();
+  renderTable();
+}
+
+function highlightElements(nodeOrNodeList) {
+  // Remove previous highlights
+  document.querySelectorAll(".row-highlight").forEach((el) => {
+    el.classList.remove("row-highlight");
+  });
+  
+  // Apply new highlights
+  const nodes = NodeList.prototype.isPrototypeOf(nodeOrNodeList)
+    ? nodeOrNodeList
+    : [nodeOrNodeList];
+  
+  nodes.forEach((node) => {
+    if (node) {
+      node.classList.add("row-highlight");
+      // Auto-remove highlight after 2 seconds
+      setTimeout(() => {
+        node.classList.remove("row-highlight");
+      }, 2000);
+    }
+  });
+}
+
+function updateFilterStatus() {
+  const filterStatusEl = document.getElementById("timelineFilterStatus");
+  if (!filterStatusEl) return;
+  
+  if (!state.timelineFilter) {
+    filterStatusEl.innerHTML = "";
+    filterStatusEl.hidden = true;
+    return;
+  }
+  
+  let statusText = "";
+  if (state.timelineFilter.type === "universe") {
+    const { universe, proto } = state.timelineFilter;
+    statusText = `Filtered: Universe ${universe} (${proto})`;
+  } else if (state.timelineFilter.type === "conflict") {
+    statusText = "Filtered: Conflict selected";
+  }
+  
+  filterStatusEl.innerHTML = `
+    ${statusText}
+    <button id="clearFilterBtn" class="clear-filter-btn">Clear</button>
+  `;
+  filterStatusEl.hidden = false;
+  
+  document.getElementById("clearFilterBtn").addEventListener("click", clearTimelineFilter);
+}
+
+function showNotification(message) {
+  const notif = document.createElement("div");
+  notif.className = "timeline-notification";
+  notif.textContent = message;
+  document.body.appendChild(notif);
+  
+  setTimeout(() => notif.remove(), 2000);
+}
+
+// ESC key to clear filter
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.timelineFilter) {
+    clearTimelineFilter();
+  }
+});
