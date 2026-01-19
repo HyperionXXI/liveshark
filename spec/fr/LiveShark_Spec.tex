@@ -312,6 +312,58 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
   \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
 \end{itemize}
 
+\section{Contrat opérationnel du viewer (v0.2)}
+\textbf{Statut.} Cette section définit le \textbf{contrat opérationnel} pour la GUI v0.2 (timeline + compare). Elle est
+\textbf{normative pour v0.2} et informative pour v0.1.
+
+\subsection{Entrées et sécurité}
+\begin{itemize}
+  \item \textbf{Entrées :} le viewer \DOIT{} accepter un rapport (\enquote{A}) pour la vue timeline, et \PEUT{} accepter un second rapport (\enquote{B}) pour la vue compare.
+  \item \textbf{Lecture seule :} le viewer \NEDOITPAS{} modifier les fichiers d'entrée.
+  \item \textbf{Hors ligne uniquement :} le viewer \NEDOITPAS{} effectuer de requêtes réseau. Il \DOIT{} fonctionner à partir de fichiers locaux et rester sans dépendances.
+  \item \textbf{Pas d'évaluation de contenu embarqué :} le JSON est traité comme des données ; le viewer \NEDOITPAS{} évaluer, interpréter ou exécuter du contenu embarqué.
+\end{itemize}
+
+\subsection{Vue timeline (définition)}
+\begin{itemize}
+  \item \textbf{Bornes de temps :} la timeline \DOIT{} utiliser les bornes \texttt{capture\_summary.time\_start} et \texttt{capture\_summary.time\_end} (RFC3339).
+  Les bornes sont \textbf{inclusives}. Si \texttt{time\_start == time\_end}, le viewer \DOIT{} afficher une timeline de \textbf{longueur nulle} (instant unique) et \NEDOITPAS{} inventer une durée.
+  Si \texttt{capture\_summary} ou ses bornes sont absentes, le viewer \DOIT{} afficher un état clair \enquote{Timeline indisponible} et \NEDOITPAS{} déduire des bornes.
+  \item \textbf{Lignes d'univers :} une ligne d'univers est identifiée par la clé canonique \texttt{(universe, proto)} (alignée avec les règles d'ordre de l'Appendice A). Elle \DOIT{} être sélectionnable et reliée au même univers dans les vues table/détails.
+  \item \textbf{Intervalle d'activité (champs v0.2) :} pour chaque ligne d'univers, le rapport \DEVRAIT{} fournir des champs additifs \texttt{first\_seen} et \texttt{last\_seen} (RFC3339)
+  indiquant le premier/dernier message valide contribuant à cet univers. Ces champs sont \textbf{optionnels} et \textbf{additifs} et \NEDOITPAS{} modifier \texttt{report\_version}.
+  S'ils sont absents, le viewer \DOIT{} afficher l'intervalle comme \texttt{N/A} et \NEDOITPAS{} l'inférer.
+  \item \textbf{Conflits sur la timeline (champs v0.2) :} les intervalles de conflits \DEVRAIENT{} être représentés lorsque les champs additifs \texttt{conflicts[].first\_seen} et \texttt{conflicts[].last\_seen} (RFC3339) sont présents.
+  S'ils sont absents, les conflits \DOIVENT{} rester visibles dans la liste/détails mais \NEDOIVENTPAS{} être placés sur la timeline.
+  \item \textbf{Pas d'inférence :} la timeline \DOIT{} visualiser uniquement les champs mesurés/explicites du rapport. Elle \NEDOITPAS{} créer de nouveaux événements, et \NEDOITPAS{} revendiquer des causes racines.
+\end{itemize}
+
+\subsection{Vue compare (définition)}
+\begin{itemize}
+  \item \textbf{Pas d'inférence (rappel) :} la vue compare \DOIT{} rapporter uniquement les deltas de champs explicites ; elle \NEDOITPAS{} inférer des métriques manquantes ni revendiquer des causes.
+  \item \textbf{Diff déterministe :} pour une même paire (A,B), la vue compare \DOIT{} produire les mêmes deltas (pas d'aléatoire, ordre stable).
+  \item \textbf{Clés et ordre :} les comparaisons \DOIVENT{} utiliser des clés canoniques dérivées des règles de l'Appendice A :
+  \begin{itemize}
+    \item \texttt{universes} par \texttt{(universe, proto)}.
+    \item \texttt{flows} par \texttt{(src, dst, app\_proto)} en utilisant les chaînes du rapport \textbf{telles quelles} (\textbf{aucune normalisation} de casse, IPv6, formatage, etc.).
+    \item \texttt{conflicts} par \texttt{(universe, sources)} où \texttt{sources} est la \textbf{liste canonique} d'identifiants de source triée \textbf{lexicographiquement} avant comparaison.
+    \item \texttt{compliance} par \texttt{(protocol, violation\_id)}.
+  \end{itemize}
+  \item \textbf{Absent vs zéro :} les champs numériques optionnels absents en A ou B \DOIVENT{} être traités comme \textbf{inconnus} (afficher \texttt{N/A}) et \NEDOIVENTPAS{} être remplacés par zéro pour le calcul des deltas.
+  \item \textbf{Égalité N/A :} si un champ est \texttt{N/A} dans \textbf{A et B}, il \NEDOITPAS{} être rapporté comme \enquote{changé}.
+  \item \textbf{Présentation :} le viewer \DOIT{} classer les changements en \enquote{ajouté}, \enquote{retiré} ou \enquote{modifié}. Pour les valeurs numériques présentes dans A et B, il \PEUT{} afficher \texttt{B-A} en plus de \texttt{A \rightarrow B}.
+\end{itemize}
+
+\subsection{Invariants et stabilité UX}
+\begin{itemize}
+  \item \textbf{Ordre par défaut :} sans tri utilisateur, les listes \DOIVENT{} apparaître dans l'ordre canonique déterministe (Appendice A).
+  \item \textbf{Tri stable :} lorsque le tri utilisateur est activé, il \DOIT{} être stable \textbf{par table/vue} (les égalités préservent l'ordre précédent).
+  Les égalités sont définies par l'\textbf{égalité de clé canonique} pour la table donnée (voir clés de la vue compare ci-dessus).
+  \item \textbf{Détails = vérité :} le panneau de détails \DOIT{} présenter des valeurs complètes, non tronquées ; la vue JSON brute \DOIT{} refléter le rapport chargé sans modification.
+  \item \textbf{Troncature sûre :} les cellules de table \PEUVENT{} être tronquées pour la lisibilité, mais la valeur complète \DOIT{} rester accessible (infobulle et/ou détails).
+  \item \textbf{Inconnus explicites :} les champs optionnels manquants \DOIVENT{} être affichés comme \texttt{N/A} (jamais silencieusement comme 0).
+\end{itemize}
+
 \section{Critères de validation (extrait)}
 
 \subsection{Définition de fin v0.1}

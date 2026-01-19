@@ -301,6 +301,57 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D
   \item \textbf{Offline only:} still file-based analysis, no native live capture.
   \item \textbf{Schema stability:} additive fields remain optional; no breaking changes to v0.1 consumers.
 \end{itemize}
+\section{Operational viewer contract (v0.2)}
+\textbf{Status.} This section defines the \textbf{operational contract} for the v0.2 GUI (timeline + compare). It is
+\textbf{normative for v0.2} and informational for v0.1.
+
+\subsection{Inputs and safety}
+\begin{itemize}
+  \item \textbf{Inputs:} the viewer \MUST{} accept one report (\enquote{A}) for timeline view, and \MAY{} accept a second report (\enquote{B}) for compare view.
+  \item \textbf{Read-only:} the viewer \MUSTNOT{} modify the input files.
+  \item \textbf{Offline-only:} the viewer \MUSTNOT{} perform network requests. It \MUST{} run from local files and remain zero-deps.
+  \item \textbf{No evaluation of embedded content:} JSON is treated as data only; the viewer \MUSTNOT{} evaluate, interpret, or execute embedded content.
+\end{itemize}
+
+\subsection{Timeline view (definition)}
+\begin{itemize}
+  \item \textbf{Time bounds:} the timeline \MUST{} use capture time bounds from \texttt{capture\_summary.time\_start} and \texttt{capture\_summary.time\_end} (RFC3339).
+  Bounds are \textbf{inclusive}. If \texttt{time\_start == time\_end}, the viewer \MUST{} display a \textbf{zero-length} timeline (single instant) and \MUSTNOT{} invent a duration.
+  If \texttt{capture\_summary} or its bounds are missing, the viewer \MUST{} show a clear \enquote{Timeline unavailable} state and \MUSTNOT{} guess bounds.
+  \item \textbf{Universe rows:} a universe row is identified by the canonical key \texttt{(universe, proto)} (aligned with Appendix A ordering rules). It \MUST{} be selectable and linked to the same universe in the table/details views.
+  \item \textbf{Activity interval (v0.2 fields):} for each universe row, the report \SHOULD{} provide additive fields \texttt{first\_seen} and \texttt{last\_seen} (RFC3339)
+  indicating the first/last observed valid message contributing to that universe. These fields are \textbf{optional} and \textbf{additive} and \MUSTNOT{} change \texttt{report\_version}.
+  If absent, the viewer \MUST{} display the interval as \texttt{N/A} and \MUSTNOT{} infer it.
+  \item \textbf{Conflicts on timeline (v0.2 fields):} conflict intervals \SHOULD{} be represented when additive fields \texttt{conflicts[].first\_seen} and \texttt{conflicts[].last\_seen} (RFC3339) are present.
+  If absent, conflicts \MUST{} remain visible in the conflict list/details but \MUSTNOT{} be placed on the timeline.
+  \item \textbf{No inference:} the timeline \MUST{} visualize only measured/explicit fields from the report. It \MUSTNOT{} create new events, and it \MUSTNOT{} claim root causes.
+\end{itemize}
+
+\subsection{Compare view (definition)}
+\begin{itemize}
+  \item \textbf{No inference (reminder):} compare mode \MUST{} report only deltas of explicit fields; it \MUSTNOT{} infer missing metrics or claim causes.
+  \item \textbf{Deterministic diff:} given the same input pair (A,B), the compare view \MUST{} produce the same deltas (no randomness, stable ordering).
+  \item \textbf{Keys and ordering:} comparisons \MUST{} use canonical keys derived from Appendix A ordering rules:
+  \begin{itemize}
+    \item \texttt{universes} by \texttt{(universe, proto)}.
+    \item \texttt{flows} by \texttt{(src, dst, app\_proto)} using the report strings \textbf{as-is} (\textbf{no normalization} of case, IPv6, formatting, etc.).
+    \item \texttt{conflicts} by \texttt{(universe, sources)} where \texttt{sources} is the \textbf{canonical list} of source identifiers sorted \textbf{lexicographically} before comparison.
+    \item \texttt{compliance} by \texttt{(protocol, violation\_id)}.
+  \end{itemize}
+  \item \textbf{Absent vs zero:} optional numeric fields absent in A or B \MUST{} be treated as \textbf{unknown} (display \texttt{N/A}) and \MUSTNOT{} be substituted with zero for delta computation.
+  \item \textbf{N/A equality:} if a field is \texttt{N/A} in \textbf{both} A and B, it \MUSTNOT{} be reported as \enquote{changed}.
+  \item \textbf{Presentation:} the viewer \MUST{} classify changes as \enquote{added}, \enquote{removed}, or \enquote{changed}. For numeric values present in both A and B, it \MAY{} display \texttt{B-A} in addition to \texttt{A \rightarrow B}.
+\end{itemize}
+
+\subsection{Invariants and UX stability}
+\begin{itemize}
+  \item \textbf{Default ordering:} without user sorting, lists \MUST{} appear in the canonical deterministic order (Appendix A).
+  \item \textbf{Stable sort:} when user sorting is enabled, it \MUST{} be stable \textbf{per table/view} (ties preserve previous order).
+  Ties are defined by \textbf{canonical key equality} for the given table (as defined in the Compare view keys above).
+  \item \textbf{Details are authoritative:} the details panel \MUST{} present full, untruncated values for the selected item; the raw JSON view \MUST{} reflect the loaded report without modification.
+  \item \textbf{Truncation safety:} table cells \MAY{} be truncated for readability, but the full value \MUST{} remain accessible (tooltip and/or details).
+  \item \textbf{Explicit unknowns:} missing optional fields \MUST{} be shown as \texttt{N/A} (never silently as 0).
+\end{itemize}
 \section{Validation criteria (extract)}
 
 \subsection{Definition of Done v0.1}
