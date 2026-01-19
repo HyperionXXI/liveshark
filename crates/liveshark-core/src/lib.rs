@@ -83,7 +83,7 @@ pub struct Report {
 ///
 /// let tool = ToolInfo {
 ///     name: "liveshark".to_string(),
-///     version: "0.1.0".to_string(),
+///     version: "0.1.2".to_string(),
 /// };
 /// assert_eq!(tool.name, "liveshark");
 /// ```
@@ -409,7 +409,7 @@ mod tests {
             report_version: REPORT_VERSION,
             tool: ToolInfo {
                 name: "liveshark".to_string(),
-                version: "0.1.0".to_string(),
+                version: "0.1.2".to_string(),
             },
             generated_at: DEFAULT_GENERATED_AT.to_string(),
             input: InputInfo {
