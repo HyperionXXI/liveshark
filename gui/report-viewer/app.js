@@ -238,6 +238,7 @@ function renderTable() {
 
   if (!state.report) {
     statusEl.textContent = "No report loaded.";
+    renderTimeline(null);
     return;
   }
 
@@ -251,6 +252,7 @@ function renderTable() {
     td.textContent = "No results";
     tr.appendChild(td);
     tableBody.appendChild(tr);
+    renderTimeline(report);
     return;
   }
 
@@ -293,6 +295,9 @@ function renderTable() {
 
     tableBody.appendChild(tr);
   });
+
+  // Render timeline for all reports
+  renderTimeline(report);
 }
 
 function renderHeader(tab) {
@@ -643,4 +648,217 @@ function formatBurst(u) {
     return null;
   }
   return `${fmtOptional(u.burst_count)}/${fmtOptional(u.max_burst_len)}`;
+}
+// Timeline visualization functions
+function extractTimelineData(report) {
+  if (!report || !report.universes) {
+    return { universes: [], conflicts: [], duration: 0, startTime: 0, endTime: 0 };
+  }
+
+  // Extract universe timeline data
+  const universes = (report.universes || [])
+    .filter((u) => u.first_seen !== undefined && u.last_seen !== undefined)
+    .map((u) => ({
+      universe: u.universe,
+      proto: u.proto,
+      first_seen: u.first_seen,
+      last_seen: u.last_seen,
+    }));
+
+  // Extract conflict timeline data
+  const conflicts = (report.conflicts || [])
+    .filter((c) => c.first_seen !== undefined)
+    .map((c) => ({
+      universe: c.universe,
+      proto: c.proto || "unknown",
+      first_seen: c.first_seen,
+      sources: c.sources || [],
+    }));
+
+  // Calculate timeline bounds
+  const allTimes = [
+    ...universes.map((u) => u.first_seen),
+    ...universes.map((u) => u.last_seen),
+    ...conflicts.map((c) => c.first_seen),
+  ];
+
+  if (allTimes.length === 0) {
+    return { universes: [], conflicts: [], duration: 0, startTime: 0, endTime: 0 };
+  }
+
+  const startTime = Math.min(...allTimes);
+  const endTime = Math.max(...allTimes);
+  const duration = endTime - startTime || 0.001; // Avoid division by zero
+
+  return { universes, conflicts, duration, startTime, endTime };
+}
+
+function formatTimestamp(seconds) {
+  if (seconds === undefined || seconds === null) return "N/A";
+  const num = Number(seconds);
+  if (Number.isNaN(num)) return "N/A";
+  
+  if (num < 60) {
+    return `${num.toFixed(2)}s`;
+  }
+  const minutes = Math.floor(num / 60);
+  const secs = (num % 60).toFixed(2);
+  return `${minutes}m ${secs}s`;
+}
+
+function renderTimeline(report) {
+  const timelineSection = document.getElementById("timelineSection");
+  const timelineSvg = document.getElementById("timelineSvg");
+
+  const data = extractTimelineData(report);
+
+  if (data.universes.length === 0 && data.conflicts.length === 0) {
+    timelineSection.hidden = true;
+    return;
+  }
+
+  timelineSection.hidden = false;
+
+  // Update timeline info
+  document.getElementById("timelineStart").textContent = `Start: ${formatTimestamp(data.startTime)}`;
+  document.getElementById("timelineDuration").textContent = `Duration: ${formatTimestamp(data.duration)}`;
+  document.getElementById("timelineEnd").textContent = `End: ${formatTimestamp(data.endTime)}`;
+
+  // SVG dimensions
+  const padding = { top: 20, right: 20, bottom: 20, left: 100 };
+  const barHeight = 20;
+  const universeCount = data.universes.length + (data.conflicts.length > 0 ? 1 : 0);
+  const svgHeight = Math.max(200, universeCount * (barHeight + 10) + padding.top + padding.bottom);
+  const svgWidth = Math.max(600, window.innerWidth - 40);
+
+  timelineSvg.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+  timelineSvg.setAttribute("width", svgWidth);
+  timelineSvg.setAttribute("height", svgHeight);
+  timelineSvg.innerHTML = "";
+
+  const chartWidth = svgWidth - padding.left - padding.right;
+  const chartHeight = svgHeight - padding.top - padding.bottom;
+
+  // Draw background
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("x", padding.left);
+  bg.setAttribute("y", padding.top);
+  bg.setAttribute("width", chartWidth);
+  bg.setAttribute("height", chartHeight);
+  bg.setAttribute("fill", "#f9f9f9");
+  bg.setAttribute("stroke", "#ddd");
+  bg.setAttribute("stroke-width", "1");
+  timelineSvg.appendChild(bg);
+
+  // Helper to convert time to x position
+  const timeToX = (time) => {
+    const normalized = (time - data.startTime) / (data.duration || 1);
+    return padding.left + normalized * chartWidth;
+  };
+
+  let yPos = padding.top + 10;
+
+  // Draw universe bars
+  data.universes.forEach((u) => {
+    const x1 = timeToX(u.first_seen);
+    const x2 = timeToX(u.last_seen);
+    const barWidth = Math.max(2, x2 - x1); // Ensure minimum visibility
+
+    // Universe label
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", padding.left - 10);
+    label.setAttribute("y", yPos + barHeight / 2);
+    label.setAttribute("text-anchor", "end");
+    label.setAttribute("dominant-baseline", "middle");
+    label.setAttribute("font-size", "12");
+    label.setAttribute("fill", "#333");
+    label.textContent = `U${u.universe}`;
+    timelineSvg.appendChild(label);
+
+    // Universe bar
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", x1);
+    rect.setAttribute("y", yPos);
+    rect.setAttribute("width", barWidth);
+    rect.setAttribute("height", barHeight);
+    rect.setAttribute("fill", u.proto === "sacn" ? "#ffeceb" : "#dbeef8");
+    rect.setAttribute("stroke", u.proto === "sacn" ? "#d32f2f" : "#1565c0");
+    rect.setAttribute("stroke-width", "1");
+    rect.setAttribute("class", "timeline-bar");
+    
+    // Tooltip
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    title.textContent = `Universe ${u.universe} (${u.proto})\n${formatTimestamp(u.first_seen)} - ${formatTimestamp(u.last_seen)}`;
+    rect.appendChild(title);
+    timelineSvg.appendChild(rect);
+
+    yPos += barHeight + 10;
+  });
+
+  // Draw conflict markers
+  if (data.conflicts.length > 0) {
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", padding.left - 10);
+    label.setAttribute("y", yPos + barHeight / 2);
+    label.setAttribute("text-anchor", "end");
+    label.setAttribute("dominant-baseline", "middle");
+    label.setAttribute("font-size", "12");
+    label.setAttribute("fill", "#333");
+    label.setAttribute("font-weight", "bold");
+    label.textContent = "Conflicts";
+    timelineSvg.appendChild(label);
+
+    data.conflicts.forEach((c, idx) => {
+      const x = timeToX(c.first_seen);
+
+      // Conflict marker (triangle)
+      const points = [
+        [x, yPos],
+        [x + 8, yPos + barHeight],
+        [x - 8, yPos + barHeight],
+      ]
+        .map((p) => p.join(","))
+        .join(" ");
+
+      const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      polygon.setAttribute("points", points);
+      polygon.setAttribute("fill", "#ff6f00");
+      polygon.setAttribute("stroke", "#e65100");
+      polygon.setAttribute("stroke-width", "1");
+      polygon.setAttribute("class", "timeline-conflict-marker");
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      const sourcesStr = c.sources ? c.sources.join(", ") : "unknown";
+      title.textContent = `Universe ${c.universe} conflict\nSources: ${sourcesStr}\nTime: ${formatTimestamp(c.first_seen)}`;
+      polygon.appendChild(title);
+      timelineSvg.appendChild(polygon);
+    });
+
+    yPos += barHeight + 10;
+  }
+
+  // Draw time axis labels
+  const timeSteps = 5;
+  for (let i = 0; i <= timeSteps; i++) {
+    const time = data.startTime + (data.duration * i) / timeSteps;
+    const x = timeToX(time);
+
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", x);
+    tick.setAttribute("y1", padding.top + chartHeight);
+    tick.setAttribute("x2", x);
+    tick.setAttribute("y2", padding.top + chartHeight + 5);
+    tick.setAttribute("stroke", "#999");
+    tick.setAttribute("stroke-width", "1");
+    timelineSvg.appendChild(tick);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", x);
+    label.setAttribute("y", padding.top + chartHeight + 15);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("font-size", "10");
+    label.setAttribute("fill", "#666");
+    label.textContent = formatTimestamp(time);
+    timelineSvg.appendChild(label);
+  }
 }
