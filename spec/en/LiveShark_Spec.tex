@@ -294,12 +294,21 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D
   \item \textbf{sACN validation} drops packets with non-zero start code or invalid property value count.
 \end{itemize}
 \section{Planned scope (v0.2, non-normative)}
+This section summarizes intended v0.2 direction. It does not change the v0.1 contract.
 \begin{itemize}
-  \item \textbf{Viewer timeline:} time-based navigation for universes, flows, and conflicts (read-only).
-  \item \textbf{Compare mode:} side-by-side diff of two reports to highlight deltas in metrics and conflicts.
-  \item \textbf{Performance focus:} viewer remains responsive on large reports (table and details).
-  \item \textbf{Offline only:} still file-based analysis, no native live capture.
+  \item \textbf{Viewer timeline:} time-based navigation for universes, flows, and conflicts using explicit report fields only.
+  \item \textbf{Compare mode:} deterministic A/B diff using canonical ordering and keys from Appendix A; absent is treated as \texttt{N/A}, not zero.
+  \item \textbf{Viewer performance:} remain responsive on large reports (table + details).
+  \item \textbf{Offline-only:} still file-based analysis, no native live capture.
   \item \textbf{Schema stability:} additive fields remain optional; no breaking changes to v0.1 consumers.
+\end{itemize}
+
+\section{Planned scope (v0.3+, non-normative)}
+\begin{itemize}
+  \item \textbf{sACN advanced signals:} expose sync, discovery, and priority (including per-address) without inferring root causes.
+  \item \textbf{Network symptoms:} report observable multicast/IGMP/burst patterns without claiming device fault.
+  \item \textbf{Security presence:} flag ssACN when detected (presence only, no threat inference).
+  \item \textbf{RDMnet visibility:} detect presence and participants (visibility only, no device control).
 \end{itemize}
 \section{Operational viewer contract (v0.2)}
 \textbf{Status.} This section defines the \textbf{operational contract} for the v0.2 GUI (timeline + compare). It is

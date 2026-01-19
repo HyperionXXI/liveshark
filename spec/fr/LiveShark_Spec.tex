@@ -312,6 +312,24 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
   \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
 \end{itemize}
 
+\section{Portée prévue (v0.2, non normative)}
+Cette section résume l'orientation v0.2. Elle ne modifie pas le contrat v0.1.
+\begin{itemize}
+  \item \textbf{Timeline viewer :} navigation temporelle pour univers, flux et conflits, uniquement sur champs explicites du rapport.
+  \item \textbf{Vue compare :} diff A/B déterministe en utilisant l'ordre et les clés canoniques de l'Appendice A ; l'absence est traitée comme \texttt{N/A}, pas comme zéro.
+  \item \textbf{Performance viewer :} rester réactif sur les rapports volumineux (table + détails).
+  \item \textbf{Hors ligne uniquement :} analyse basée sur fichiers, pas de capture live native.
+  \item \textbf{Stabilité du schéma :} champs additifs optionnels, aucune rupture pour les consommateurs v0.1.
+\end{itemize}
+
+\section{Portée prévue (v0.3+, non normative)}
+\begin{itemize}
+  \item \textbf{sACN avancé :} exposer sync, discovery et priority (y compris per-address) sans inférer de causes racines.
+  \item \textbf{Symptômes réseau :} remonter des motifs observables multicast/IGMP/rafales sans attribuer la faute à un équipement.
+  \item \textbf{Présence sécurité :} signaler ssACN si détecté (présence uniquement, pas d'inférence de menace).
+  \item \textbf{Visibilité RDMnet :} détecter la présence et les participants (visibilité seule, pas de contrôle).
+\end{itemize}
+
 \section{Contrat opérationnel du viewer (v0.2)}
 \textbf{Statut.} Cette section définit le \textbf{contrat opérationnel} pour la GUI v0.2 (timeline + compare). Elle est
 \textbf{normative pour v0.2} et informative pour v0.1.
