@@ -159,6 +159,8 @@ pub struct CaptureSummary {
 ///     jitter_ms: None,
 ///     dup_packets: None,
 ///     reordered_packets: None,
+///     first_seen: None,
+///     last_seen: None,
 /// };
 /// assert_eq!(summary.universe, 1);
 /// ```
@@ -196,6 +198,12 @@ pub struct UniverseSummary {
     /// Reordered sACN packets observed (sequence tracked only).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reordered_packets: Option<u64>,
+    /// Timestamp of first packet for this universe (seconds since capture start), v0.2 additive.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_seen: Option<f64>,
+    /// Timestamp of last packet for this universe (seconds since capture start), v0.2 additive.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_seen: Option<f64>,
 }
 
 /// Source metadata for a universe.
@@ -308,6 +316,9 @@ pub struct ConflictSummary {
     pub severity: String,
     /// Numeric conflict score (v0.1 mirrors overlap duration).
     pub conflict_score: f64,
+    /// Timestamp of first detected conflict (seconds since capture start), v0.2 additive.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_seen: Option<f64>,
 }
 
 /// Compliance summary for a protocol.
