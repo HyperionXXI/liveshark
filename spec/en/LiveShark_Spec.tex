@@ -606,26 +606,33 @@ Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
 \end{tabularx}
 \end{adjustbox}
 
-\subsection{Appendix D --- v0.2 additive schema fields}
+\subsection{Appendix E --- v0.2 additive schema fields}
 
 This appendix documents optional fields added in v0.2 of the JSON report contract. These fields are \textit{additive} and do not affect \texttt{report\_version}; compliant v0.1 consumers \MUST{} tolerate their presence and \MUSTNOT{} treat them as incompatibilities. All v0.2 fields use \texttt{skip\_serializing\_if} semantics: they are omitted from the JSON output when null or absent, ensuring backward compatibility with existing v0.1 workflows.
 
 \subsubsection{SourceSummary.source\_id (optional string, v0.2)}
 \begin{itemize}
-  \item \textbf{Purpose:} Provide a stable, deterministic identifier for each source to enable GUI compare/timeline features that require reliable cross-report source tracking.
-  \item \textbf{Format:} Follows Appendix C source identity rules: \texttt{sacn:cid:<CID>}, \texttt{sacn:<ip>:<port>}, or \texttt{artnet:<ip>:<port>}.
+  \item \textbf{Purpose:} Provide a stable, deterministic identifier for each source to enable GUI compare/timeline features that require reliable cross-report source tracking. This field is opaque; consumers \MUST{} treat it as a stable key, not decompose its structure.
+  \item \textbf{Format (recommended):} The recommended format is informational only and \MUSTNOT{} be used for parsing logic. Consumers \SHOULD{} treat \texttt{source\_id} as an opaque string. For informational purposes, the pattern is \texttt{proto:source}, where \texttt{proto} is the protocol name and \texttt{source} is the endpoint. Specifically:
+  \begin{itemize}
+    \item \texttt{artnet:<ip>:<port>} for Art-Net (e.g., \texttt{artnet:192.168.0.1:6454}).
+    \item \texttt{sacn:<ip>:<port>} for sACN with IP endpoint (e.g., \texttt{sacn:10.0.0.1:5568}).
+    \item \texttt{sacn:cid:<CID>} for sACN with CID priority (e.g., \texttt{sacn:cid:000102030405060708090a0b0c0d0e0f}); \texttt{CID} is lowercase hexadecimal, 32 characters, no separators.
+    \item IPv6 endpoints use canonical compressed form, bracketed: \texttt{artnet:[2001:db8::1]:6454}, \texttt{sacn:[fe80::1]:5568}.
+  \end{itemize}
+  \item \textbf{Stability:} Within a single report, \texttt{source\_id} \MUST{} be stable and deterministic for a given source (same source identity \ensuremath{\Rightarrow} same identifier, deterministic sorting). Across reports, \texttt{source\_id} \SHOULD{} remain stable when the underlying identity remains stable (e.g., same sACN CID or same IP:port endpoint).
   \item \textbf{Availability:} Always populated in v0.2 when a \texttt{SourceSummary} is emitted. Absent (null) in v0.1.
   \item \textbf{Sorting impact:} When present in v0.2, \texttt{sources[]} are sorted by \texttt{source\_id} ascending (superseding the v0.1 rule of sorting by \texttt{source\_ip}, then \texttt{cid}).
-  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{source\_id} as the primary stable key for cross-report comparisons and GUI state tracking.
+  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{source\_id} as the primary stable key for cross-report comparisons and GUI state tracking; it is more reliable than \texttt{source\_ip} alone.
 \end{itemize}
 
 \subsubsection{ConflictSummary.proto (optional string, v0.2)}
 \begin{itemize}
-  \item \textbf{Purpose:} Indicate the protocol (\texttt{artnet} or \texttt{sacn}) of the sources involved in a conflict. Enables protocol-specific GUI rendering and conflict resolution strategies.
-  \item \textbf{Format:} String value: \texttt{artnet} or \texttt{sacn}.
+  \item \textbf{Purpose:} Indicate the protocol of the sources involved in a conflict. Enables protocol-specific GUI rendering, conflict resolution strategies, and extensibility for future protocols.
+  \item \textbf{Format:} Lowercase ASCII protocol name (case-sensitive). v0.2 emits \texttt{artnet} or \texttt{sacn}. Future versions \MAY{} emit other protocol names; consumers \SHOULD{} be prepared to encounter unknown values.
+  \item \textbf{Semantics:} A conflict record always involves sources from the same protocol; hence \texttt{proto} is a single string, not per-source. All sources listed in \texttt{sources[]} belong to the protocol named in \texttt{proto}.
   \item \textbf{Availability:} Always populated in v0.2 for each \texttt{ConflictSummary} record. Absent (null) in v0.1.
-  \item \textbf{Semantics:} A conflict record always involves sources from the same protocol; hence \texttt{proto} is a single string, not per-source.
-  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{proto} to tag conflict summaries and enable protocol-aware filtering or rendering in the GUI.
+  \item \textbf{Consumer guidance:} v0.1 consumers may ignore this field. v0.2 consumers \SHOULD{} use \texttt{proto} to tag conflict summaries and enable protocol-aware filtering or rendering in the GUI. Consumers \MUST{} treat unknown \texttt{proto} values as opaque strings and display/pass-through as-is without attempting to interpret them.
 \end{itemize}
 
 \nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}

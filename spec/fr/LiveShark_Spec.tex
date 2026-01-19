@@ -640,20 +640,27 @@ Cet appendice documente les champs optionnels ajoutés en v0.2 du contrat du rap
 
 \subsubsection{SourceSummary.source\_id (chaîne optionnelle, v0.2)}
 \begin{itemize}
-  \item \textbf{Objectif :} Fournir un identifiant stable et déterministe pour chaque source afin de permettre aux fonctionnalités compare/timeline de l'IHM de suivre les sources de manière fiable entre rapports.
-  \item \textbf{Format :} Suit les règles d'identité de source de l'Appendice C : \texttt{sacn:cid:<CID>}, \texttt{sacn:<ip>:<port>}, ou \texttt{artnet:<ip>:<port>}.
+  \item \textbf{Objectif :} Fournir un identifiant stable et déterministe pour chaque source afin de permettre aux fonctionnalités compare/timeline de l'IHM de suivre les sources de manière fiable entre rapports. Ce champ est opaque ; les consommateurs \DOIVENT{} le traiter comme une clé stable et ne pas décomposer sa structure.
+  \item \textbf{Format (recommandé) :} Le format recommandé est informatif uniquement et \NEDOITPAS{} être utilisé pour la logique de parsing. Les consommateurs \DEVRAIT{} traiter \texttt{source\_id} comme une chaîne opaque. À titre informatif, le motif est \texttt{proto:source}, où \texttt{proto} est le nom du protocole et \texttt{source} est l'endpoint. Spécifiquement :
+  \begin{itemize}
+    \item \texttt{artnet:<ip>:<port>} pour Art-Net (ex. \texttt{artnet:192.168.0.1:6454}).
+    \item \texttt{sacn:<ip>:<port>} pour sACN avec endpoint IP (ex. \texttt{sacn:10.0.0.1:5568}).
+    \item \texttt{sacn:cid:<CID>} pour sACN avec priorité CID (ex. \texttt{sacn:cid:000102030405060708090a0b0c0d0e0f}) ; \texttt{CID} est en hexadécimal minuscule, 32 caractères, sans séparateurs.
+    \item Les endpoints IPv6 utilisent la forme canonique comprimée, entre crochets : \texttt{artnet:[2001:db8::1]:6454}, \texttt{sacn:[fe80::1]:5568}.
+  \end{itemize}
+  \item \textbf{Stabilité :} Dans un seul rapport, \texttt{source\_id} \DOIT{} être stable et déterministe pour une source donnée (même identité de source \ensuremath{\Rightarrow} même identifiant, tri déterministe). Entre les rapports, \texttt{source\_id} \DEVRAIT{} rester stable quand l'identité sous-jacente reste stable (p. ex., même CID sACN ou même endpoint IP:port).
   \item \textbf{Disponibilité :} Toujours complété en v0.2 quand un \texttt{SourceSummary} est émis. Absent (null) en v0.1.
   \item \textbf{Impact sur l'ordre :} Si présent en v0.2, \texttt{sources[]} sont triés par \texttt{source\_id} croissant (remplaçant la règle v0.1 de tri par \texttt{source\_ip}, puis \texttt{cid}).
-  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{source\_id} comme clé stable primaire pour les comparaisons entre rapports et le suivi d'état de l'IHM.
+  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{source\_id} comme clé stable primaire pour les comparaisons entre rapports et le suivi d'état de l'IHM ; il est plus fiable que \texttt{source\_ip} seul.
 \end{itemize}
 
 \subsubsection{ConflictSummary.proto (chaîne optionnelle, v0.2)}
 \begin{itemize}
-  \item \textbf{Objectif :} Indiquer le protocole (\texttt{artnet} ou \texttt{sacn}) des sources impliquées dans un conflit. Permet le rendu spécifique au protocole et les stratégies de résolution de conflits dans l'IHM.
-  \item \textbf{Format :} Valeur de chaîne : \texttt{artnet} ou \texttt{sacn}.
+  \item \textbf{Objectif :} Indiquer le protocole des sources impliquées dans un conflit. Permet le rendu spécifique au protocole, les stratégies de résolution de conflits et l'extensibilité pour les futurs protocoles.
+  \item \textbf{Format :} Nom de protocole ASCII minuscule (sensible à la casse). v0.2 émet \texttt{artnet} ou \texttt{sacn}. Les versions futures \MAY{} émettre d'autres noms de protocoles ; les consommateurs \DEVRAIT{} être prêts à rencontrer des valeurs inconnues.
+  \item \textbf{Sémantique :} Un enregistrement de conflit implique toujours des sources du même protocole ; donc \texttt{proto} est une seule chaîne, non par source. Toutes les sources listées dans \texttt{sources[]} appartiennent au protocole nommé dans \texttt{proto}.
   \item \textbf{Disponibilité :} Toujours complété en v0.2 pour chaque enregistrement \texttt{ConflictSummary}. Absent (null) en v0.1.
-  \item \textbf{Sémantique :} Un enregistrement de conflit implique toujours des sources du même protocole ; donc \texttt{proto} est une seule chaîne, non par source.
-  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{proto} pour étiqueter les résumés de conflits et permettre le filtrage ou le rendu conscient du protocole dans l'IHM.
+  \item \textbf{Guide de consommation :} Les consommateurs v0.1 peuvent ignorer ce champ. Les consommateurs v0.2 \DEVRAIT{} utiliser \texttt{proto} pour étiqueter les résumés de conflits et permettre le filtrage ou le rendu conscient du protocole dans l'IHM. Les consommateurs \DOIT{} traiter les valeurs \texttt{proto} inconnues comme des chaînes opaques et les afficher/transmettre telles quelles sans tenter de les interpréter.
 \end{itemize}
 
 \nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}
