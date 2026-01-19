@@ -296,6 +296,7 @@ pub struct FlowSummary {
 ///     affected_channels: Vec::new(),
 ///     severity: "low".to_string(),
 ///     conflict_score: 1.2,
+///     first_seen: None,
 /// };
 /// assert_eq!(conflict.universe, 1);
 /// ```
@@ -450,6 +451,8 @@ mod tests {
                 jitter_ms: None,
                 dup_packets: None,
                 reordered_packets: None,
+                first_seen: None,
+                last_seen: None,
             }],
             flows: vec![FlowSummary {
                 app_proto: "udp".to_string(),
