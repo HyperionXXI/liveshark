@@ -92,26 +92,37 @@ Flux & Tuple unidirectionnel (proto,\\ src ip:port, dst ip:port). \\
 \toprule
 \textbf{Acronyme} & \textbf{Développement} \\
 \midrule
+ACN & Architecture for Control Networks \\
+AES67 & Standard d'interopérabilité audio sur IP \\
 ArtDMX & Paquet de données DMX Art-Net \\
 Art-Net & Protocole Art-Net \\
+ANSI & American National Standards Institute \\
+ARP & Address Resolution Protocol \\
 BCP & Best Current Practice (bonnes pratiques actuelles) \\
 CC-BY-4.0 & Creative Commons Attribution 4.0 International \\
 CID & Component Identifier (identifiant de source sACN) \\
 CI & Intégration continue \\
 CLI & Interface en ligne de commande \\
+DHCP & Dynamic Host Configuration Protocol \\
+DNS & Domain Name System \\
 DMX & Digital Multiplex (DMX512) \\
 DMX512 & Digital Multiplex 512 \\
 DoD & Definition of Done (critère de fin) \\
 FPS / PPS / BPS & Trames / Paquets / Octets\\ par seconde \\
 GUI & Interface graphique \\
+IGMP & Internet Group Management Protocol \\
 IP & Internet Protocol (Protocole Internet) \\
+IPv6 & Internet Protocol version 6 \\
 JSON & JavaScript Object\\ Notation \\
 MIT & Licence MIT \\
+mDNS & Multicast DNS \\
 MVP & Minimum Viable Product (produit minimum viable) \\
 PCAP & Packet Capture \\
 PCAPNG & PCAP Next\\ Generation \\
+PDF & Portable Document Format \\
 QA & Assurance qualité \\
 RFC & Request for Comments \\
+RTP & Real-time Transport Protocol \\
 sACN & Streaming ACN (ANSI E1.31) \\
 UDP & User Datagram Protocol \\
 \bottomrule
@@ -199,9 +210,9 @@ Par défaut :
 Les fenêtres glissantes incluent les paquets dont l'horodatage est dans $[t - W, t]$ (bornes incluses).
 \subsection{Définitions des métriques (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}.)
-  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s.
-  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
+  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent, si $t_{last} == t_{first}$, ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}).
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s. La valeur rapportée est le débit sur la dernière fenêtre de 5.0 s se terminant au dernier horodatage observé.
+  \item \textbf{gigue IAT (diagnostic) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
   \item \textbf{perte (observée) :} lorsque des numéros de séquence existent (ex. sACN), la perte est rapportée comme des trous observés au point de capture. En v0.1, la perte \DOIT{} être rapportée uniquement lorsque des numéros de séquence existent ; sinon, les champs de perte sont omis. Cela ne prouve pas une perte côté récepteur.
 \end{itemize}
 Les métriques optionnelles sont omises lorsqu'elles ne sont pas calculables ; leur absence ne signifie pas zéro.
@@ -212,7 +223,7 @@ Ces champs sont des ajouts optionnels ; un ajout additif \NEDOITPAS{} incrément
 \begin{itemize}
   \item \textbf{max\_iat\_ms (flux) :} par flux UDP, maximum des intervalles d'arrivée $\max(t_i - t_{i-1})$ sur toute la capture. Unité : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatés existent pour le flux.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flux) :} par flux UDP, pics de charge (paquets/s et octets/s) sur fenêtre \emph{glissante} de 1.0 s. Règle : inclure les paquets dont l'horodatage est dans $[t-1.0, t]$ (bornes incluses). Reporter le maximum des comptes de fenêtre en entier. Omettre si le flux a moins de deux paquets horodatés ou si la durée couverte est $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets (univers sACN) :} par univers, compteurs agrégés sur les sources sACN disposant de numéros de séquence. En ordre temporel de capture, \texttt{dup\_packets} s'incrémente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrémente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$ (demi-plage arrière). Le wrap-around (ex. 254, 255, 0, 1) n'est pas considéré comme un réordonnancement. Omettre ces champs si aucun numéro de séquence n'est disponible.
+    \item \textbf{dup\_packets / reordered\_packets (univers sACN) :} par univers, les compteurs sont calculés \textbf{par source sACN (CID)} en ordre temporel de capture, puis agrégés. Pour chaque source, on définit le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$. Si $\Delta = 0$, incrémenter \texttt{dup\_packets}. Si $\Delta = 1$, le paquet est dans l'ordre. Si $\Delta \in [2,127]$, cela indique des paquets manquants et contribue $(\Delta - 1)$ à la perte observée. Si $\Delta \in [128,255]$ (demi-plage arrière), incrémenter \texttt{reordered\_packets} ; ces deltas \textbf{ne} contribuent \textbf{pas} à la perte. Le wrap-around (ex. 254, 255, 0, 1) est dans l'ordre. Omettre ces champs si aucun numéro de séquence n'est disponible.
 \end{itemize}
 
 
@@ -222,7 +233,8 @@ Les ajouts au rapport JSON sont non bloquants : un consommateur \DOIT{} ignorer 
 Les métriques optionnelles sont omises (absentes) lorsqu'elles ne sont pas calculables ; l'absence d'un champ ne signifie pas zéro.
 \texttt{report\_version} indique le schéma de base ; un ajout additif ne nécessite pas forcément un bump si les règles ci-dessus sont respectées.
 
-En v0.1, la perte est rapportée uniquement lorsque des numéros de séquence existent (ex. sACN) ; aucune perte n'est inférée pour Art-Net.
+En v0.1, la perte est rapportée uniquement lorsque des numéros de séquence existent (ex. sACN).
+Aucune perte n'est inférée pour Art-Net.
 
 \section{Exigences contractuelles (extrait)}
 Ce document est une base de démarrage : les exigences sont volontairement minimales.
@@ -307,7 +319,7 @@ LiveShark \DOIT{} calculer et rapporter pps/bps/fps/gigue tels que définis dans
 
 \section{Limites connues (v0.1)}
 \begin{itemize}
-  \item \textbf{Pourcentage de conformité} : valeur de remplacement (100.0) tant qu'un dénominateur formel n'est pas défini.
+  \item \textbf{Pourcentage de conformité :} c'est un placeholder (rapporté à 100.0 en v0.1) et \NEDOITPAS{} être interprété comme un score réel. Les consommateurs \DOIT{} utiliser \texttt{violations[]} comme source de vérité.
   \item \textbf{Détection des conflits} : basée uniquement sur le chevauchement temporel, avec des faux positifs possibles si les sources agissent sur des canaux différents. Le taux de faux positifs n'est pas quantifié en v0.1 ; les conflits sont des signaux à investiguer.
   \item \textbf{Validation sACN} : les paquets avec start code non nul ou un property value count invalide sont ignorés.
 \end{itemize}
@@ -319,7 +331,7 @@ Cette section résume l'orientation v0.2. Elle ne modifie pas le contrat v0.1.
   \item \textbf{Vue compare :} diff A/B déterministe en utilisant l'ordre et les clés canoniques de l'Appendice A ; l'absence est traitée comme \texttt{N/A}, pas comme zéro.
   \item \textbf{Performance viewer :} rester réactif sur les rapports volumineux (table + détails).
   \item \textbf{Hors ligne uniquement :} analyse basée sur fichiers, pas de capture live native.
-  \item \textbf{Stabilité du schéma :} champs additifs optionnels, aucune rupture pour les consommateurs v0.1.
+  \item \textbf{Stabilité du schéma :} champs additifs optionnels, sans rupture pour les consommateurs v0.1.
 \end{itemize}
 
 \section{Portée prévue (v0.3+, non normative)}
@@ -344,42 +356,44 @@ Cette section résume l'orientation v0.2. Elle ne modifie pas le contrat v0.1.
 
 \subsection{Vue timeline (définition)}
 \begin{itemize}
-  \item \textbf{Bornes de temps :} la timeline \DOIT{} utiliser les bornes \texttt{capture\_summary.time\_start} et \texttt{capture\_summary.time\_end} (RFC3339).
+  \item \textbf{Bornes de temps :} la timeline \DOIT{} utiliser les bornes (RFC3339).
+  \texttt{capture\_summary.\allowbreak time\_start} et \texttt{capture\_summary.\allowbreak time\_end}.
   Les bornes sont \textbf{inclusives}. Si \texttt{time\_start == time\_end}, le viewer \DOIT{} afficher une timeline de \textbf{longueur nulle} (instant unique) et \NEDOITPAS{} inventer une durée.
   Si \texttt{capture\_summary} ou ses bornes sont absentes, le viewer \DOIT{} afficher un état clair \enquote{Timeline indisponible} et \NEDOITPAS{} déduire des bornes.
-  \item \textbf{Lignes d'univers :} une ligne d'univers est identifiée par la clé canonique \texttt{(universe, proto)} (alignée avec les règles d'ordre de l'Appendice A). Elle \DOIT{} être sélectionnable et reliée au même univers dans les vues table/détails.
+  \item \textbf{Lignes d'univers :} une ligne d'univers est identifiée par la clé canonique \texttt{(universe,\allowbreak proto)} (Appendice A).
+  Elle \DOIT{} être sélectionnable et reliée au même univers dans les vues table/détails.
   \item \textbf{Intervalle d'activité (champs v0.2) :} pour chaque ligne d'univers, le rapport \DEVRAIT{} fournir des champs additifs \texttt{first\_seen} et \texttt{last\_seen} (RFC3339)
   indiquant le premier/dernier message valide contribuant à cet univers. Ces champs sont \textbf{optionnels} et \textbf{additifs} et \NEDOITPAS{} modifier \texttt{report\_version}.
   S'ils sont absents, le viewer \DOIT{} afficher l'intervalle comme \texttt{N/A} et \NEDOITPAS{} l'inférer.
-  \item \textbf{Conflits sur la timeline (champs v0.2) :} les intervalles de conflits \DEVRAIENT{} être représentés lorsque les champs additifs \texttt{conflicts[].first\_seen} et \texttt{conflicts[].last\_seen} (RFC3339) sont présents.
-  S'ils sont absents, les conflits \DOIVENT{} rester visibles dans la liste/détails mais \NEDOIVENTPAS{} être placés sur la timeline.
-  \item \textbf{Pas d'inférence :} la timeline \DOIT{} visualiser uniquement les champs mesurés/explicites du rapport. Elle \NEDOITPAS{} créer de nouveaux événements, et \NEDOITPAS{} revendiquer des causes racines.
+  \item \textbf{Conflits sur la timeline (champs v0.2) :} les intervalles de conflits \DEVRAIT{} être représentés lorsque les champs additifs \texttt{conflicts[].\allowbreak first\_seen} et \texttt{conflicts[].\allowbreak last\_seen} (RFC3339) sont présents.
+  S'ils sont absents, les conflits \DOIT{} rester visibles dans la liste/détails mais \NEDOITPAS{} être placés sur la timeline.
+  \item \textbf{Pas d'inférence :} la timeline \DOIT{} visualiser uniquement les champs mesurés/\allowbreak explicites du rapport. Elle \NEDOITPAS{} créer de nouveaux événements, et \NEDOITPAS{} revendiquer des causes racines.
 \end{itemize}
 
 \subsection{Vue compare (définition)}
 \begin{itemize}
   \item \textbf{Pas d'inférence (rappel) :} la vue compare \DOIT{} rapporter uniquement les deltas de champs explicites ; elle \NEDOITPAS{} inférer des métriques manquantes ni revendiquer des causes.
   \item \textbf{Diff déterministe :} pour une même paire (A,B), la vue compare \DOIT{} produire les mêmes deltas (pas d'aléatoire, ordre stable).
-  \item \textbf{Clés et ordre :} les comparaisons \DOIVENT{} utiliser des clés canoniques dérivées des règles de l'Appendice A :
+  \item \textbf{Clés et ordre :} les comparaisons \DOIT{} utiliser des clés canoniques dérivées des règles de l'Appendice A :
   \begin{itemize}
     \item \texttt{universes} par \texttt{(universe, proto)}.
-    \item \texttt{flows} par \texttt{(src, dst, app\_proto)} en utilisant les chaînes du rapport \textbf{telles quelles} (\textbf{aucune normalisation} de casse, IPv6, formatage, etc.).
+    \item \texttt{flows} par \texttt{(src,\allowbreak dst,\allowbreak app\_proto)}. Utiliser les chaînes du rapport \textbf{telles quelles}. \textbf{Aucune normalisation} de casse, IPv6, formatage, etc.
     \item \texttt{conflicts} par \texttt{(universe, sources)} où \texttt{sources} est la \textbf{liste canonique} d'identifiants de source triée \textbf{lexicographiquement} avant comparaison.
     \item \texttt{compliance} par \texttt{(protocol, violation\_id)}.
   \end{itemize}
-  \item \textbf{Absent vs zéro :} les champs numériques optionnels absents en A ou B \DOIVENT{} être traités comme \textbf{inconnus} (afficher \texttt{N/A}) et \NEDOIVENTPAS{} être remplacés par zéro pour le calcul des deltas.
+  \item \textbf{Absent vs zéro :} les champs numériques optionnels absents en A ou B \DOIT{} être traités comme \textbf{inconnus} (afficher \texttt{N/A}) et \NEDOITPAS{} être remplacés par zéro pour le calcul des deltas.
   \item \textbf{Égalité N/A :} si un champ est \texttt{N/A} dans \textbf{A et B}, il \NEDOITPAS{} être rapporté comme \enquote{changé}.
-  \item \textbf{Présentation :} le viewer \DOIT{} classer les changements en \enquote{ajouté}, \enquote{retiré} ou \enquote{modifié}. Pour les valeurs numériques présentes dans A et B, il \PEUT{} afficher \texttt{B-A} en plus de \texttt{A \rightarrow B}.
+  \item \textbf{Présentation :} le viewer \DOIT{} classer les changements en \enquote{ajouté}, \enquote{retiré} ou \enquote{modifié}. Pour les valeurs numériques présentes dans A et B, il \PEUT{} afficher \texttt{B-A} en plus de \texttt{A \textrightarrow B}.
 \end{itemize}
 
 \subsection{Invariants et stabilité UX}
 \begin{itemize}
-  \item \textbf{Ordre par défaut :} sans tri utilisateur, les listes \DOIVENT{} apparaître dans l'ordre canonique déterministe (Appendice A).
+  \item \textbf{Ordre par défaut :} sans tri utilisateur, les listes \DOIT{} apparaître dans l'ordre canonique déterministe (Appendice A).
   \item \textbf{Tri stable :} lorsque le tri utilisateur est activé, il \DOIT{} être stable \textbf{par table/vue} (les égalités préservent l'ordre précédent).
   Les égalités sont définies par l'\textbf{égalité de clé canonique} pour la table donnée (voir clés de la vue compare ci-dessus).
   \item \textbf{Détails = vérité :} le panneau de détails \DOIT{} présenter des valeurs complètes, non tronquées ; la vue JSON brute \DOIT{} refléter le rapport chargé sans modification.
-  \item \textbf{Troncature sûre :} les cellules de table \PEUVENT{} être tronquées pour la lisibilité, mais la valeur complète \DOIT{} rester accessible (infobulle et/ou détails).
-  \item \textbf{Inconnus explicites :} les champs optionnels manquants \DOIVENT{} être affichés comme \texttt{N/A} (jamais silencieusement comme 0).
+  \item \textbf{Troncature sûre :} la troncature \PEUT{} être appliquée pour la lisibilité, mais la valeur complète \DOIT{} rester accessible (infobulle et/ou détails).
+  \item \textbf{Inconnus explicites :} les champs optionnels manquants \DOIT{} être affichés comme \texttt{N/A} (jamais silencieusement comme 0).
 \end{itemize}
 
 \section{Critères de validation (extrait)}
@@ -387,11 +401,20 @@ Cette section résume l'orientation v0.2. Elle ne modifie pas le contrat v0.1.
 \subsection{Définition de fin v0.1}
 Le MVP est considéré livré si :
 \begin{enumerate}
-  \item \texttt{liveshark pcap analyse --report out/report.json}\\
-  \texttt{file.pcapng} fonctionne sur 3 captures.
+  \item \texttt{liveshark pcap analyze --report out/report.json}\\
+  \texttt{file.pcapng} fonctionne sur 3 captures. La CLI accepte aussi \texttt{analyse} comme alias.
   \item Art-Net et sACN sont décodés (univers, sources, fps).
   \item Le rapport JSON contient \texttt{conflicts[]} (détection auto).
   \item Aucun crash sur PCAP tronqué/corrompu.
+\end{enumerate}
+
+\subsection{Checklist de validation (contrat de rapport)}
+\begin{enumerate}
+  \item Le rapport contient \texttt{report\_version}, \texttt{tool}, \texttt{generated\_at}, \texttt{input}, et les sections\\
+  \texttt{capture\_summary}, \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}, \texttt{compliance[]}.
+  \item Les règles d'ordre déterministe sont appliquées (Appendice A).
+  \item Au moins 4 tests golden : \texttt{artnet}, \texttt{artnet\_conflict}, \texttt{sacn}, \texttt{sacn\_conflict}.
+  \item Les champs volatils (\texttt{generated\_at}, et optionnellement \texttt{input.path}) sont normalisés dans les tests golden.
 \end{enumerate}
 
 \subsection{Tests golden}
@@ -409,7 +432,8 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
   \item \texttt{tool.name} et \texttt{tool.version} : chaînes (identification de l'outil).
   \item \texttt{generated\_at} : chaîne, horodatage RFC3339.
   \item \texttt{input.path} : chaîne ; \texttt{input.bytes} : entier.
-  \item \texttt{capture\_summary} : objet ou null (si indisponible).
+  \item \texttt{capture\_summary} : objet ou null (si indisponible). S'il est présent, il \DOIT{} inclure\\
+  \texttt{packets\_total} (entier), et \texttt{time\_start}/\texttt{time\_end} en RFC3339 UTC avec suffixe \texttt{Z} si connus.
   \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]} : tableaux (peuvent être vides en v0.1).
   \item \texttt{compliance[]} : tableau (peut être vide en v0.1).
   \item Les éléments de \texttt{universes[]} contiennent : \texttt{universe} (entier), \texttt{proto} (chaîne),\\
@@ -425,13 +449,21 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
   \item Les éléments de \texttt{conflicts[]} sont définis dans l'Appendice C.
   \item Les éléments de \texttt{compliance[]} contiennent : \texttt{protocol} (chaîne),\\
   \texttt{compliance\_percentage}\\
-  (flottant ; v0.1 utilise 100.0 comme valeur de remplacement),\\
+  (flottant ; v0.1 émet 100.0 comme placeholder ; les consommateurs \NEDOITPAS{} s'y fier et \DOIT{} utiliser \texttt{violations[]} à la place),\\
   et \texttt{violations[]} (tableau d'objets avec : \texttt{id} (identifiant stable),\\
   \texttt{severity} (chaîne ; v0.1 utilise \texttt{warning} ou \texttt{error}),\\
   \texttt{message} (explication lisible), \texttt{count} (entier, nombre total d'occurrences sur la capture), et \texttt{examples[]} optionnel\\
   (tableau d'au plus 3 chaînes, chacune donnant un contexte concis tel que \texttt{"source IP:port @ timestamp"} ;\\
   les octets de charge utile ne sont pas requis).\\
-  La liste d'exemples, lorsqu'elle est présente, \DOIT{} être dédupliquée, triée de façon stable et limitée à 3 pour garder des rapports compacts et déterministes. Les exemples sont illustratifs et n'affectent pas \texttt{count}.
+  La liste d'exemples, lorsqu'elle est présente, \DOIT{} être dédupliquée, triée lexicographiquement (octet par octet) et limitée à 3 pour garder des rapports compacts et déterministes. Les exemples sont illustratifs et n'affectent pas \texttt{count}.
+\end{itemize}
+
+\paragraph{Conventions de formatage des chaînes (v0.1).}
+Sauf mention contraire :
+\begin{itemize}
+  \item \texttt{source\_ip} est une adresse IP en forme texte (IPv4 en décimal pointé ; IPv6 en forme canonique compressée en minuscules, type RFC5952).
+  \item \texttt{src} et \texttt{dst} dans \texttt{flows[]} sont des adresses socket formatées en \texttt{ip:port} pour IPv4 et \texttt{[ip]:port} pour IPv6 (forme d'affichage classique \texttt{SocketAddr}).
+  \item Les consommateurs \DOIT{} comparer ces champs comme des chaînes telles qu'émises (sans normalisation supplémentaire).
 \end{itemize}
 
 \subsubsection{Identifiants de violations compliance (v0.1, non exhaustif)}
@@ -453,14 +485,14 @@ Format : \texttt{tests/golden/<nom>/\{input.pcapng, expected\_report.json,\\ met
 \begin{itemize}
   \item \textbf{Ordonnancement stable :}
   \texttt{universes[]} triés par \texttt{universe} croissant puis \texttt{proto} croissant ;
-  \texttt{sources[]} dans chaque univers triés par \texttt{source\_ip} croissant ;
-  \texttt{flows[]} triés par \texttt{src} puis \texttt{dst} ;
+  \texttt{sources[]} dans chaque univers triés par \texttt{source\_ip} croissant, puis \texttt{cid} croissant (si présent ; \texttt{cid} absent en dernier) ;
+  \texttt{flows[]} triés par \texttt{src} puis \texttt{dst}, puis \texttt{app\_proto} ;
   \texttt{conflicts[]} triés par \texttt{universe} puis \texttt{sources} (ordre lexicographique) ;
   \texttt{sources[]} dans chaque conflit triés par ordre lexicographique des identifiants de source ;
-  \texttt{compliance[]} triés par \texttt{protocol}, puis \texttt{violations[]} par \texttt{id}.
+  \texttt{compliance[]} triés par \texttt{protocol}, puis \texttt{violations[]} par sévérité (\texttt{error} avant \texttt{warning}), puis \texttt{id}.
   \item \textbf{Champs volatils :} seuls \texttt{generated\_at} (et optionnellement \texttt{input.path}) peuvent varier.
   \item \textbf{Flottants :} en v0.1, les valeurs flottantes sont sérialisées avec une précision suffisante pour garantir un JSON déterministe (minimum 6 chiffres significatifs). Des règles d'arrondi explicites pourront être définies pour certains champs.
-  \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339.
+  \item \textbf{RFC3339 :} \texttt{generated\_at}, \texttt{time\_start} et \texttt{time\_end} utilisent RFC3339 en UTC avec suffixe \texttt{Z}.
 \end{itemize}
 
 \subsubsection{Exemple (minimal)}
@@ -554,12 +586,12 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
 
 \subsection{Appendice D --- Définitions des métriques (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}.)
-  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s.
-  \item \textbf{gigue (IAT) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
+  \item \textbf{pps/bps :} paquets/octets par seconde en moyenne sur l'intervalle actif du flux $[t_{first}, t_{last}]$. Unités paquets/s et octets/s. Omettre si moins de deux paquets horodatés existent, si $t_{last} == t_{first}$, ou si la durée active est indisponible. (Rapporté dans \texttt{flows[]}).
+  \item \textbf{fps (univers) :} trames DMX reconstruites par seconde sur une fenêtre glissante de 5.0 s ; unité trames/s. La valeur rapportée est le débit sur la dernière fenêtre de 5.0 s se terminant au dernier horodatage observé.
+  \item \textbf{gigue IAT (diagnostic) :} moyenne des variations absolues entre temps d'arrivée successifs sur une fenêtre glissante de 10.0 s : $\text{mean}(|IAT_i - IAT_{i-1}|)$. L'unité est la milliseconde pour \texttt{iat\_jitter\_ms} et \texttt{jitter\_ms}. La valeur rapportée est le pic (maximum) sur l'ensemble des fenêtres.
   \item \textbf{perte (observée) :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), la perte est la somme des trous de séquence observés sur une fenêtre glissante de 10.0 s ;\\
-  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + frames\_count)}\\
-  pour les trames suivies par séquence. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
+  \texttt{loss\_rate} est \texttt{loss\_packets / (loss\_packets + seq\_tracked\_frames)}\\
+  où \texttt{seq\_tracked\_frames} est le nombre de trames observées avec numéros de séquence dans la même fenêtre de 10.0 s. Si les numéros de séquence sont indisponibles, les champs de perte \DOIT{} être omis.
   \item \textbf{rafales :} pour les sources avec numéros de séquence fiables (v0.1 : sACN), \texttt{burst\_count} est le nombre de rafales de pertes sur une fenêtre glissante de 10.0 s ; \texttt{max\_burst\_len} est la
   longueur maximale de rafale observée dans la même fenêtre. Si les numéros de séquence sont indisponibles, les champs de rafales \DOIT{} être omis.
 \end{itemize}
@@ -568,7 +600,7 @@ Optionnel (prévu, non normatif) : \texttt{first\_seen}, \texttt{last\_seen} et 
 \begin{itemize}
   \item \textbf{max\_iat\_ms :} par flux, maximum des intervalles d'arrivée $\max(t_i - t_{i-1})$ sur toute la capture. Unité : millisecondes, entier arrondi au plus proche. Omettre si moins de deux paquets horodatés existent.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s :} par flux, pics de charge (paquets/s et octets/s) sur une fenêtre glissante de 1.0 s, avec règle d'inclusion $[t-1.0, t]$. Reporter le maximum des comptes de fenêtre en entier. Omettre si moins de deux paquets horodatés existent ou si la durée couverte est $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets :} par univers, compteurs agrégés sur les sources sACN avec numéros de séquence. \texttt{dup\_packets} s'incrémente quand $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} s'incrémente quand le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ est dans $[128, 255]$. Le wrap-around (ex. 254, 255, 0, 1) est dans l'ordre. Omettre si aucun numéro de séquence n'est disponible.
+    \item \textbf{dup\_packets / reordered\_packets :} par univers, les compteurs sont calculés \textbf{par source sACN (CID)} en ordre temporel de capture, puis agrégés. Pour chaque source, on définit le delta modulo 256 $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$. Si $\Delta = 0$, incrémenter \texttt{dup\_packets}. Si $\Delta = 1$, le paquet est dans l'ordre. Si $\Delta \in [2,127]$, cela indique des paquets manquants et contribue $(\Delta - 1)$ à la perte observée. Si $\Delta \in [128,255]$ (demi-plage arrière), incrémenter \texttt{reordered\_packets} ; ces deltas \textbf{ne} contribuent \textbf{pas} à la perte. Le wrap-around (ex. 254, 255, 0, 1) est dans l'ordre. Omettre ces champs si aucun numéro de séquence n'est disponible.
 \end{itemize}
 
 \section{Licence}
@@ -583,13 +615,14 @@ Les fichiers PDF sont des artefacts de compilation générés depuis les sources
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
 RFC 8174 & Ambiguity of Uppercase vs Lowercase\\ in RFC 2119 Key Words \\
+RFC 3339 & Date and Time on the Internet: Timestamps \\
 ANSI E1.31-2018 & Streaming ACN (sACN) \\
 Art-Net 4 & Art-Net 4 Specification\\ (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
 
-\nocite{rfc2119,rfc8174,e1312018,artnet4}
+\nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}
 \printbibliography
 
 \end{document}

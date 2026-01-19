@@ -74,26 +74,37 @@ Flow & Unidirectional tuple (proto, src ip:port, dst ip:port). \\
 \toprule
 \textbf{Acronym} & \textbf{Expanded form} \\
 \midrule
+ACN & Architecture for Control Networks \\
+AES67 & High-performance audio-over-IP interoperability standard \\
 ArtDMX & Art-Net DMX data packet \\
 Art-Net & Art-Net lighting control protocol \\
+ANSI & American National Standards Institute \\
+ARP & Address Resolution Protocol \\
 BCP & Best Current Practice \\
 CC-BY-4.0 & Creative Commons Attribution 4.0 International \\
 CID & Component Identifier (sACN source identifier) \\
 CI & Continuous integration \\
 CLI & Command-line interface \\
+DHCP & Dynamic Host Configuration Protocol \\
+DNS & Domain Name System \\
 DMX & Digital Multiplex (DMX512 / DMX512-A) \\
 DMX512 & Digital Multiplex 512 \\
 DoD & Definition of Done \\
 FPS / PPS / BPS & Frames / Packets / Bytes per second \\
 GUI & Graphical user interface \\
+IGMP & Internet Group Management Protocol \\
 IP & Internet Protocol \\
+IPv6 & Internet Protocol version 6 \\
 JSON & JavaScript Object Notation \\
 MIT & Massachusetts Institute of Technology (license) \\
+mDNS & Multicast DNS \\
 MVP & Minimum Viable Product \\
 PCAP & Packet Capture file format \\
 PCAPNG & PCAP Next Generation file format \\
+PDF & Portable Document Format \\
 QA & Quality assurance \\
 RFC & Request for Comments \\
+RTP & Real-time Transport Protocol \\
 sACN & Streaming ACN (ANSI E1.31) \\
 UDP & User Datagram Protocol \\
 \bottomrule
@@ -184,12 +195,15 @@ Unless otherwise stated:
 \end{itemize}
 Sliding windows include packets with timestamps in $[t - W, t]$ (inclusive).
 
+\paragraph{Windowed metric semantics (v0.1).}
+Unless explicitly stated otherwise, windowed metrics report the value for the \textbf{last} window ending at the last observed timestamp. This applies to \texttt{fps}, \texttt{loss\_packets}, \texttt{loss\_rate}, \texttt{burst\_count}, and \texttt{max\_burst\_len}. Peak metrics (e.g., \texttt{pps\_peak\_1s} / \texttt{bps\_peak\_1s} and IAT jitter) report the \textbf{maximum} over all windows.
+
 \subsection{Metrics definitions (minimal)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist or the active duration is unavailable. (Reported in \texttt{flows[]}.)
-  \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
-  \item \textbf{jitter (IAT):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
-  \item \textbf{loss (observed):} when reliable protocol sequence numbers exist (v0.1: sACN), loss is reported as observed sequence gaps at the capture point. In v0.1, loss \MUST{} be reported only when sequence numbers exist; otherwise loss fields are omitted. This does not guarantee loss at the receiver.
+  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist, if $t_{last} == t_{first}$, or if the active duration is unavailable. (Reported in \texttt{flows[]}.)
+  \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s. The reported value is the rate over the last 5.0 s window ending at the last observed timestamp.
+  \item \textbf{IAT jitter (diagnostic):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
+  \item \textbf{loss (observed):} when reliable protocol sequence numbers exist (v0.1: sACN), loss is reported as observed sequence gaps at the capture point. For sACN, gaps are computed per source using the modulo-256 delta rule above; only $\Delta \in [2,127]$ contributes missing packets as $(\Delta-1)$. In v0.1, loss \MUST{} be reported only when sequence numbers exist; otherwise loss fields are omitted. This does not guarantee loss at the receiver.
 \end{itemize}
 Optional metrics are omitted when not computable; absence does not imply zero.
 See Appendix D for operational definitions and units.
@@ -199,7 +213,7 @@ These fields are optional additions; additive fields \MUSTNOT{} bump \texttt{rep
 \begin{itemize}
   \item \textbf{max\_iat\_ms (flows):} per UDP flow, maximum observed inter-arrival time $\max(t_i - t_{i-1})$ over the capture. Unit: milliseconds, integer rounded to nearest. Omit if fewer than two packets with timestamps exist for the flow.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s (flows):} per UDP flow, peak packets/s and bytes/s over a 1.0 s \emph{sliding} window. Window rule: include packets with timestamps in $[t-1.0, t]$ (inclusive of both ends). Report the maximum window count as an integer. Omit if the flow has fewer than two packets with timestamps or the covered duration is $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets (sACN universes):} per universe, counts aggregated across sACN sources with valid sequence numbers. In capture-time order, \texttt{dup\_packets} increments when $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} increments when the modulo-256 delta $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ is in $[128, 255]$ (backward half-range). Wrap-around (e.g., 254, 255, 0, 1) is not considered reordering. Omit these fields when no sequence numbers are available.
+  \item \textbf{dup\_packets / reordered\_packets (sACN universes):} per universe, counts are computed \textbf{per sACN source (CID)} in capture-time order and summed. For each source, let the modulo-256 delta be $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$. If $\Delta = 0$, increment \texttt{dup\_packets}. If $\Delta = 1$, the packet is in-order. If $\Delta \in [2, 127]$, it indicates missing packets and contributes $(\Delta - 1)$ to the observed loss count. If $\Delta \in [128, 255]$ (backward half-range), increment \texttt{reordered\_packets}; backward-half deltas \textbf{do not} contribute to loss. Wrap-around (e.g., 254, 255, 0, 1) is in-order. Omit these fields when no sequence numbers are available.
 \end{itemize}
 
 \subsection{Compatibility and consumer contract}
@@ -289,9 +303,9 @@ LiveShark \MUST{} compute and report pps/bps/fps/jitter as defined in Appendix D
 \end{reqbox}
 \section{Known limitations (v0.1)}
 \begin{itemize}
-  \item \textbf{Compliance percentage} is a placeholder (reported as 100.0) until a formal denominator is defined.
+  \item \textbf{Compliance percentage} is a placeholder (reported as 100.0 in v0.1) and \MUSTNOT{} be interpreted as a real compliance score. Consumers \MUST{} rely on \texttt{violations[]} as the source of truth.
   \item \textbf{Conflict detection} uses time overlap only and may produce false positives when sources are active on different channels. The false-positive rate is not quantified in v0.1; conflicts are signals to investigate.
-  \item \textbf{sACN validation} drops packets with non-zero start code or invalid property value count.
+  \item \textbf{sACN validation} drops packets with non-zero start code or invalid property value count (the count includes the start code; valid range is 1..=513).
 \end{itemize}
 \section{Planned scope (v0.2, non-normative)}
 This section summarizes intended v0.2 direction. It does not change the v0.1 contract.
@@ -349,7 +363,7 @@ This section summarizes intended v0.2 direction. It does not change the v0.1 con
   \end{itemize}
   \item \textbf{Absent vs zero:} optional numeric fields absent in A or B \MUST{} be treated as \textbf{unknown} (display \texttt{N/A}) and \MUSTNOT{} be substituted with zero for delta computation.
   \item \textbf{N/A equality:} if a field is \texttt{N/A} in \textbf{both} A and B, it \MUSTNOT{} be reported as \enquote{changed}.
-  \item \textbf{Presentation:} the viewer \MUST{} classify changes as \enquote{added}, \enquote{removed}, or \enquote{changed}. For numeric values present in both A and B, it \MAY{} display \texttt{B-A} in addition to \texttt{A \rightarrow B}.
+  \item \textbf{Presentation:} the viewer \MUST{} classify changes as \enquote{added}, \enquote{removed}, or \enquote{changed}. For numeric values present in both A and B, it \MAY{} display \texttt{B-A} in addition to \texttt{A \textrightarrow B}.
 \end{itemize}
 
 \subsection{Invariants and UX stability}
@@ -366,8 +380,8 @@ This section summarizes intended v0.2 direction. It does not change the v0.1 con
 \subsection{Definition of Done v0.1}
 The MVP is considered delivered if:
 \begin{enumerate}
-  \item \texttt{liveshark pcap analyse --report out/report.json file.pcapng}\\
-  runs successfully on 3 captures.
+  \item \texttt{liveshark pcap analyze --report out/report.json file.pcapng}\\
+  runs successfully on 3 captures. The CLI also accepts \texttt{analyse} as an alias.
   \item Art-Net and sACN are decoded (universes, sources, fps).
   \item The JSON report contains \texttt{conflicts[]} (automatic detection).
   \item No crash occurs on truncated/corrupted PCAPs.
@@ -396,7 +410,8 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
   \item \texttt{tool.name} and \texttt{tool.version}: strings (tool identification).
   \item \texttt{generated\_at}: string, RFC3339 timestamp.
   \item \texttt{input.path}: string; \texttt{input.bytes}: integer.
-  \item \texttt{capture\_summary}: object or null (when unavailable).
+  \item \texttt{capture\_summary}: object or null (when unavailable). When present, it \MUST{} include\\
+  \texttt{packets\_total} (integer), and \texttt{time\_start}/\texttt{time\_end} as RFC3339 UTC timestamps with \texttt{Z} when known.
   \item \texttt{universes[]}, \texttt{flows[]}, \texttt{conflicts[]}: arrays (may be empty in v0.1).
   \item \texttt{compliance[]}: array (may be empty in v0.1).
   \item \texttt{universes[]} elements contain: \texttt{universe} (integer), \texttt{proto} (string),
@@ -410,12 +425,20 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
   and optional \texttt{pps}, \texttt{bps}, \texttt{iat\_jitter\_ms}, \texttt{max\_iat\_ms}, \texttt{pps\_peak\_1s}, \texttt{bps\_peak\_1s}
   (omitted when unavailable).
   \item \texttt{conflicts[]} elements are defined in Appendix C.
-  \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 uses 100.0 as a placeholder),
+  \item \texttt{compliance[]} elements contain: \texttt{protocol} (string), \texttt{compliance\_percentage} (float; v0.1 emits 100.0 as a placeholder; consumers \MUSTNOT{} rely on it and \MUST{} use \texttt{violations[]} instead),
   and \texttt{violations[]} (array of objects with: \texttt{id} (stable identifier), \texttt{severity} (string; v0.1 uses \texttt{warning} or \texttt{error}),
   \texttt{message} (human-readable explanation), \texttt{count} (integer, total number of occurrences across the capture), and optional
   \texttt{examples[]} (array of at most 3 strings, each containing concise context such as \texttt{"source IP:port @ timestamp"};\\
   payload bytes are not required).
-  When present, examples \MUST{} be deduplicated, sorted stably, and limited to 3 to keep reports compact and deterministic. Examples are illustrative only and do not affect \texttt{count}.
+  When present, examples \MUST{} be deduplicated, sorted lexicographically (bytewise), and limited to 3 to keep reports compact and deterministic. Examples are illustrative only and do not affect \texttt{count}.
+\end{itemize}
+
+\paragraph{String formatting conventions (v0.1).}
+Unless explicitly stated otherwise:
+\begin{itemize}
+  \item \texttt{source\_ip} is an IP address in textual form (IPv4 dotted-decimal; IPv6 in canonical lowercase compressed form, e.g. RFC5952-style).
+  \item \texttt{src} and \texttt{dst} in \texttt{flows[]} are socket addresses formatted as \texttt{ip:port} for IPv4 and \texttt{[ip]:port} for IPv6 (common \texttt{SocketAddr} display form).
+  \item Consumers \MUST{} compare these fields as plain strings as emitted (no additional normalization).
 \end{itemize}
 
 \subsubsection{Compliance violation IDs (v0.1, non-exhaustive)}
@@ -437,14 +460,14 @@ rules. See \texttt{AGENTS.md} \S9.4 for the schema.
 \begin{itemize}
   \item \textbf{Stable ordering:}
   \texttt{universes[]} sorted by \texttt{universe} ascending, then \texttt{proto} ascending;
-  \texttt{sources[]} in each universe sorted by \texttt{source\_ip} ascending;
-  \texttt{flows[]} sorted by \texttt{src}, then \texttt{dst};
+  \texttt{sources[]} in each universe sorted by \texttt{source\_ip} ascending, then \texttt{cid} ascending (when present; absent \texttt{cid} sorts last);
+  \texttt{flows[]} sorted by \texttt{src}, then \texttt{dst}, then \texttt{app\_proto};
   \texttt{conflicts[]} sorted by \texttt{universe}, then \texttt{sources} lexicographically;
   \texttt{sources[]} in each conflict record sorted lexicographically by source identifier;
-  \texttt{compliance[]} sorted by \texttt{protocol}, then \texttt{violations[]} by \texttt{id}.
+  \texttt{compliance[]} sorted by \texttt{protocol}, then \texttt{violations[]} by severity (\texttt{error} before \texttt{warning}), then \texttt{id}.
   \item \textbf{Volatile fields:} only \texttt{generated\_at} (and optionally \texttt{input.path}) may vary between runs.
   \item \textbf{Floats:} in v0.1, floating-point values are serialized with sufficient precision to keep deterministic JSON output (minimum 6 significant digits). Future versions may define explicit rounding for specific fields.
-  \item \textbf{RFC3339:} \texttt{generated\_at}, \texttt{time\_start}, and \texttt{time\_end} use RFC3339.
+  \item \textbf{RFC3339:} \texttt{generated\_at}, \texttt{time\_start}, and \texttt{time\_end} use RFC3339 in UTC with the \texttt{Z} suffix.
 \end{itemize}
 
 \subsubsection{Example (minimal)}
@@ -536,12 +559,12 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
 
 \subsection{Appendix D --- Metric definitions (v0.1)}
 \begin{itemize}
-  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist or the active duration is unavailable. (Reported in \texttt{flows[]}.)
-  \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s.
-  \item \textbf{jitter (IAT):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
-  \item \textbf{loss (observed):} for sources with reliable sequence numbers (v0.1: sACN), loss is the sum of observed sequence gaps over a 10.0 s sliding window;\\
-  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + frames\_count)}\\
-  for sequence-tracked frames. If sequence numbers are unavailable, loss fields \MUST{} be omitted.
+  \item \textbf{pps/bps:} packets/bytes per second averaged over the flow active interval $[t_{first}, t_{last}]$. Units are packets/s and bytes/s. Omit if fewer than two timestamped packets exist, if $t_{last} == t_{first}$, or if the active duration is unavailable. (Reported in \texttt{flows[]}.)
+  \item \textbf{fps (universe):} reconstructed DMX frames per second over a 5.0 s sliding window; unit is frames/s. The reported value is the rate over the last 5.0 s window ending at the last observed timestamp.
+  \item \textbf{IAT jitter (diagnostic):} mean absolute variation between consecutive inter-arrival times over a 10.0 s sliding window: $\text{mean}(|IAT_i - IAT_{i-1}|)$. Unit is milliseconds for \texttt{iat\_jitter\_ms} and \texttt{jitter\_ms}. The reported value is the peak (maximum) over all windows.
+  \item \textbf{loss (observed):} for sources with reliable sequence numbers (v0.1: sACN), loss is the sum of observed sequence gaps over a 10.0 s sliding window; for sACN, gaps are computed per source using the modulo-256 delta rule above; only $\Delta \in [2,127]$ contributes missing packets as $(\Delta-1)$.\\
+  \texttt{loss\_rate} is \texttt{loss\_packets / (loss\_packets + seq\_tracked\_frames)}\\
+  where \texttt{seq\_tracked\_frames} is the number of frames observed with sequence numbers in the same 10.0 s window. If sequence numbers are unavailable, loss fields \MUST{} be omitted.
   \item \textbf{bursts:} for sequence-tracked sources (v0.1: sACN), \texttt{burst\_count} is the number of loss bursts over a 10.0 s sliding window; \texttt{max\_burst\_len} is the maximum burst length observed in the same window. If sequence numbers are unavailable, burst fields \MUST{} be omitted.
 \end{itemize}
 
@@ -549,7 +572,7 @@ Optional (planned, non-normative): \texttt{first\_seen}, \texttt{last\_seen}, an
 \begin{itemize}
   \item \textbf{max\_iat\_ms:} per flow, maximum observed inter-arrival time $\max(t_i - t_{i-1})$ over the capture. Unit: milliseconds, integer rounded to nearest. Omit when fewer than two packets with timestamps exist.
   \item \textbf{pps\_peak\_1s / bps\_peak\_1s:} per flow, peak packets/s and bytes/s over a 1.0 s sliding window, with inclusion rule $[t-1.0, t]$. Report the maximum window count as an integer. Omit when fewer than two packets with timestamps exist or when the covered duration is $< 1.0$ s.
-  \item \textbf{dup\_packets / reordered\_packets:} per universe, counts aggregated across sACN sources with sequence numbers. \texttt{dup\_packets} increments when $\texttt{seq} = \texttt{seq\_prev}$. \texttt{reordered\_packets} increments when modulo-256 delta $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$ is in $[128, 255]$. Wrap-around (e.g., 254, 255, 0, 1) is in-order. Omit when no sequence numbers are available.
+  \item \textbf{dup\_packets / reordered\_packets:} per universe, counts are computed \textbf{per sACN source (CID)} in capture-time order and summed. For each source, let the modulo-256 delta be $\Delta = (\texttt{seq} - \texttt{seq\_prev}) \bmod 256$. If $\Delta = 0$, increment \texttt{dup\_packets}. If $\Delta = 1$, the packet is in-order. If $\Delta \in [2, 127]$, it indicates missing packets and contributes $(\Delta - 1)$ to the observed loss count. If $\Delta \in [128, 255]$ (backward half-range), increment \texttt{reordered\_packets}; backward-half deltas \textbf{do not} contribute to loss. Wrap-around (e.g., 254, 255, 0, 1) is in-order. Omit when no sequence numbers are available.
 \end{itemize}
 
 \section{Licensing}
@@ -564,13 +587,14 @@ PDF files are build artifacts generated from the \texttt{.tex} sources and \text
 \midrule
 RFC 2119 & Key words for use in RFCs to Indicate Requirement Levels \\
 RFC 8174 & Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words \\
+RFC 3339 & Date and Time on the Internet: Timestamps \\
 ANSI E1.31-2018 & Streaming ACN (sACN) \\
 Art-Net 4 & Art-Net 4 Specification (Protocol Release) \\
 \bottomrule
 \end{tabularx}
 \end{adjustbox}
 
-\nocite{rfc2119,rfc8174,e1312018,artnet4}
+\nocite{rfc2119,rfc8174,rfc3339,e1312018,artnet4}
 \printbibliography
 
 \end{document}
