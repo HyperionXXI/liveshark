@@ -332,11 +332,12 @@ function renderHeader(tab) {
 
 // Helper function for conflict identification (used in buildRows)
 function createConflictKey(conflict) {
-  // Create a deterministic key: universe + proto + sorted sources + first_seen
+  // Create a deterministic key: universe + proto + sorted sources
+  // Do NOT include first_seen (may be missing or vary by source)
   const sources = Array.isArray(conflict.sources)
     ? conflict.sources.slice().sort().join("|")
     : "";
-  return `${conflict.universe}:${conflict.proto}:${sources}:${conflict.first_seen}`;
+  return `${conflict.universe}:${conflict.proto}:${sources}`;
 }
 
 function buildRows(report, tab) {
@@ -813,9 +814,14 @@ function renderTimeline(report) {
     rect.setAttribute("data-proto", u.proto);
     rect.style.cursor = "pointer";
     
+    // Accessibility: keyboard navigation
+    rect.setAttribute("tabindex", "0");
+    rect.setAttribute("role", "button");
+    rect.setAttribute("aria-label", `Filter Universe ${u.universe} (${u.proto}) — ${formatTimestamp(u.first_seen)} to ${formatTimestamp(u.last_seen)}`);
+    
     // Tooltip
     const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    title.textContent = `Universe ${u.universe} (${u.proto})\n${formatTimestamp(u.first_seen)} - ${formatTimestamp(u.last_seen)}\nClick to filter`;
+    title.textContent = `Universe ${u.universe} (${u.proto})\n${formatTimestamp(u.first_seen)} - ${formatTimestamp(u.last_seen)}\nClick or press Enter to filter`;
     rect.appendChild(title);
     
     // Click handler
@@ -823,17 +829,28 @@ function renderTimeline(report) {
       applyUniverseFilter(u.universe, u.proto);
     });
     
-    // Hover sync
-    rect.addEventListener("mouseenter", () => {
-      document
-        .querySelectorAll(`tr[data-universe="${u.universe}"][data-proto="${u.proto}"]`)
-        .forEach((row) => row.classList.add("hover-highlight"));
+    // Keyboard handler (Enter/Space)
+    rect.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        applyUniverseFilter(u.universe, u.proto);
+      }
     });
-    rect.addEventListener("mouseleave", () => {
-      document
-        .querySelectorAll("tr.hover-highlight")
-        .forEach((row) => row.classList.remove("hover-highlight"));
-    });
+    
+    // Hover sync (only on devices that support hover)
+    const supportsHover = !window.matchMedia("(hover: none)").matches;
+    if (supportsHover) {
+      rect.addEventListener("mouseenter", () => {
+        document
+          .querySelectorAll(`tr[data-universe="${u.universe}"][data-proto="${u.proto}"]`)
+          .forEach((row) => row.classList.add("hover-highlight"));
+      });
+      rect.addEventListener("mouseleave", () => {
+        document
+          .querySelectorAll("tr.hover-highlight")
+          .forEach((row) => row.classList.remove("hover-highlight"));
+      });
+    }
     
     timelineSvg.appendChild(rect);
 
@@ -878,9 +895,14 @@ function renderTimeline(report) {
       polygon.setAttribute("data-universe", c.universe);
       polygon.style.cursor = "pointer";
 
-      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      // Accessibility: keyboard navigation
+      polygon.setAttribute("tabindex", "0");
+      polygon.setAttribute("role", "button");
       const sourcesStr = c.sources ? c.sources.join(", ") : "unknown";
-      title.textContent = `Universe ${c.universe} conflict\nSources: ${sourcesStr}\nTime: ${formatTimestamp(c.first_seen)}\nClick to focus`;
+      polygon.setAttribute("aria-label", `Universe ${c.universe} conflict between ${sourcesStr} at ${formatTimestamp(c.first_seen)}`);
+
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `Universe ${c.universe} conflict\nSources: ${sourcesStr}\nTime: ${formatTimestamp(c.first_seen)}\nClick or press Enter to focus`;
       polygon.appendChild(title);
       
       // Click handler
@@ -888,18 +910,28 @@ function renderTimeline(report) {
         applyConflictFocus(conflictKey);
       });
       
-      // Hover sync
-      polygon.addEventListener("mouseenter", () => {
-        const conflictRow = tableBody.querySelector(`tr[data-conflict-key="${conflictKey}"]`);
-        if (conflictRow) {
-          conflictRow.classList.add("hover-highlight");
+      // Keyboard handler (Enter/Space)
+      polygon.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          applyConflictFocus(conflictKey);
         }
       });
-      polygon.addEventListener("mouseleave", () => {
-        document
-          .querySelectorAll("tr.hover-highlight")
-          .forEach((row) => row.classList.remove("hover-highlight"));
-      });
+      
+      // Hover sync (only on devices that support hover)
+      if (supportsHover) {
+        polygon.addEventListener("mouseenter", () => {
+          const conflictRow = tableBody.querySelector(`tr[data-conflict-key="${conflictKey}"]`);
+          if (conflictRow) {
+            conflictRow.classList.add("hover-highlight");
+          }
+        });
+        polygon.addEventListener("mouseleave", () => {
+          document
+            .querySelectorAll("tr.hover-highlight")
+            .forEach((row) => row.classList.remove("hover-highlight"));
+        });
+      }
       
       timelineSvg.appendChild(polygon);
     });
@@ -974,11 +1006,11 @@ function applyConflictFocus(conflictKey) {
     highlightElements(matchingRow);
     // Scroll into view
     matchingRow.scrollIntoView({ behavior: "smooth", block: "center" });
+    updateFilterStatus();
   } else {
-    showNotification("Conflict not found in current view");
+    // Show feedback if row not found
+    showNotification("Conflict row not found — may have been filtered", "warning");
   }
-  
-  updateFilterStatus();
 }
 
 function clearTimelineFilter() {
@@ -1025,15 +1057,25 @@ function updateFilterStatus() {
   }
   
   let statusText = "";
+  let rowCount = 0;
+  
   if (state.timelineFilter.type === "universe") {
     const { universe, proto } = state.timelineFilter;
     statusText = `Filtered: Universe ${universe} (${proto})`;
+    // Count visible rows
+    rowCount = tableBody.querySelectorAll(
+      `tr[data-universe="${universe}"][data-proto="${proto}"]:not(.is-hidden)`
+    ).length;
   } else if (state.timelineFilter.type === "conflict") {
     statusText = "Filtered: Conflict selected";
+    // Count visible rows (conflict is already highlighted)
+    rowCount = tableBody.querySelectorAll("tr:not(.is-hidden)").length;
   }
   
+  const countText = rowCount > 0 ? ` — ${rowCount} row${rowCount !== 1 ? "s" : ""}` : "";
+  
   filterStatusEl.innerHTML = `
-    ${statusText}
+    ${statusText}${countText}
     <button id="clearFilterBtn" class="clear-filter-btn">Clear</button>
   `;
   filterStatusEl.hidden = false;
@@ -1041,13 +1083,13 @@ function updateFilterStatus() {
   document.getElementById("clearFilterBtn").addEventListener("click", clearTimelineFilter);
 }
 
-function showNotification(message) {
+function showNotification(message, severity = "info") {
   const notif = document.createElement("div");
-  notif.className = "timeline-notification";
+  notif.className = `timeline-notification timeline-notification-${severity}`;
   notif.textContent = message;
   document.body.appendChild(notif);
   
-  setTimeout(() => notif.remove(), 2000);
+  setTimeout(() => notif.remove(), 2500);
 }
 
 // ESC key to clear filter

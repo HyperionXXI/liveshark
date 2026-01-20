@@ -460,6 +460,18 @@ tr.selected {
   animation: slideIn 0.3s ease;
 }
 
+.timeline-notification-info {
+  background: #e7f3ff;
+  border-color: #0d47a1;
+  color: #0d47a1;
+}
+
+.timeline-notification-warning {
+  background: #fff3cd;
+  border-color: #ff6f00;
+  color: #ff6f00;
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(400px);
