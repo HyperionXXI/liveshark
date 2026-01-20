@@ -20,6 +20,9 @@ gui/report-viewer/fixtures/*.json
 # Diff artifacts (generated during development)
 *.diff
 
+# Test reports
+test_report.json
+
 # LaTeX (on versionne les sources, pas les builds)
 spec/**/build/
 **/*.aux
